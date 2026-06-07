@@ -51,6 +51,10 @@
             <span>Share My Location</span>
             <small>GPS, maps, contacts</small>
           </button>
+          <button class="quick-action emergency" data-route="safetyShare">
+            <span>Safety Share</span>
+            <small>Launch live location sharing</small>
+          </button>
           <button class="quick-action" data-route="medical">
             <span>Find Medical Care</span>
             <small>Online map search</small>
@@ -333,9 +337,75 @@
           <p id="emergencyGps">GPS not captured yet.</p>
           <div class="action-row">
             <button class="primary-action" id="shareLocation">Text / Share Location</button>
+            <button class="primary-action share-inline" data-route="safetyShare">Safety Share</button>
             <button class="secondary-action" id="copyLocation">Copy GPS</button>
             <button class="secondary-action" id="openMaps">Open in Maps</button>
           </div>
+        </div>
+      </section>
+
+      <section id="safetyShareView" class="view" aria-labelledby="safetyShareTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Safety Share</p>
+            <h2 id="safetyShareTitle">Share live location with WRSP safety context</h2>
+          </div>
+          <button class="secondary-action" id="safetyShareUseGps">Use Current GPS</button>
+        </div>
+
+        <div class="card">
+          <p class="warning strong">WRSP does not start live tracking automatically. Your phone will ask you to choose the contact and duration in Messages, Find My, or Google Maps.</p>
+          <p class="helper">Use your phone's built-in live location sharing. WRSP will help you open the right app. Choose a time limit there, such as 1 hour or until end of day. Then return to WRSP to send or confirm your safety information.</p>
+        </div>
+
+        <div class="card safety-step">
+          <h3>Step 1: Send WRSP safety context</h3>
+          <div class="split">
+            <label>Trusted contact name
+              <input id="safetyShareContactName" placeholder="Name">
+            </label>
+            <label>Trusted contact phone
+              <input id="safetyShareContactPhone" inputmode="tel" placeholder="Phone number">
+            </label>
+          </div>
+          <button type="button" class="secondary-action contact-picker" data-contact-target="safetyShareContactPhone">Choose from contacts</button>
+          <div class="split">
+            <label>Check-in / expiration time
+              <input id="safetyShareCheckIn" type="datetime-local">
+            </label>
+            <label>Starting location backup
+              <input id="safetyShareStartLocation" placeholder="GPS, town, landing, or road">
+            </label>
+          </div>
+          <label>Job/site notes
+            <textarea id="safetyShareNotes" rows="3" placeholder="Site, vehicle, work plan, or instructions for trusted contact"></textarea>
+          </label>
+          <label>WRSP safety message
+            <textarea id="safetyShareMessage" rows="5" readonly></textarea>
+          </label>
+          <div class="action-row">
+            <button type="button" class="primary-action" id="textTrustedContact">Text Trusted Contact</button>
+            <button type="button" class="secondary-action" id="sendSafetyPage">Send WRSP Safety Page</button>
+            <button type="button" class="secondary-action" id="copySafetyShareMessage">Copy Message</button>
+          </div>
+        </div>
+
+        <div class="card safety-step">
+          <h3>Step 2: Launch the phone's live location sharing</h3>
+          <p class="helper">Choose the option that fits this phone. If a button does not open the exact sharing screen, use the instructions shown below it.</p>
+          <div id="liveLocationOptions" class="launcher-list"></div>
+        </div>
+
+        <div class="card safety-step">
+          <h3>Step 3: Confirm live sharing was started</h3>
+          <label>Selected method
+            <select id="safetyShareSelectedMethod"></select>
+          </label>
+          <label>Notes
+            <textarea id="safetyShareConfirmNotes" rows="2" placeholder="Who received it, duration selected, or any problem with the launcher"></textarea>
+          </label>
+          <button type="button" class="primary-action" id="confirmLiveLocationStarted">I Started Live Location Sharing</button>
+          <p id="safetyShareStatus" class="helper">Live location sharing is not confirmed in WRSP yet.</p>
         </div>
       </section>
 
@@ -650,6 +720,7 @@
           </div>
         </div>
         <div class="quick-grid more-tools">
+          <button class="quick-action" data-route="safetyShare"><span>Safety Share</span><small>Launch live location sharing</small></button>
           <button class="quick-action" data-route="medical"><span>Find Medical Care</span><small>Online map search</small></button>
           <button class="quick-action" data-route="preparedness"><span>Preparedness</span><small>Trusted contact info</small></button>
           <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>

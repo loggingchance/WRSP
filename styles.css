@@ -555,6 +555,40 @@ textarea:focus {
   margin-top: 10px;
 }
 
+.safety-step h3 {
+  margin-bottom: 8px;
+}
+
+.launcher-list {
+  display: grid;
+  gap: 12px;
+}
+
+.launcher-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #cddcbe;
+  border-radius: 8px;
+  padding: 13px;
+  background: #f4f8ef;
+}
+
+.launcher-option h4 {
+  margin: 0 0 6px;
+  color: var(--forest);
+}
+
+.launcher-option p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.launcher-option .primary-action {
+  min-width: 180px;
+}
+
 .map-picker {
   margin-top: 14px;
   border: 1px solid #cddcbe;
@@ -936,6 +970,14 @@ textarea:focus {
 
   .section-head button,
   .card-head button {
+    width: 100%;
+  }
+
+  .launcher-option {
+    grid-template-columns: 1fr;
+  }
+
+  .launcher-option .primary-action {
     width: 100%;
   }
 }

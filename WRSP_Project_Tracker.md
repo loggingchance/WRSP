@@ -45,12 +45,13 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - GitHub connector authorized for the `loggingchance` account.
 - Online repository `loggingchance/WRSP` created and visible to Codex.
 - First online WRSP commit created through the connector with `README.md`.
-- Current WRSP app files synced into `C:\Users\steve\Documents\GitHub\WRSP` for GitHub Desktop / authenticated Windows publishing.
+- First full WRSP app publish completed to `loggingchance/WRSP` from the authenticated Windows session.
 - Lightweight `assets/wrsp-header.svg` added as a connector-friendly header asset while preserving the original PNG locally.
 - Shared plan text leads with map link and read-aloud directions.
 - Preparedness profile and sharing exist.
 - Medical lookup exists through online map searches with urgent-care warnings.
 - About / Resources expanded with real links and an Other Apps and Tools section.
+- Safety Share launcher added for iPhone Messages, Find My, Google Maps, SMS fallback, copy/share safety message, static backup pin, and user confirmation timestamp.
 
 ## User feedback captured
 
@@ -62,12 +63,14 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - About/Resources must include real links and related app links.
 - About/Resources should follow the original required acknowledgements and should not mention The Northern Logger magazine.
 - Before calling the app finished, show and review WRSP in a phone-sized preview window so the user can see the mobile layout.
+- Share My Location should become Safety Share: a launch-and-guidance feature for the phone's built-in live location sharing tools.
+- Safety Share must clearly state that WRSP does not automatically start live tracking and does not build custom real-time tracking in this phase.
 
 ## Next priorities
 
-1. Complete first full publish of the synced app files to `loggingchance/WRSP`.
-2. Enable GitHub Pages for the repository and test the hosted URL.
-3. Test the hosted PWA on an actual phone, including offline use and Add to Home Screen.
+1. Enable GitHub Pages for the repository and test the hosted URL.
+2. Test the hosted PWA on an actual phone, including offline use and Add to Home Screen.
+3. Test Safety Share on iPhone, Android, and unknown/desktop fallback paths.
 4. Improve agency/contact lookup beyond web search where feasible.
 5. Final mobile QA: show the app in a phone-sized preview window and check touch layout, text wrapping, sticky buttons, map picker, print sheet, and plan/responder views.
 
@@ -76,18 +79,25 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Working: Codex can authenticate to GitHub through the connector as `loggingchance`.
 - Working: Codex can inspect repositories and create/update ordinary GitHub objects through the connector.
 - Working: `loggingchance/WRSP` exists online and is visible to Codex.
-- Working: The local GitHub folder is synced with the current WRSP source files.
+- Working: First full WRSP static app publish is online.
 - Blocked: This thread's connector toolset does not expose repository creation or bulk project upload.
 - Blocked: Shell-based `git push` from the sandbox cannot authenticate with the user's Windows GitHub session.
 - Blocked: The local `C:\Users\steve\Documents\GitHub\WRSP\.git` folder has a Windows deny rule for the sandbox identity, so Codex cannot stage/commit there directly.
 - Bridge path: Use GitHub Desktop or the authenticated Windows command prompt once for the first full publish; after files are online, Codex can continue managing smaller repo changes through the GitHub connector.
 
+## Open GitHub issues
+
+- [#1 Complete first full WRSP publish and GitHub Pages setup](https://github.com/loggingchance/WRSP/issues/1)
+- [#2 Improve location-based emergency contact lookup beyond generic web search](https://github.com/loggingchance/WRSP/issues/2)
+- [#3 Add Safety Share launcher for built-in phone live location sharing](https://github.com/loggingchance/WRSP/issues/3)
+
 ## Current implementation notes
 
 - Static deployment only; no framework or backend.
+- Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v4`.
+- Service worker cache is currently `wrsp-v5`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.

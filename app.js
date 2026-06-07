@@ -4,6 +4,7 @@ const PLAN_STORE = "plans";
 const SETTINGS_STORE = "settings";
 const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
+const SAFETY_SHARE_KEY = "safetyShare";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -130,6 +131,58 @@ const STATE_NAME_TO_CODE = {
   wisconsin: "WI",
   wyoming: "WY",
   "district of columbia": "DC",
+};
+
+function getDeviceType() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  if (/android/i.test(ua)) return "android";
+  return "other";
+}
+
+const liveLocationLauncherOptions = {
+  ios: [
+    {
+      id: "ios-messages",
+      platform: "iPhone",
+      label: "Open iPhone Messages",
+      href: "sms:{phone}",
+      instructions: "Open your trusted contact, tap +, choose Location, then Share and select a time limit.",
+    },
+    {
+      id: "ios-findmy",
+      platform: "iPhone",
+      label: "Open Find My",
+      href: "findmy://",
+      instructions: "Tap People, tap +, choose Share My Location, select your trusted contact, and choose a duration.",
+      fallback: "If Find My does not open, open the Find My app manually.",
+    },
+  ],
+  android: [
+    {
+      id: "android-google-maps",
+      platform: "Android",
+      label: "Open Google Maps",
+      href: "https://www.google.com/maps",
+      instructions: "Tap your profile picture, choose Location sharing, tap New share, choose a duration, and select your trusted contact.",
+    },
+    {
+      id: "android-sms",
+      platform: "Android",
+      label: "Text Trusted Contact",
+      href: "sms:{phone}?body={encodedMessage}",
+      instructions: "Send this text, then use Google Maps Location Sharing to share live location.",
+    },
+  ],
+  other: [
+    {
+      id: "other-google-maps",
+      platform: "Other",
+      label: "Open Google Maps",
+      href: "https://www.google.com/maps",
+      instructions: "Use Google Maps Location Sharing if available, or send the WRSP Safety Page instead.",
+    },
+  ],
 };
 
 const emptyPlan = () => ({
@@ -303,6 +356,7 @@ function routeTo(route) {
   if (route === "saved") renderSavedPlans();
   if (route === "create") window.setTimeout(renderSiteMap, 50);
   if (route === "medical") prefillMedicalOrigin();
+  if (route === "safetyShare") updateSafetyShareScreen();
   if (route === "preparedness") loadPreparedness();
   if (route === "defaults") loadDefaultsForm();
   if (route === "pwa") updatePwaStatus();
@@ -1082,6 +1136,198 @@ function locationShareText() {
   return `My current WRSP location is ${emergencyCoords.lat}, ${emergencyCoords.lng}. Map: https://maps.google.com/?q=${coords}`;
 }
 
+function safetyShareOptionsForDevice() {
+  const type = getDeviceType();
+  if (type === "ios") return liveLocationLauncherOptions.ios;
+  if (type === "android") return liveLocationLauncherOptions.android;
+  return [
+    ...liveLocationLauncherOptions.ios,
+    ...liveLocationLauncherOptions.android,
+    ...liveLocationLauncherOptions.other,
+  ];
+}
+
+function cleanPhone(value = "") {
+  return value.replace(/[^\d+]/g, "");
+}
+
+function safetyShareCheckInText() {
+  const value = $("#safetyShareCheckIn")?.value;
+  if (!value) return "the planned check-in time";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function datetimeLocalValue(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    "-",
+    pad(date.getMonth() + 1),
+    "-",
+    pad(date.getDate()),
+    "T",
+    pad(date.getHours()),
+    ":",
+    pad(date.getMinutes()),
+  ].join("");
+}
+
+async function safetyShareUrl() {
+  if (currentPlanId) {
+    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    if (plan) return importUrlForPlan(plan);
+  }
+  return window.location.href.split("#")[0];
+}
+
+function safetyShareStaticLocationText() {
+  const manual = $("#safetyShareStartLocation")?.value.trim();
+  if (manual) return manual;
+  if (emergencyCoords) {
+    return `${emergencyCoords.lat}, ${emergencyCoords.lng} https://maps.google.com/?q=${emergencyCoords.lat},${emergencyCoords.lng}`;
+  }
+  const plan = formToPlan();
+  const loc = plan.location || {};
+  if (loc.lat && loc.lng) {
+    return `${loc.lat}, ${loc.lng} https://maps.google.com/?q=${loc.lat},${loc.lng}`;
+  }
+  return "";
+}
+
+async function buildSafetyShareMessage() {
+  const checkIn = safetyShareCheckInText();
+  const pageUrl = await safetyShareUrl();
+  const locationText = safetyShareStaticLocationText();
+  const notes = $("#safetyShareNotes")?.value.trim();
+  return [
+    `I am starting a WRSP Safety Share until ${checkIn}.`,
+    `Safety page: ${pageUrl}.`,
+    "I am also starting live location sharing from my phone.",
+    `If you do not hear from me by ${checkIn}, check this page and my shared phone location.`,
+    locationText ? `Starting location backup: ${locationText}.` : "",
+    notes ? `Notes: ${notes}` : "",
+  ].filter(Boolean).join(" ");
+}
+
+function buildLauncherHref(option, message) {
+  const phone = cleanPhone($("#safetyShareContactPhone")?.value || "");
+  return option.href
+    .replace("{phone}", encodeURIComponent(phone))
+    .replace("{encodedMessage}", encodeURIComponent(message));
+}
+
+async function updateSafetyShareMessage() {
+  const messageBox = $("#safetyShareMessage");
+  if (!messageBox) return "";
+  const message = await buildSafetyShareMessage();
+  messageBox.value = message;
+  return message;
+}
+
+async function renderLiveLocationOptions() {
+  const list = $("#liveLocationOptions");
+  const select = $("#safetyShareSelectedMethod");
+  if (!list || !select) return;
+  const message = await updateSafetyShareMessage();
+  const options = safetyShareOptionsForDevice();
+  select.innerHTML = options.map((option) => `<option value="${option.id}">${escapeHtml(option.label)}</option>`).join("");
+  list.innerHTML = options.map((option) => `
+    <div class="launcher-option">
+      <div>
+        <p class="eyebrow">${escapeHtml(option.platform)}</p>
+        <h4>${escapeHtml(option.label)}</h4>
+        <p>${escapeHtml(option.instructions)}</p>
+        ${option.fallback ? `<p class="helper">${escapeHtml(option.fallback)}</p>` : ""}
+      </div>
+      <button type="button" class="primary-action" data-launch-location="${option.id}">${escapeHtml(option.label)}</button>
+    </div>
+  `).join("");
+  list.querySelectorAll("[data-launch-location]").forEach((button) => {
+    button.addEventListener("click", () => launchLiveLocationOption(button.dataset.launchLocation, message));
+  });
+}
+
+async function updateSafetyShareScreen() {
+  const checkIn = $("#safetyShareCheckIn");
+  if (checkIn && !checkIn.value) {
+    const defaultTime = new Date(Date.now() + 60 * 60 * 1000);
+    defaultTime.setSeconds(0, 0);
+    checkIn.value = datetimeLocalValue(defaultTime);
+  }
+  const saved = await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY);
+  const value = saved?.value;
+  if (value?.trustedContactName && !$("#safetyShareContactName").value) $("#safetyShareContactName").value = value.trustedContactName;
+  if (value?.trustedContactPhone && !$("#safetyShareContactPhone").value) $("#safetyShareContactPhone").value = value.trustedContactPhone;
+  if (value?.notes && !$("#safetyShareConfirmNotes").value) $("#safetyShareConfirmNotes").value = value.notes;
+  await renderLiveLocationOptions();
+  renderSafetyShareStatus(value);
+}
+
+function renderSafetyShareStatus(value) {
+  const status = $("#safetyShareStatus");
+  if (!status) return;
+  if (!value?.userConfirmedStartedAt) {
+    status.textContent = "Live location sharing is not confirmed in WRSP yet.";
+    return;
+  }
+  status.textContent = `Confirmed ${formatDate(value.userConfirmedStartedAt)} by ${value.selectedMethod || "selected method"}. WRSP did not start tracking automatically; this records your confirmation.`;
+}
+
+async function launchLiveLocationOption(optionId, message) {
+  const option = safetyShareOptionsForDevice().find((item) => item.id === optionId);
+  if (!option) return;
+  $("#safetyShareSelectedMethod").value = option.id;
+  const record = {
+    ...((await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY))?.value || {}),
+    selectedMethod: option.id,
+    launchedAt: new Date().toISOString(),
+    userConfirmedStartedAt: null,
+    trustedContactName: $("#safetyShareContactName").value.trim(),
+    trustedContactPhone: $("#safetyShareContactPhone").value.trim(),
+    notes: $("#safetyShareConfirmNotes").value.trim() || null,
+  };
+  await storePut(SETTINGS_STORE, { key: SAFETY_SHARE_KEY, value: record });
+  renderSafetyShareStatus(record);
+  const href = buildLauncherHref(option, message || await buildSafetyShareMessage());
+  window.location.href = href;
+}
+
+async function textTrustedContact() {
+  const phone = cleanPhone($("#safetyShareContactPhone").value);
+  if (!phone) {
+    toast("Enter or choose a trusted contact phone first.");
+    return;
+  }
+  const message = await updateSafetyShareMessage();
+  window.location.href = `sms:${encodeURIComponent(phone)}?body=${encodeURIComponent(message)}`;
+}
+
+async function sendSafetyPage() {
+  const message = await updateSafetyShareMessage();
+  await shareText("WRSP Safety Share", message);
+}
+
+async function confirmLiveLocationStarted() {
+  const existing = (await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY))?.value || {};
+  const record = {
+    ...existing,
+    selectedMethod: $("#safetyShareSelectedMethod").value,
+    launchedAt: existing.launchedAt || new Date().toISOString(),
+    userConfirmedStartedAt: new Date().toISOString(),
+    trustedContactName: $("#safetyShareContactName").value.trim(),
+    trustedContactPhone: $("#safetyShareContactPhone").value.trim(),
+    notes: $("#safetyShareConfirmNotes").value.trim() || null,
+  };
+  await storePut(SETTINGS_STORE, { key: SAFETY_SHARE_KEY, value: record });
+  renderSafetyShareStatus(record);
+  toast("Safety Share confirmation saved on this phone.");
+}
+
 function mapSearch(query) {
   const origin = $("#medicalSearchOrigin").value.trim();
   const fullQuery = origin ? `${query} near ${origin}` : `${query} near me`;
@@ -1204,6 +1450,14 @@ function formatPickedContact(contact) {
   return [name, tel, email].filter(Boolean).join(" - ");
 }
 
+function contactParts(contact) {
+  return {
+    name: Array.isArray(contact.name) ? contact.name[0] : contact.name,
+    tel: Array.isArray(contact.tel) ? contact.tel[0] : contact.tel,
+    email: Array.isArray(contact.email) ? contact.email[0] : contact.email,
+  };
+}
+
 async function chooseContactForField(fieldId) {
   const target = $(`#${fieldId}`);
   if (!target) return;
@@ -1214,6 +1468,15 @@ async function chooseContactForField(fieldId) {
   try {
     const contacts = await navigator.contacts.select(["name", "tel", "email"], { multiple: false });
     if (!contacts?.length) return;
+    if (fieldId === "safetyShareContactPhone") {
+      const picked = contactParts(contacts[0]);
+      $("#safetyShareContactName").value = picked.name || "";
+      $("#safetyShareContactPhone").value = picked.tel || picked.email || "";
+      await updateSafetyShareMessage();
+      await renderLiveLocationOptions();
+      toast("Trusted contact added to Safety Share.");
+      return;
+    }
     const formatted = formatPickedContact(contacts[0]);
     if (!formatted) {
       toast("No usable contact details were selected.");
@@ -1527,6 +1790,27 @@ function bindEvents() {
     if (!emergencyCoords) await refreshEmergencyGps();
     if (emergencyCoords) window.open(`https://maps.google.com/?q=${emergencyCoords.lat},${emergencyCoords.lng}`, "_blank", "noopener");
   });
+  ["safetyShareContactName", "safetyShareContactPhone", "safetyShareCheckIn", "safetyShareStartLocation", "safetyShareNotes"].forEach((id) => {
+    $(`#${id}`)?.addEventListener("input", async () => {
+      await updateSafetyShareMessage();
+      await renderLiveLocationOptions();
+    });
+  });
+  $("#safetyShareUseGps").addEventListener("click", async () => {
+    await refreshEmergencyGps();
+    if (emergencyCoords) {
+      $("#safetyShareStartLocation").value = `${emergencyCoords.lat}, ${emergencyCoords.lng}`;
+      await updateSafetyShareMessage();
+      await renderLiveLocationOptions();
+    }
+  });
+  $("#textTrustedContact").addEventListener("click", textTrustedContact);
+  $("#sendSafetyPage").addEventListener("click", sendSafetyPage);
+  $("#copySafetyShareMessage").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(await updateSafetyShareMessage());
+    toast("Safety Share message copied.");
+  });
+  $("#confirmLiveLocationStarted").addEventListener("click", confirmLiveLocationStarted);
   $("#medicalUseGps").addEventListener("click", async () => {
     const position = await getCurrentPosition();
     $("#medicalSearchOrigin").value = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
