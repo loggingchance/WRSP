@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 667" role="img" aria-labelledby="title desc">
+  <title id="title">Woods-Ready Safety Plan WRSP</title>
+  <desc id="desc">Dark green forestry header with a map marker, trees, road, logs, and WRSP title.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0b301f"/>
+      <stop offset=".55" stop-color="#123c2c"/>
+      <stop offset="1" stop-color="#1f5a42"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#bed2b0" stop-opacity=".74"/>
+      <stop offset="1" stop-color="#355d3e" stop-opacity=".5"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#001a10" flood-opacity=".45"/>
+    </filter>
+    <pattern id="contours" width="190" height="126" patternUnits="userSpaceOnUse">
+      <path d="M-20 40c55-48 111-48 169 0s113 48 171 0M-12 92c43-34 88-34 137 0s96 34 146 0M24 15c31-23 65-23 101 0s70 23 108 0" fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="2048" height="667" fill="url(#sky)"/>
+  <rect width="2048" height="667" fill="url(#contours)"/>
+  <path d="M0 438c160-140 296-130 418-68 91 46 161 50 250 5 166-86 288-68 454 30 116 69 215 76 363 10 157-70 326-92 563-17v269H0z" fill="url(#hill)" opacity=".85"/>
+  <path d="M0 530c125-78 252-98 384-58 122 37 218 40 342-7 184-69 336-41 492 42 142 75 292 80 473 12 110-42 202-50 357-14v162H0z" fill="#092819" opacity=".64"/>
+  <g opacity=".9">
+    <path d="M0 584h2048v83H0z" fill="#061c13"/>
+    <g fill="#0b2b1e">
+      <path d="M22 587l21-45 22 45h-14l19 37H18l18-37z"/>
+      <path d="M98 585l27-58 28 58h-18l23 46H92l23-46z"/>
+      <path d="M175 592l20-45 21 45h-14l18 35h-50l17-35z"/>
+      <path d="M980 587l24-53 26 53h-16l20 42h-60l20-42z"/>
+      <path d="M1084 580l31-70 33 70h-20l26 55h-75l25-55z"/>
+      <path d="M1195 592l21-47 23 47h-14l18 36h-52l18-36z"/>
+      <path d="M1772 575l33-77 36 77h-22l28 59h-82l27-59z"/>
+      <path d="M1875 589l24-54 26 54h-16l21 43h-61l20-43z"/>
+    </g>
+  </g>
+  <g transform="translate(84 58)" filter="url(#softShadow)">
+    <path d="M245 0C111 0 0 111 0 245c0 182 245 471 245 471s245-289 245-471C490 111 379 0 245 0z" fill="#f9f5e8"/>
+    <path d="M245 26c-120 0-219 99-219 219 0 145 174 374 219 430 45-56 219-285 219-430C464 125 365 26 245 26z" fill="#123c2c"/>
+    <circle cx="245" cy="223" r="158" fill="#f8f1dd"/>
+    <path d="M87 247c72-88 136-111 199-68 48 32 95 37 149 5v139H87z" fill="#b2c7a5"/>
+    <path d="M118 286c62-52 118-64 169-34 45 26 91 24 139-9v117H118z" fill="#506f4e"/>
+    <path d="M244 72l-42 75h29l-52 76h44l-70 99h192l-69-99h44l-53-76h29z" fill="#063822"/>
+    <path d="M83 370c108-82 177-51 197 34 14 61 54 100 121 118-42 51-83 96-119 136-49-56-114-140-168-230-6-10-13-20-31-58z" fill="#fff"/>
+    <path d="M144 396c58-34 101-24 128 30 26 52 62 84 113 97" fill="none" stroke="#ef7b23" stroke-width="10" stroke-linecap="round" stroke-dasharray="30 24"/>
+    <circle cx="245" cy="460" r="54" fill="#ef7b23"/>
+    <path d="M245 426v68M211 460h68" stroke="#fff" stroke-width="22" stroke-linecap="square"/>
+  </g>
+  <g transform="translate(585 126)" filter="url(#softShadow)">
+    <text x="0" y="110" fill="#fff" font-family="Arial Black, Impact, sans-serif" font-size="118" font-weight="900">WOODS-READY</text>
+    <text x="0" y="248" fill="#78b34e" font-family="Arial Black, Impact, sans-serif" font-size="140" font-weight="900">SAFETY PLAN</text>
+    <rect x="1028" y="142" width="7" height="112" fill="#ef7b23"/>
+    <line x1="1070" x2="1304" y1="149" y2="149" stroke="#ef7b23" stroke-width="8"/>
+    <line x1="1070" x2="1304" y1="250" y2="250" stroke="#ef7b23" stroke-width="8"/>
+    <text x="1080" y="232" fill="#fff" font-family="Arial Black, Impact, sans-serif" font-size="90" font-weight="900">WRSP</text>
+    <g transform="translate(0 330)">
+      <path d="M0 0h60l18 28-18 28H0l-18-28z" fill="none" stroke="#ef7b23" stroke-width="6"/>
+      <path d="M31 12l-16 22h12l-18 20h44l-18-20h12z" fill="#ef7b23"/>
+      <text x="96" y="48" fill="#fff" font-family="Arial Black, Impact, sans-serif" font-size="48" font-weight="900">MOBILE SAFETY READINESS FOR LOGGING SITES</text>
+    </g>
+  </g>
+  <g transform="translate(1708 422)">
+    <g fill="#6f5137" stroke="#3d2717" stroke-width="6">
+      <rect x="0" y="100" width="280" height="36" rx="18" transform="rotate(-11 0 100)"/>
+      <rect x="28" y="62" width="280" height="36" rx="18" transform="rotate(-7 28 62)"/>
+      <rect x="78" y="25" width="280" height="36" rx="18" transform="rotate(4 78 25)"/>
+    </g>
+    <g fill="#c98a45" stroke="#5b3318" stroke-width="6">
+      <circle cx="262" cy="87" r="38"/>
+      <circle cx="321" cy="58" r="42"/>
+      <circle cx="221" cy="122" r="32"/>
+    </g>
+    <g stroke="#74431f" stroke-width="3" opacity=".8">
+      <path d="M262 87m-24 0c18-12 34-12 48 0m-48 0c18 12 34 12 48 0"/>
+      <path d="M321 58m-26 0c19-13 37-13 52 0m-52 0c19 13 37 13 52 0"/>
+      <path d="M221 122m-20 0c15-10 29-10 40 0m-40 0c15 10 29 10 40 0"/>
+    </g>
+  </g>
+  <rect x="0" y="647" width="2048" height="6" fill="#ef7b23"/>
+</svg>

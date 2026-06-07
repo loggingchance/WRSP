@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="WRSP icon">
+  <rect width="192" height="192" rx="36" fill="#123c2c"/>
+  <path d="M96 24 44 116h32l-20 34h80l-20-34h32L96 24Z" fill="#f7f5ee"/>
+  <path d="M96 48 64 106h24l-14 26h44l-14-26h24L96 48Z" fill="#7d9b58"/>
+  <circle cx="96" cy="122" r="10" fill="#d4631f"/>
+  <path d="M96 88v68" stroke="#f7f5ee" stroke-width="8" stroke-linecap="round"/>
+</svg>

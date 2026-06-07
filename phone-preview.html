@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WRSP Phone Preview</title>
+    <style>
+      :root {
+        --forest: #123c2c;
+        --paper: #f7f5ee;
+        --line: #d8ded5;
+        --ink: #1d2520;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #dfe5dc;
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .preview-wrap {
+        display: grid;
+        gap: 14px;
+        justify-items: center;
+      }
+
+      .preview-title {
+        width: min(100%, 430px);
+      }
+
+      .preview-title h1 {
+        margin: 0 0 4px;
+        color: var(--forest);
+        font-size: 1.25rem;
+      }
+
+      .preview-title p {
+        margin: 0;
+        color: #4f6258;
+        font-size: 0.95rem;
+      }
+
+      .phone {
+        width: min(390px, calc(100vw - 32px));
+        height: min(844px, calc(100vh - 130px));
+        min-height: 620px;
+        border: 12px solid #101917;
+        border-radius: 34px;
+        background: #101917;
+        box-shadow: 0 24px 70px rgba(18, 60, 44, 0.28);
+        overflow: hidden;
+      }
+
+      .speaker {
+        position: absolute;
+        width: 82px;
+        height: 5px;
+        border-radius: 999px;
+        background: #283733;
+      }
+
+      iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 22px;
+        background: var(--paper);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="preview-wrap">
+      <div class="preview-title">
+        <h1>WRSP Phone Preview</h1>
+        <p>Phone-sized preview frame, 390px wide. Use this for layout review before final mobile QA.</p>
+      </div>
+      <div class="phone">
+        <iframe src="index.html" title="WRSP app phone preview"></iframe>
+      </div>
+    </main>
+  </body>
+</html>

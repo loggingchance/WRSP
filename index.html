@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#123c2c">
+    <title>WRSP | Woods-Ready Safety Plan</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/icon-192.svg">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Woods-Ready Safety Plan</p>
+        <h1>WRSP</h1>
+      </div>
+      <div id="connectionBadge" class="status-badge">Checking</div>
+    </header>
+
+    <main id="app" class="app-shell">
+      <section id="homeView" class="view active" aria-labelledby="homeTitle">
+        <div class="hero-panel">
+          <img class="hero-image" src="assets/wrsp-header.svg" alt="Woods-Ready Safety Plan WRSP">
+          <div class="hero-copy">
+            <p class="eyebrow">Field utility</p>
+            <h2 id="homeTitle">Start every logging job with emergency-ready information.</h2>
+            <p>Build, save, share, import, and reopen job safety plans on this phone, even after service drops.</p>
+            <p class="hero-note">Plans save on this phone and work offline after WRSP has loaded.</p>
+          </div>
+          <button class="primary-action" data-route="create">Create Safety Plan</button>
+        </div>
+
+        <div id="continuePlanCard" class="continue-card" hidden></div>
+
+        <p class="more-label">More tools</p>
+        <div class="quick-grid">
+          <button class="quick-action" data-route="saved">
+            <span>Saved Plans</span>
+            <small id="planCount">0 stored</small>
+          </button>
+          <button class="quick-action" id="openSamplePlan">
+            <span>View Sample Plan</span>
+            <small>See a field-ready example</small>
+          </button>
+          <button class="quick-action" data-route="defaults">
+            <span>Set Defaults</span>
+            <small>Reuse company/contact info</small>
+          </button>
+          <button class="quick-action emergency" data-route="emergency">
+            <span>Share My Location</span>
+            <small>GPS, maps, contacts</small>
+          </button>
+          <button class="quick-action" data-route="medical">
+            <span>Find Medical Care</span>
+            <small>Online map search</small>
+          </button>
+          <button class="quick-action" data-route="preparedness">
+            <span>Preparedness</span>
+            <small>Trusted contact info</small>
+          </button>
+          <button class="quick-action" data-route="import">
+            <span>Import Plan</span>
+            <small>From shared backup</small>
+          </button>
+          <button class="quick-action" data-route="install">
+            <span>Install / Help</span>
+            <small>Home screen steps</small>
+          </button>
+          <button class="quick-action" data-route="pwa">
+            <span>PWA Status</span>
+            <small>Offline/install checks</small>
+          </button>
+          <button class="quick-action" data-route="feedback">
+            <span>Send Feedback</span>
+            <small>Suggestions, bugs, errors</small>
+          </button>
+        </div>
+      </section>
+
+      <section id="createView" class="view" aria-labelledby="createTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Job plan</p>
+            <h2 id="createTitle">Create or edit safety plan</h2>
+          </div>
+          <button class="secondary-action" id="newBlankPlan">New blank</button>
+        </div>
+
+        <form id="planForm" class="form-stack">
+          <input type="hidden" id="planId">
+          <div class="progress-card">
+            <div>
+              <strong id="essentialProgressText">0 of 6 plan essentials added</strong>
+              <p class="helper">Fill the open essentials section, then save and share.</p>
+            </div>
+            <div class="progress-track"><span id="essentialProgressBar"></span></div>
+          </div>
+
+          <details class="card accordion-card" open>
+            <summary>Essentials</summary>
+            <label>Job or site name <span class="needed-tag">needed</span>
+              <input id="title" name="title" required autocomplete="off" placeholder="North ridge thinning">
+            </label>
+            <div class="split">
+              <label>Creator
+                <input id="creator" name="creator" autocomplete="name">
+              </label>
+              <label>State / province
+                <input id="state" name="state" autocomplete="address-level1" placeholder="State or province">
+              </label>
+            </div>
+
+            <div class="card-head">
+              <h3>Location</h3>
+              <button type="button" class="small-action" id="captureGps">Capture GPS</button>
+            </div>
+            <div class="split">
+              <label>Latitude
+                <input id="lat" name="lat" inputmode="decimal" placeholder="Selected from map or GPS">
+              </label>
+              <label>Longitude
+                <input id="lng" name="lng" inputmode="decimal" placeholder="Selected from map or GPS">
+              </label>
+            </div>
+            <p id="gpsStatus" class="helper">GPS has not been captured for this plan.</p>
+            <div class="map-picker">
+              <div class="map-toolbar">
+                <strong>Select site point</strong>
+                <div>
+                  <button type="button" class="small-action" id="mapZoomOut">-</button>
+                  <button type="button" class="small-action" id="mapZoomIn">+</button>
+                </div>
+              </div>
+              <div id="siteMap" class="site-map" role="button" aria-label="Tap map to select site location">
+                <div id="mapTiles" class="map-tiles"></div>
+                <div id="mapMarker" class="map-marker" hidden></div>
+              </div>
+              <p class="helper">Use GPS to get close, then zoom and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
+            </div>
+            <label>Nearest road / address
+              <input id="roadAddress" name="roadAddress" placeholder="Town road, landing, or nearest address">
+            </label>
+            <div class="split">
+              <label>Town
+                <input id="town" name="town">
+              </label>
+              <label>County
+                <input id="county" name="county">
+              </label>
+            </div>
+            <h3>Read-aloud directions</h3>
+            <p class="helper">Write directions that a caller can read out loud to 911 or dispatch. Start from a place responders can find without local woods knowledge.</p>
+            <label>Known starting landmark
+              <input id="knownLandmark" name="knownLandmark" placeholder="Nearest town, village, fire station, or intersection of two state highways">
+            </label>
+            <label>Read-aloud directions from that landmark
+              <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From the landmark, take Route __ for __ miles, turn onto __ Road, continue to the gate/landing, watch for..."></textarea>
+            </label>
+            <label>Primary contact
+              <input id="primaryContact" name="primaryContact" placeholder="Name and phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
+          </details>
+
+          <details class="card accordion-card">
+            <summary>Access & meeting points</summary>
+            <label>Best access route / truck directions
+              <textarea id="routeNotes" name="routeNotes" rows="3" placeholder="Truck-safe route, road names, turns, landmarks, turnaround notes"></textarea>
+            </label>
+            <label>Gate / lock / key notes
+              <textarea id="gateNotes" name="gateNotes" rows="2"></textarea>
+            </label>
+            <label>Emergency meeting point
+              <textarea id="meetingPoint" name="meetingPoint" rows="2" placeholder="Landing, gate, road junction, or staging spot"></textarea>
+            </label>
+            <label>Alternate meeting point
+              <textarea id="alternateMeetingPoint" name="alternateMeetingPoint" rows="2"></textarea>
+            </label>
+            <div class="subsection-block">
+              <h3>Possible helicopter landing zone</h3>
+              <p class="helper">Record a possible landing zone only as preparedness information. Dispatch/EMS decides whether air medical response is appropriate.</p>
+              <label>Landing zone description
+                <textarea id="landingZoneDescription" name="landingZoneDescription" rows="3" placeholder="Open landing, field, road junction, landing deck, distance from job site, access notes"></textarea>
+              </label>
+              <div class="split">
+                <label>Landing zone latitude
+                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" placeholder="Optional">
+                </label>
+                <label>Landing zone longitude
+                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" placeholder="Optional">
+                </label>
+              </div>
+              <button type="button" class="secondary-action" id="useSiteForLandingZone">Use selected site coordinates</button>
+              <label>Landing zone hazards / notes
+                <textarea id="landingZoneNotes" name="landingZoneNotes" rows="3" placeholder="Wires, slope, stumps, soft ground, trees, smoke, wind exposure, locked gates, ground contact"></textarea>
+              </label>
+            </div>
+          </details>
+
+          <details class="card accordion-card">
+            <summary>Crew & contacts</summary>
+            <div class="split">
+              <label>Crew / supervisor
+                <input id="supervisor" name="supervisor" placeholder="Name and phone">
+              </label>
+              <button type="button" class="secondary-action contact-picker" data-contact-target="supervisor">Choose from contacts</button>
+            </div>
+            <div class="split">
+              <label>Landowner
+                <input id="landowner" name="landowner" placeholder="Name and phone">
+                <button type="button" class="secondary-action contact-picker" data-contact-target="landowner">Choose from contacts</button>
+              </label>
+              <label>Trucking contact
+                <input id="truckingContact" name="truckingContact" placeholder="Name and phone">
+                <button type="button" class="secondary-action contact-picker" data-contact-target="truckingContact">Choose from contacts</button>
+              </label>
+            </div>
+            <div class="lookup-panel">
+              <h4>Find the agency or person for this site</h4>
+              <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely woods agency and build targeted searches.</p>
+              <div class="action-row">
+                <button type="button" class="secondary-action" id="findStateWoodsAgency">State woods agency</button>
+                <button type="button" class="secondary-action" id="findSheriffSar">County dispatch / SAR</button>
+                <button type="button" class="secondary-action" id="findFireRescue">Local fire / rescue</button>
+                <button type="button" class="secondary-action" id="findEmergencyManagement">Emergency management</button>
+              </div>
+            </div>
+            <label>Saved local woods emergency contacts
+              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Save the actual agency, dispatch number, ranger/warden name, fire/rescue contact, or local person who knows the roads/gates"></textarea>
+            </label>
+          </details>
+
+          <details class="card accordion-card">
+            <summary>Medical & hazards</summary>
+            <label>Plan status
+              <select id="status" name="status">
+                <option value="draft">Draft</option>
+                <option value="complete">Complete</option>
+              </select>
+            </label>
+            <label>Nearest hospital / ER
+              <input id="hospital" name="hospital" placeholder="Name, address, phone">
+            </label>
+            <label>Hospital / ER directions link
+              <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
+            </label>
+            <label>Nearest urgent care
+              <input id="urgentCare" name="urgentCare" placeholder="Name, address, phone">
+            </label>
+            <label>Urgent care directions link
+              <input id="urgentCareDirectionsUrl" name="urgentCareDirectionsUrl" placeholder="Paste map/directions link">
+            </label>
+            <label>Trauma center / major hospital
+              <input id="traumaCenter" name="traumaCenter" placeholder="Name, address, phone">
+            </label>
+            <label>Trauma center / major hospital directions link
+              <input id="traumaDirectionsUrl" name="traumaDirectionsUrl" placeholder="Paste map/directions link">
+            </label>
+            <label>Medical notes
+              <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
+            </label>
+            <p class="warning">Use urgent care only for non-life-threatening issues. For serious injury or uncertain severity, call 911 and request EMS.</p>
+            <label>Hazard notes
+              <textarea id="hazards" name="hazards" rows="3" placeholder="Steep ground, blocked roads, active equipment, weather, bridge limits"></textarea>
+            </label>
+          </details>
+
+          <div class="sticky-actions">
+            <button type="submit" class="primary-action">Save & View Plan</button>
+            <button type="button" class="secondary-action" id="previewPlan">Keep editing</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="savedView" class="view" aria-labelledby="savedTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">On this phone</p>
+            <h2 id="savedTitle">Saved plans</h2>
+          </div>
+          <button class="secondary-action" data-route="create">Create</button>
+        </div>
+        <p class="notice">Saved plans are stored only on this device unless you choose to share or export them. Clearing browser data or replacing the phone may remove saved plans.</p>
+        <div id="savedPlansList" class="list-stack"></div>
+      </section>
+
+      <section id="planView" class="view" aria-labelledby="planViewTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Safety plan</p>
+            <h2 id="planViewTitle">Plan view</h2>
+          </div>
+          <button class="secondary-action" id="editCurrentPlan">Edit</button>
+        </div>
+        <div class="view-switch" role="group" aria-label="Plan view mode">
+          <button class="secondary-action active" id="fullPlanMode">Full Plan</button>
+          <button class="secondary-action" id="responderPlanMode">Responder View</button>
+        </div>
+        <div id="planOutput" class="plan-output"></div>
+        <div class="action-row secondary-plan-actions">
+          <button class="secondary-action" id="qrCurrentPlan">QR</button>
+          <button class="secondary-action" id="exportCurrentPlan">Export</button>
+          <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
+          <button class="secondary-action" id="printCurrentPlan">Print</button>
+        </div>
+        <div id="qrPanel" class="qr-panel" hidden>
+          <div>
+            <h3>Import QR code</h3>
+            <p id="qrHelp" class="helper">Scan this code to open/import the plan. Best used from the hosted WRSP app, not the local file preview.</p>
+          </div>
+          <img id="qrImage" alt="WRSP plan import QR code">
+          <label>Import link
+            <textarea id="qrImportLink" rows="3" readonly></textarea>
+          </label>
+          <button class="secondary-action" id="copyQrLink">Copy Import Link</button>
+        </div>
+        <div class="sticky-share">
+          <button class="primary-action" id="shareCurrentPlan">Share Plan</button>
+        </div>
+      </section>
+
+      <section id="emergencyView" class="view" aria-labelledby="emergencyTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Help me right now</p>
+            <h2 id="emergencyTitle">Current location and emergency utility</h2>
+          </div>
+          <button class="secondary-action" id="refreshEmergencyGps">Refresh GPS</button>
+        </div>
+        <div class="card emergency-card">
+          <p class="warning strong">WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.</p>
+          <p id="emergencyGps">GPS not captured yet.</p>
+          <div class="action-row">
+            <button class="primary-action" id="shareLocation">Text / Share Location</button>
+            <button class="secondary-action" id="copyLocation">Copy GPS</button>
+            <button class="secondary-action" id="openMaps">Open in Maps</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="medicalView" class="view" aria-labelledby="medicalTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Online lookup</p>
+            <h2 id="medicalTitle">Find medical care</h2>
+          </div>
+          <button class="secondary-action" id="medicalUseGps">Use current GPS</button>
+        </div>
+        <div class="card">
+          <p class="warning">Use urgent care only for non-life-threatening issues. For serious injury, heavy bleeding, crushing injury, head/neck/back injury, chest pain, trouble breathing, loss of consciousness, or uncertain severity, call 911 and request EMS.</p>
+          <label>Search from coordinates or place
+            <input id="medicalSearchOrigin" placeholder="Current GPS, plan location, town, or address">
+          </label>
+          <div class="action-row">
+            <button class="primary-action" id="findEr">Nearest ER / Hospital</button>
+            <button class="secondary-action" id="findUrgentCare">Nearest Urgent Care</button>
+            <button class="secondary-action" id="findTrauma">Trauma Center</button>
+          </div>
+          <div class="subsection-block">
+            <h3>Save facility information to current plan</h3>
+            <p class="helper">After finding a facility, paste or type the name, address, phone, and directions link here so it becomes part of the saved safety plan.</p>
+            <label>Facility type
+              <select id="medicalFacilityType">
+                <option value="hospital">Hospital / ER</option>
+                <option value="urgentCare">Urgent care</option>
+                <option value="traumaCenter">Trauma center / major hospital</option>
+              </select>
+            </label>
+            <label>Name, address, phone
+              <textarea id="medicalFacilityDetails" rows="3" placeholder="Facility name, address, phone"></textarea>
+            </label>
+            <label>Directions link
+              <input id="medicalFacilityDirectionsUrl" placeholder="Paste map/directions link">
+            </label>
+            <button class="primary-action" id="saveMedicalFacilityToPlan">Save to Current Plan</button>
+            <p id="medicalSaveStatus" class="helper"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="preparednessView" class="view" aria-labelledby="preparednessTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Before an emergency</p>
+            <h2 id="preparednessTitle">Preparedness profile</h2>
+          </div>
+          <button class="secondary-action" id="sharePreparedness">Share</button>
+        </div>
+        <form id="preparednessForm" class="form-stack">
+          <div class="card">
+            <h3>Company and trusted contacts</h3>
+            <label>Company information
+              <textarea id="companyInfo" rows="3"></textarea>
+            </label>
+            <label>Trusted contact sharing
+              <textarea id="trustedContacts" rows="3" placeholder="Family, office, dispatcher, or other trusted contact"></textarea>
+            </label>
+            <label>Emergency contacts
+              <textarea id="emergencyContacts" rows="3"></textarea>
+            </label>
+          </div>
+          <div class="card">
+            <h3>Readiness notes</h3>
+            <label>Insurance contact
+              <textarea id="insuranceInfo" rows="2"></textarea>
+            </label>
+            <label>Air medical membership notes
+              <textarea id="airMedicalNotes" rows="3"></textarea>
+            </label>
+            <p class="helper">Air medical membership must be arranged before an accident. It does not summon a helicopter, does not guarantee a specific provider will respond, and does not replace calling 911.</p>
+            <label>First aid / trauma kit reminders
+              <textarea id="firstAidChecklist" rows="3"></textarea>
+            </label>
+            <label>Fire extinguisher / spill kit reminders
+              <textarea id="equipmentChecklist" rows="3"></textarea>
+            </label>
+            <label>Regular work area notes
+              <textarea id="regularWorkAreas" rows="3"></textarea>
+            </label>
+          </div>
+          <button class="primary-action" type="submit">Save Preparedness</button>
+        </form>
+      </section>
+
+      <section id="defaultsView" class="view" aria-labelledby="defaultsTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Defaults</p>
+            <h2 id="defaultsTitle">Default plan information</h2>
+          </div>
+        </div>
+        <form id="defaultsForm" class="form-stack">
+          <div class="card">
+            <p class="helper">Save information you commonly reuse. New plans can start with these details already filled in.</p>
+            <label>Creator name
+              <input id="defaultCreator" autocomplete="name">
+            </label>
+            <label>Company / organization
+              <input id="defaultCompany" placeholder="Company or organization name">
+            </label>
+            <label>Default state / province
+              <input id="defaultState" placeholder="Optional">
+            </label>
+            <label>Primary contact
+              <input id="defaultPrimaryContact" placeholder="Name and phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultPrimaryContact">Choose from contacts</button>
+            <label>Crew / supervisor
+              <input id="defaultSupervisor" placeholder="Name and phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultSupervisor">Choose from contacts</button>
+            <label>Trucking contact
+              <input id="defaultTruckingContact" placeholder="Name and phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultTruckingContact">Choose from contacts</button>
+            <label>Common local woods emergency contact notes
+              <textarea id="defaultSarContacts" rows="3" placeholder="Agency, dispatch, ranger/warden, emergency management, or local person"></textarea>
+            </label>
+            <label>Common medical notes
+              <textarea id="defaultMedicalNotes" rows="3" placeholder="Regional EMS notes, trauma center reminders, or other repeated notes"></textarea>
+            </label>
+            <button class="primary-action" type="submit">Save Defaults</button>
+            <button class="secondary-action" type="button" id="applyDefaultsToPlan">Apply to Current Plan</button>
+            <p id="defaultsStatus" class="helper"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="importView" class="view" aria-labelledby="importTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Shared plan</p>
+            <h2 id="importTitle">Import plan</h2>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Import from file</h3>
+          <p class="helper">Choose a WRSP plan export file that someone shared with you, then save it as a new local plan.</p>
+          <label>WRSP export file
+            <input id="importFile" type="file" accept=".json,.wrsp,.wrsp.json,application/json">
+          </label>
+          <button class="primary-action" id="importFilePlan">Import Selected File</button>
+          <hr class="soft-divider">
+          <h3>Paste backup code</h3>
+          <label>WRSP export text
+            <textarea id="importText" rows="8" placeholder="Paste a WRSP plan export here"></textarea>
+          </label>
+          <button class="secondary-action" id="importPlan">Import Pasted Text</button>
+          <p id="importStatus" class="helper"></p>
+        </div>
+      </section>
+
+      <section id="installView" class="view" aria-labelledby="installTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Install and help</p>
+            <h2 id="installTitle">Save WRSP to your home screen</h2>
+          </div>
+        </div>
+        <div class="card">
+          <h3>iPhone / Safari</h3>
+          <ol>
+            <li>Open WRSP in Safari.</li>
+            <li>Tap the Share button.</li>
+            <li>Scroll to Add to Home Screen.</li>
+            <li>Tap Add.</li>
+          </ol>
+          <h3>Android / Chrome</h3>
+          <ol>
+            <li>Open WRSP in Chrome.</li>
+            <li>Tap the three-dot menu.</li>
+            <li>Tap Add to Home screen or Install app.</li>
+            <li>Confirm.</li>
+          </ol>
+          <p class="helper">Saving WRSP to the home screen makes it easier to find and helps it remain available for field use after loading.</p>
+        </div>
+      </section>
+
+      <section id="pwaView" class="view" aria-labelledby="pwaTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Offline readiness</p>
+            <h2 id="pwaTitle">PWA status and test checklist</h2>
+          </div>
+          <button class="secondary-action" id="refreshPwaStatus">Refresh Status</button>
+        </div>
+        <div class="card">
+          <div id="pwaStatusList" class="status-list"></div>
+          <p class="notice">Full install/offline behavior requires WRSP to be opened from an HTTP/HTTPS address, such as GitHub Pages. The local file preview is useful for layout and workflow review, but it cannot fully test service worker caching.</p>
+        </div>
+        <div class="card">
+          <h3>Field test checklist</h3>
+          <ol class="checklist">
+            <li>Open WRSP from the hosted site and confirm this page shows service worker support.</li>
+            <li>Create or open a sample plan and save it locally.</li>
+            <li>Use Add to Home Screen or Install app on the phone.</li>
+            <li>Close the browser, turn on airplane mode, then reopen WRSP from the home screen.</li>
+            <li>Confirm saved plans open, edits save, and responder view/print/share text remain available.</li>
+            <li>Turn service back on and confirm maps, medical lookup, QR image generation, and feedback email work again.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="resourcesView" class="view" aria-labelledby="resourcesTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">About</p>
+            <h2 id="resourcesTitle">Resources and acknowledgements</h2>
+          </div>
+        </div>
+        <div class="resource-stack">
+          <div class="card prose resource-card">
+            <h3>About WRSP</h3>
+            <p>The Woods-Ready Safety Plan helps loggers, foresters, crew leads, trucking coordinators, and landowner representatives prepare the emergency information needed before work begins on a logging site.</p>
+            <p>WRSP is a practical field utility: create a site safety plan, save it on this phone, reopen it offline, and share responder-ready directions, contacts, medical information, hazards, and access notes when needed.</p>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Creator</h3>
+            <p>WRSP was created by Dr. Steven Bick, CF ACF, through <a href="https://www.northeastforests.com/" target="_blank" rel="noopener">Northeast Forests LLC</a>.</p>
+            <p>Related work includes Northeast Forests consulting, <a href="https://www.loggingchance.com/" target="_blank" rel="noopener">Logging Chance</a> resources, <a href="https://www.forestenterprise.org/" target="_blank" rel="noopener">Forest Business School</a> programs, and practical forestry and logging apps.</p>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Grant acknowledgement</h3>
+            <p>This version-one build is based on the Woods-Ready Safety Plan project supported through the <a href="https://loggingsafety.com/thats-grant-application/" target="_blank" rel="noopener">THATS Foundation grant program</a> and administered through the <a href="https://www.northernlogger.com/" target="_blank" rel="noopener">Northeastern Loggers' Association</a>.</p>
+            <p>The funded minimum scope called for a free, no-login, mobile web app for logging-site emergency preparedness with GPS, access notes, contacts, emergency services, meeting point, hazard notes, local storage, offline use, and sharing by text or email.</p>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Logger rescue inspiration</h3>
+            <p>WRSP was inspired in part by the practical rescue-readiness work of Dana Hinckley and Logger Rescue Training in Berlin, New Hampshire.</p>
+            <p>The app is not a substitute for training, calling 911, EMS, or local emergency procedures. It is meant to make critical site information easier to assemble and share before something goes wrong.</p>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Related resources</h3>
+            <ul class="resource-list">
+              <li><a href="https://loggingsafety.com/" target="_blank" rel="noopener">loggingsafety.com</a> - logging safety information and WRSP-related safety resources.</li>
+              <li><a href="https://www.northernlogger.com/" target="_blank" rel="noopener">Northeastern Loggers' Association</a> - project administration and industry outreach.</li>
+              <li><a href="https://www.loggingchance.com/" target="_blank" rel="noopener">Logging Chance</a> - forestry books, apps, tools, and publications by Steve Bick.</li>
+              <li><a href="https://www.forestenterprise.org/" target="_blank" rel="noopener">Forest Business School</a> - training and professional development for forestry and logging businesses.</li>
+              <li><a href="https://www.northeastforests.com/" target="_blank" rel="noopener">Northeast Forests LLC</a> - forestry consulting and applied forest business services.</li>
+            </ul>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Other apps and tools</h3>
+            <p>WRSP belongs with a larger set of practical forestry, logging, sawmill, and forest-business tools created by Steve Bick.</p>
+            <ul class="resource-list">
+              <li><a href="https://www.loggingchance.com/" target="_blank" rel="noopener">Logging Chance apps and tools</a> - the main directory for Steve Bick's free forestry apps, books, publications, and training resources.</li>
+              <li><a href="https://loggingchance.com/isawvt-app" target="_blank" rel="noopener">iSawVT</a> - sawmill production and financial analysis for small sawmill operations.</li>
+              <li><a href="https://loggingchance.com/bark-desktop-app" target="_blank" rel="noopener">BARK</a> - biomass, accounting, and resource knowledge tools.</li>
+              <li><a href="https://loggingchance.com/lc-benchmark-app" target="_blank" rel="noopener">LC Benchmark</a> - logging cost and productivity benchmarking.</li>
+              <li><a href="https://loggingchance.com/bolt-business-plan-app" target="_blank" rel="noopener">BOLT Business Plan</a> - forestry-specific business planning for logging operations.</li>
+              <li><a href="https://www.loggingchance.com/" target="_blank" rel="noopener">LiVT, Timber Tools, PATH 3.0, Surewood, and Cut Mark</a> - additional logging, timber measurement, conversion, productivity, and sawmill tools listed through Logging Chance and the Lumbermen OS app collection.</li>
+            </ul>
+          </div>
+
+          <div class="card prose resource-card">
+            <h3>Custom app development</h3>
+            <p>WRSP is also an example of how practical, field-specific apps can be built for forestry, logging, training, safety, and small-business workflows.</p>
+            <p>Organizations interested in custom apps or applied forestry business tools can contact Dr. Steven Bick through <a href="https://www.northeastforests.com/" target="_blank" rel="noopener">Northeast Forests LLC</a> or <a href="https://www.loggingchance.com/" target="_blank" rel="noopener">Logging Chance</a>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="feedbackView" class="view" aria-labelledby="feedbackTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Feedback</p>
+            <h2 id="feedbackTitle">Send feedback to WRSP</h2>
+          </div>
+        </div>
+        <form id="feedbackForm" class="form-stack">
+          <div class="card">
+            <p class="helper">Send suggestions, bugs, confusing wording, missing resources, or error details. WRSP will open an email draft so you can review it before sending.</p>
+            <label>Feedback type
+              <select id="feedbackType">
+                <option value="Suggestion">Suggestion</option>
+                <option value="Bug">Bug</option>
+                <option value="Error information">Error information</option>
+                <option value="Missing resource">Missing resource</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>Your message
+              <textarea id="feedbackMessage" rows="7" placeholder="What happened? What should be changed? What information is missing?"></textarea>
+            </label>
+            <label>Your email or phone, optional
+              <input id="feedbackContact" placeholder="Only if you want a reply">
+            </label>
+            <label class="check-row">
+              <input id="feedbackIncludeInfo" type="checkbox" checked>
+              Include basic app/browser info
+            </label>
+            <button class="primary-action" type="submit">Open Email Draft</button>
+            <button class="secondary-action" type="button" id="copyFeedback">Copy Feedback Text</button>
+            <p id="feedbackStatus" class="helper"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="moreView" class="view" aria-labelledby="moreTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">More</p>
+            <h2 id="moreTitle">More WRSP tools</h2>
+          </div>
+        </div>
+        <div class="quick-grid more-tools">
+          <button class="quick-action" data-route="medical"><span>Find Medical Care</span><small>Online map search</small></button>
+          <button class="quick-action" data-route="preparedness"><span>Preparedness</span><small>Trusted contact info</small></button>
+          <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>
+          <button class="quick-action" id="openSamplePlanMore"><span>View Sample Plan</span><small>Field-ready example</small></button>
+          <button class="quick-action" data-route="import"><span>Import Plan</span><small>From shared backup</small></button>
+          <button class="quick-action" data-route="install"><span>Install / Help</span><small>Home screen steps</small></button>
+          <button class="quick-action" data-route="pwa"><span>PWA Status</span><small>Offline/install checks</small></button>
+          <button class="quick-action" data-route="resources"><span>About / Resources</span><small>Acknowledgements</small></button>
+          <button class="quick-action" data-route="feedback"><span>Send Feedback</span><small>Suggestions, bugs, errors</small></button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button data-route="home" class="active">Home</button>
+      <button data-route="create">Create</button>
+      <button data-route="saved">Plans</button>
+      <button data-route="emergency">GPS</button>
+      <button data-route="more">More</button>
+    </nav>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

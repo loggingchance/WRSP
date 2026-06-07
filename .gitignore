@@ -1,0 +1,4 @@
+work/*.log
+outputs/
+.DS_Store
+Thumbs.db
