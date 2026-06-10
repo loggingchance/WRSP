@@ -160,22 +160,6 @@ p {
   color: rgba(255, 255, 255, 0.86);
 }
 
-.support-strip {
-  display: grid;
-  gap: 6px;
-  margin-top: 13px;
-}
-
-.support-strip span {
-  display: block;
-  border-left: 4px solid var(--orange);
-  padding: 6px 9px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff6dc;
-  font-size: 0.86rem;
-  font-weight: 850;
-}
-
 .hero-panel .primary-action {
   margin: 14px 16px 16px;
   min-height: 60px;
@@ -516,6 +500,52 @@ textarea:focus {
   width: 100%;
   color: var(--forest);
   font-weight: 780;
+}
+
+.medical-card-output {
+  margin-top: 14px;
+}
+
+.medical-card-sheet {
+  display: grid;
+  gap: 14px;
+}
+
+.medical-card-head {
+  border-bottom: 2px solid var(--forest);
+  padding-bottom: 10px;
+}
+
+.medical-card-head h2 {
+  margin-bottom: 6px;
+  color: var(--forest);
+}
+
+.medical-card-head p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.medical-card-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.medical-card-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.38fr) 1fr;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.medical-card-row strong {
+  color: var(--forest);
+}
+
+.medical-card-row span {
+  white-space: pre-wrap;
 }
 
 .view-switch {
@@ -1194,6 +1224,10 @@ textarea:focus {
     font-size: 0.74rem;
   }
 
+  .medical-card-row {
+    grid-template-columns: 1fr;
+  }
+
   .section-head,
   .card-head {
     align-items: stretch;
@@ -1261,6 +1295,19 @@ textarea:focus {
     display: block !important;
   }
 
+  body[data-print-mode="medical"] #planView {
+    display: none !important;
+  }
+
+  body[data-print-mode="medical"] #medicalCardView {
+    display: block !important;
+  }
+
+  body[data-print-mode="medical"] #medicalCardForm,
+  body[data-print-mode="medical"] #medicalQrPanel {
+    display: none !important;
+  }
+
   .plan-output {
     border: 0;
     border-radius: 0;
@@ -1275,6 +1322,43 @@ textarea:focus {
     color: black;
     font-size: 18pt;
     line-height: 1.1;
+  }
+
+  .medical-card-output {
+    display: block !important;
+  }
+
+  .medical-card-sheet {
+    gap: 8pt;
+  }
+
+  .medical-card-head {
+    border-bottom: 2pt solid black;
+    padding-bottom: 6pt;
+  }
+
+  .medical-card-head h2 {
+    margin: 0 0 4pt;
+    color: black;
+    font-size: 20pt;
+  }
+
+  .medical-card-head p {
+    color: black;
+    font-size: 9pt;
+  }
+
+  .medical-card-row {
+    grid-template-columns: 1.5in 1fr;
+    gap: 8pt;
+    border-bottom: 0.75pt solid #999;
+    padding-bottom: 5pt;
+  }
+
+  .medical-card-row strong,
+  .medical-card-row span {
+    color: black;
+    font-size: 9pt;
   }
 
   .safety-sheet {

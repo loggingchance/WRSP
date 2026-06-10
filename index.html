@@ -29,14 +29,8 @@
         <div class="hero-panel">
           <img class="hero-image" src="assets/wrsp-header.png" alt="Woods-Ready Safety Plan WRSP">
           <div class="hero-copy">
-            <p class="eyebrow">Provided by NELA</p>
             <h2 id="homeTitle">Create the one-page safety plan before work starts.</h2>
             <p>Site location, read-aloud 911 directions, contacts, hospital, hazards, and access notes.</p>
-            <div class="support-strip">
-              <span>Made available through the Northeastern Loggers' Association</span>
-              <span>THATS Foundation support</span>
-              <span>Dr. Steven Bick, CF ACF</span>
-            </div>
           </div>
           <button class="primary-action" data-route="create">Create Safety Plan</button>
         </div>
@@ -673,11 +667,14 @@
             <p class="eyebrow">Local only</p>
             <h2 id="medicalCardTitle">My Medical Card</h2>
           </div>
-          <button class="secondary-action" id="shareMedicalCard">Share</button>
+          <div class="action-row">
+            <button class="secondary-action" id="shareMedicalCardTrusted">Share With Trusted Contact</button>
+            <button class="primary-action" id="shareMedicalCardEms">Share With EMS</button>
+          </div>
         </div>
         <form id="medicalCardForm" class="form-stack">
           <div class="card">
-            <p class="warning">This information saves only on this phone. Share it only when you choose to share it.</p>
+            <p class="warning">This information saves only on this phone. Share it with family, a trusted contact, or emergency medical people only when you choose.</p>
             <div class="split">
               <label>Name
                 <input id="medCardName" autocomplete="name">
@@ -720,6 +717,23 @@
             <p id="medicalCardStatus" class="helper"></p>
           </div>
         </form>
+        <div id="medicalCardOutput" class="plan-output medical-card-output"></div>
+        <div class="action-row secondary-plan-actions">
+          <button class="secondary-action" id="printMedicalCard">Print / Save PDF</button>
+          <button class="secondary-action" id="shareMedicalCardPng">PNG</button>
+          <button class="secondary-action" id="qrMedicalCard">QR / Share Link</button>
+        </div>
+        <div id="medicalQrPanel" class="qr-panel" hidden>
+          <div>
+            <h3>Medical Card QR code</h3>
+            <p id="medicalQrHelp" class="helper">Scan this code to open the shared medical card. Use only with someone the user chooses to share with.</p>
+          </div>
+          <img id="medicalQrImage" alt="WRSP medical card QR code">
+          <label>Medical card link
+            <textarea id="medicalQrLink" rows="3" readonly></textarea>
+          </label>
+          <button class="secondary-action" id="copyMedicalQrLink">Copy Medical Card Link</button>
+        </div>
       </section>
 
       <section id="resourcesView" class="view" aria-labelledby="resourcesTitle">

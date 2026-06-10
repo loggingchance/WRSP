@@ -76,7 +76,9 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - About / Resources now leads with the Northeastern Loggers' Association as the provider that makes WRSP available, then THATS Foundation acknowledgement, required links, and no rejected publication reference.
 - Forester / plan preparer contact added to the plan form, reusable defaults, sample plan, full plan view, responder view, and responder share text.
 - Read-aloud directions helper added: users can search for a responder-known starting landmark and build a draft from route, gate, meeting point, and site coordinates.
-- Service worker cache moved to `wrsp-v9` so saved-home-screen users can receive this update.
+- Medical Card now has explicit sharing actions for family/trusted contacts and EMS/medical responders, with different message context.
+- Medical Card now has Print / Save PDF, PNG, and QR/share-link options, with a dedicated card preview.
+- Service worker cache moved to `wrsp-v11` so saved-home-screen users can receive this update.
 - Publish script now includes the local preview server helper, and the preview server serves PNG header images with the correct type.
 
 ## User feedback captured
@@ -128,7 +130,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v9`.
+- Service worker cache is currently `wrsp-v11`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.

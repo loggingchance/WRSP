@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.6.3 - June 10, 2026";
+const APP_VERSION = "WRSP v0.6.5 - June 10, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -16,6 +16,7 @@ let db;
 let currentPlanId = null;
 let currentPlanMode = "full";
 let sharedPlanPreview = null;
+let sharedMedicalCardPreview = null;
 let emergencyCoords = null;
 let autoSaveTimer = null;
 let siteMapState = {
@@ -373,7 +374,14 @@ function routeTo(route) {
   if (route === "saved") renderSavedPlans();
   if (route === "create") window.setTimeout(renderSiteMap, 50);
   if (route === "medical") prefillMedicalOrigin();
-  if (route === "medicalCard") loadMedicalCard();
+  if (route === "medicalCard") {
+    if (sharedMedicalCardPreview) {
+      medicalCardToForm(sharedMedicalCardPreview);
+      renderMedicalCardOutput(sharedMedicalCardPreview);
+    } else {
+      loadMedicalCard();
+    }
+  }
   if (route === "safetyShare") updateSafetyShareScreen();
   if (route === "preparedness") loadPreparedness();
   if (route === "defaults") loadDefaultsForm();
@@ -1182,6 +1190,20 @@ async function saveImportedPlanFromPayload(payload) {
 }
 
 async function importFromUrlHash() {
+  if (window.location.hash.startsWith("#medical=")) {
+    try {
+      const raw = decodeURIComponent(window.location.hash.slice("#medical=".length));
+      const parsed = JSON.parse(raw);
+      const card = parsed.type === "WRSP_MEDICAL_CARD" ? parsed.payload : parsed;
+      sharedMedicalCardPreview = card;
+      routeTo("medicalCard");
+      $("#medicalCardStatus").textContent = "Shared medical card opened. It has not been saved on this phone unless you tap Save.";
+      toast("Shared WRSP medical card opened.");
+    } catch (error) {
+      toast(`Medical card link failed: ${error.message}`);
+    }
+    return;
+  }
   if (window.location.hash.startsWith("#plan=")) {
     try {
       const raw = decodeURIComponent(window.location.hash.slice("#plan=".length));
@@ -1743,6 +1765,11 @@ async function loadPreparedness() {
 async function loadMedicalCard() {
   const record = await storeGet(SETTINGS_STORE, MEDICAL_CARD_KEY);
   const card = record?.value || {};
+  medicalCardToForm(card);
+  renderMedicalCardOutput(card);
+}
+
+function medicalCardToForm(card = {}) {
   [
     "medCardName",
     "medCardDob",
@@ -1781,13 +1808,18 @@ function medicalCardFromForm() {
 
 async function saveMedicalCard() {
   await storePut(SETTINGS_STORE, { key: MEDICAL_CARD_KEY, value: medicalCardFromForm() });
+  renderMedicalCardOutput();
   $("#medicalCardStatus").textContent = "Medical card saved on this phone only.";
 }
 
-function medicalCardText() {
+function medicalCardText(audience = "trusted") {
   const card = medicalCardFromForm();
+  const intro = audience === "ems"
+    ? "Emergency medical information shared by the user for EMS/medical responders."
+    : "Medical information shared by the user with a family member or trusted contact.";
   return [
     "WRSP Medical Card",
+    intro,
     `Name: ${card.medCardName || "Not entered"}`,
     `DOB: ${card.medCardDob || "Not entered"}`,
     `Blood type: ${card.medCardBloodType || "Not entered"}`,
@@ -1798,13 +1830,157 @@ function medicalCardText() {
     `Physician: ${card.medCardPhysician || "Not entered"}`,
     `Insurance / air medical: ${card.medCardInsurance || "Not entered"}`,
     `Advance directives / notes: ${card.medCardDirectives || "Not entered"}`,
-    "This WRSP medical card was shared by the user. In an emergency, call 911 and follow EMS instructions.",
+    audience === "ems"
+      ? "In an emergency, follow EMS protocols and confirm details with the patient or emergency contact when possible."
+      : "In an emergency, call 911 and give this information to EMS if the user cannot speak for themselves.",
   ].join("\n");
 }
 
-async function shareMedicalCardText() {
+async function shareMedicalCardText(audience = "trusted") {
   await saveMedicalCard();
-  await shareText("WRSP Medical Card", medicalCardText());
+  const title = audience === "ems" ? "WRSP Medical Card for EMS" : "WRSP Medical Card";
+  await shareText(title, medicalCardText(audience));
+}
+
+function medicalCardRows(card = medicalCardFromForm()) {
+  return [
+    ["Name", card.medCardName],
+    ["DOB", card.medCardDob],
+    ["Blood type", card.medCardBloodType],
+    ["Allergies", card.medCardAllergies],
+    ["Medications", card.medCardMeds],
+    ["Conditions", card.medCardConditions],
+    ["Emergency contacts", card.medCardEmergencyContacts],
+    ["Physician", card.medCardPhysician],
+    ["Insurance / air medical", card.medCardInsurance],
+    ["Advance directives / notes", card.medCardDirectives],
+  ];
+}
+
+function renderMedicalCardHtml(card = medicalCardFromForm()) {
+  const rows = medicalCardRows(card)
+    .map(([label, value]) => `<div class="medical-card-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value || "Not entered")}</span></div>`)
+    .join("");
+  return `
+    <article class="medical-card-sheet">
+      <div class="medical-card-head">
+        <p class="eyebrow">WRSP Medical Card</p>
+        <h2>${escapeHtml(card.medCardName || "Medical Card")}</h2>
+        <p>Shared by the user. In an emergency, call 911 and give this information to EMS if the user cannot speak for themselves.</p>
+      </div>
+      <div class="medical-card-grid">${rows}</div>
+    </article>`;
+}
+
+function renderMedicalCardOutput(card = medicalCardFromForm()) {
+  const output = $("#medicalCardOutput");
+  if (output) output.innerHTML = renderMedicalCardHtml(card);
+}
+
+function compactMedicalCardPackage(card = medicalCardFromForm()) {
+  return JSON.stringify({
+    type: "WRSP_MEDICAL_CARD",
+    exportedAt: new Date().toISOString(),
+    payload: card,
+  });
+}
+
+function medicalCardShareUrl(card = medicalCardFromForm()) {
+  const baseUrl = window.location.href.split("#")[0];
+  return `${baseUrl}#medical=${encodeURIComponent(compactMedicalCardPackage(card))}`;
+}
+
+function showMedicalCardQr() {
+  const card = medicalCardFromForm();
+  const panel = $("#medicalQrPanel");
+  const image = $("#medicalQrImage");
+  const linkBox = $("#medicalQrLink");
+  const help = $("#medicalQrHelp");
+  const url = medicalCardShareUrl(card);
+  panel.hidden = false;
+  linkBox.value = url;
+  if (url.length > 2200) {
+    image.removeAttribute("src");
+    image.hidden = true;
+    help.textContent = "This medical card is too large for a reliable QR code. Use PNG, PDF, or text sharing instead.";
+    return;
+  }
+  image.hidden = false;
+  image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(url)}`;
+  help.textContent = "Scan this code to open the shared medical card. Use only with someone the user chooses to share with.";
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text || "Not entered").split(/\s+/);
+  let line = "";
+  let currentY = y;
+  words.forEach((word) => {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      ctx.fillText(line, x, currentY);
+      line = word;
+      currentY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  });
+  if (line) {
+    ctx.fillText(line, x, currentY);
+    currentY += lineHeight;
+  }
+  return currentY;
+}
+
+function medicalCardCanvas(card = medicalCardFromForm()) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 1600;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f7f5ee";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#123c2c";
+  ctx.fillRect(0, 0, canvas.width, 170);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 52px Arial";
+  ctx.fillText("WRSP Medical Card", 70, 78);
+  ctx.font = "700 34px Arial";
+  ctx.fillText(card.medCardName || "Medical Card", 70, 130);
+  ctx.fillStyle = "#d4631f";
+  ctx.fillRect(0, 170, canvas.width, 10);
+  let y = 235;
+  medicalCardRows(card).forEach(([label, value]) => {
+    ctx.fillStyle = "#123c2c";
+    ctx.font = "800 27px Arial";
+    ctx.fillText(label, 70, y);
+    y += 34;
+    ctx.fillStyle = "#1d2520";
+    ctx.font = "26px Arial";
+    y = wrapCanvasText(ctx, value || "Not entered", 70, y, 1060, 34) + 16;
+  });
+  ctx.fillStyle = "#70310e";
+  ctx.font = "700 24px Arial";
+  wrapCanvasText(ctx, "Shared by the user. In an emergency, call 911 and give this information to EMS if the user cannot speak for themselves.", 70, 1510, 1060, 30);
+  return canvas;
+}
+
+async function shareMedicalCardPng() {
+  await saveMedicalCard();
+  const canvas = medicalCardCanvas();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  const file = new File([blob], "wrsp-medical-card.png", { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+    await navigator.share({ title: "WRSP Medical Card", text: "WRSP Medical Card image", files: [file] });
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "wrsp-medical-card.png";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  toast("Medical card PNG downloaded.");
 }
 
 function preparednessText() {
@@ -2235,13 +2411,36 @@ function bindEvents() {
   $("#sharePreparedness").addEventListener("click", async () => shareText("WRSP preparedness", preparednessText()));
   $("#medicalCardForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    sharedMedicalCardPreview = null;
     await saveMedicalCard();
   });
-  $("#shareMedicalCard")?.addEventListener("click", shareMedicalCardText);
+  $("#medicalCardForm")?.addEventListener("input", () => {
+    sharedMedicalCardPreview = null;
+    renderMedicalCardOutput();
+  });
+  $("#shareMedicalCardTrusted")?.addEventListener("click", () => shareMedicalCardText("trusted"));
+  $("#shareMedicalCardEms")?.addEventListener("click", () => shareMedicalCardText("ems"));
   $("#copyMedicalCard")?.addEventListener("click", async () => {
     await saveMedicalCard();
-    await navigator.clipboard.writeText(medicalCardText());
+    await navigator.clipboard.writeText(medicalCardText("trusted"));
     $("#medicalCardStatus").textContent = "Medical card text copied.";
+  });
+  $("#printMedicalCard")?.addEventListener("click", async () => {
+    await saveMedicalCard();
+    document.body.dataset.printMode = "medical";
+    window.print();
+    window.setTimeout(() => {
+      delete document.body.dataset.printMode;
+    }, 800);
+  });
+  $("#shareMedicalCardPng")?.addEventListener("click", shareMedicalCardPng);
+  $("#qrMedicalCard")?.addEventListener("click", async () => {
+    await saveMedicalCard();
+    showMedicalCardQr();
+  });
+  $("#copyMedicalQrLink")?.addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("#medicalQrLink").value);
+    toast("Medical card link copied.");
   });
   $("#defaultsForm").addEventListener("submit", async (event) => {
     event.preventDefault();
