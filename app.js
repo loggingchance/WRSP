@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.6.1 - June 10, 2026";
+const APP_VERSION = "WRSP v0.6.3 - June 10, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -224,6 +224,7 @@ const emptyPlan = () => ({
   contacts: {
     primaryContact: "",
     supervisor: "",
+    foresterContact: "",
     landowner: "",
     truckingContact: "",
   },
@@ -285,6 +286,7 @@ function samplePlan() {
     contacts: {
       primaryContact: "Crew lead - 555-0101",
       supervisor: "Supervisor - 555-0102",
+      foresterContact: "Forester / plan preparer - 555-0105",
       landowner: "Landowner - 555-0103",
       truckingContact: "Trucking coordinator - 555-0104",
     },
@@ -490,6 +492,7 @@ function formToPlan() {
     contacts: {
       primaryContact: $("#primaryContact").value.trim(),
       supervisor: $("#supervisor").value.trim(),
+      foresterContact: $("#foresterContact").value.trim(),
       landowner: $("#landowner").value.trim(),
       truckingContact: $("#truckingContact").value.trim(),
     },
@@ -542,6 +545,7 @@ function planToForm(plan) {
   $("#landingZoneNotes").value = plan.access?.landingZoneNotes || "";
   $("#primaryContact").value = plan.contacts?.primaryContact || "";
   $("#supervisor").value = plan.contacts?.supervisor || "";
+  $("#foresterContact").value = plan.contacts?.foresterContact || "";
   $("#landowner").value = plan.contacts?.landowner || "";
   $("#truckingContact").value = plan.contacts?.truckingContact || "";
   $("#hospital").value = plan.medical?.hospital || "";
@@ -576,6 +580,7 @@ function defaultsFromForm() {
     company: $("#defaultCompany").value.trim(),
     state: $("#defaultState").value.trim(),
     primaryContact: $("#defaultPrimaryContact").value.trim(),
+    foresterContact: $("#defaultForesterContact").value.trim(),
     supervisor: $("#defaultSupervisor").value.trim(),
     truckingContact: $("#defaultTruckingContact").value.trim(),
     sarContacts: $("#defaultSarContacts").value.trim(),
@@ -589,6 +594,7 @@ async function loadDefaultsForm() {
   $("#defaultCompany").value = defaults.company || "";
   $("#defaultState").value = defaults.state || "";
   $("#defaultPrimaryContact").value = defaults.primaryContact || "";
+  $("#defaultForesterContact").value = defaults.foresterContact || "";
   $("#defaultSupervisor").value = defaults.supervisor || "";
   $("#defaultTruckingContact").value = defaults.truckingContact || "";
   $("#defaultSarContacts").value = defaults.sarContacts || "";
@@ -601,6 +607,7 @@ function applyDefaultsToPlanObject(plan, defaults) {
   plan.location.state ||= defaults.state || "";
   plan.contacts = plan.contacts || {};
   plan.contacts.primaryContact ||= defaults.primaryContact || "";
+  plan.contacts.foresterContact ||= defaults.foresterContact || "";
   plan.contacts.supervisor ||= defaults.supervisor || "";
   plan.contacts.truckingContact ||= defaults.truckingContact || "";
   plan.sar = plan.sar || {};
@@ -766,7 +773,7 @@ function essentialStatus(plan = formToPlan()) {
     { label: "GPS or location", done: hasLocation },
     { label: "known starting landmark", done: Boolean(plan.access?.knownLandmark) },
     { label: "read-aloud 911 directions", done: Boolean(plan.access?.phoneDirections) },
-    { label: "primary job contact", done: Boolean(plan.contacts?.primaryContact || plan.contacts?.supervisor) },
+    { label: "primary job contact", done: Boolean(plan.contacts?.primaryContact || plan.contacts?.supervisor || plan.contacts?.foresterContact) },
     { label: "local woods emergency contact", done: Boolean(plan.sar?.contacts) },
   ];
   return { checks, done: checks.filter((check) => check.done).length, total: checks.length };
@@ -905,6 +912,7 @@ function renderPlanHtml(plan) {
     ["Contacts", [
       ["Primary contact", plan.contacts?.primaryContact],
       ["Crew / supervisor", plan.contacts?.supervisor],
+      ["Forester / plan preparer", plan.contacts?.foresterContact],
       ["Landowner", plan.contacts?.landowner],
       ["Trucking contact", plan.contacts?.truckingContact],
       ["Verified agency / dispatch", plan.sar?.verifiedAgency],
@@ -991,6 +999,7 @@ function renderResponderPlanHtml(plan) {
         ${responderList([
           ["Primary job contact", plan.contacts?.primaryContact],
           ["Crew / supervisor", plan.contacts?.supervisor],
+          ["Forester / plan preparer", plan.contacts?.foresterContact],
           ["Landowner", plan.contacts?.landowner],
           ["Trucking contact", plan.contacts?.truckingContact],
         ])}
@@ -1062,6 +1071,7 @@ function planShareText(plan) {
     `Read to 911: ${buildEmergencyDirections(plan)}`,
     `Phone service: ${plan.access?.phoneServiceNotes || "Not entered"}`,
     `Primary contact: ${plan.contacts?.primaryContact || "Not entered"}`,
+    `Forester / plan preparer: ${plan.contacts?.foresterContact || "Not entered"}`,
     `Meeting point: ${plan.access?.meetingPoint || "Not entered"}`,
     `Hospital/medical: ${hospital}`,
     `Woods emergency contact: ${agency}`,
@@ -1550,6 +1560,32 @@ function planAddressSearchText() {
   return [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
 }
 
+function startingLandmarkSearchText() {
+  const plan = formToPlan();
+  const loc = plan.location || {};
+  if (loc.lat && loc.lng) {
+    return `nearest town village fire station or state highway intersection near ${loc.lat}, ${loc.lng}`;
+  }
+  const place = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+  return place ? `nearest town village fire station or state highway intersection near ${place}` : "";
+}
+
+function buildPhoneDirectionsDraft() {
+  const plan = formToPlan();
+  const access = plan.access || {};
+  const loc = plan.location || {};
+  const parts = [];
+  const start = access.knownLandmark || [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+  if (start) parts.push(`From ${start}, proceed to the job site.`);
+  if (access.routeNotes) parts.push(access.routeNotes);
+  if (access.gateNotes) parts.push(`Gate, lock, or access notes: ${access.gateNotes}`);
+  if (access.meetingPoint) parts.push(`Meet emergency vehicles at ${access.meetingPoint}.`);
+  if (access.alternateMeetingPoint) parts.push(`Alternate meeting point: ${access.alternateMeetingPoint}.`);
+  if (loc.lat && loc.lng) parts.push(`Exact site coordinates: ${loc.lat}, ${loc.lng}.`);
+  parts.push("Have someone meet responders at the access point and flag a visible route to the injured person.");
+  return parts.join(" ");
+}
+
 function updateWoodsContactSuggestion() {
   const plan = formToPlan();
   const origin = planSearchOrigin();
@@ -1904,6 +1940,21 @@ function bindEvents() {
       return;
     }
     openMapsSearch(query);
+  });
+  $("#findStartingLandmark").addEventListener("click", () => {
+    const query = startingLandmarkSearchText();
+    if (!query) {
+      toast("Enter a site address or select the site point first.");
+      return;
+    }
+    openMapsSearch(query);
+  });
+  $("#buildPhoneDirections").addEventListener("click", () => {
+    const draft = buildPhoneDirectionsDraft();
+    $("#phoneDirections").value = draft;
+    scheduleAutoSave();
+    updateEssentialProgress();
+    toast("Read-aloud directions draft built.");
   });
   $$(".contact-picker").forEach((button) => {
     button.addEventListener("click", () => chooseContactForField(button.dataset.contactTarget));

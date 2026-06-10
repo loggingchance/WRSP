@@ -70,6 +70,13 @@ p {
   color: #f2c27c;
 }
 
+.header-credit {
+  margin-bottom: 0;
+  color: #f7ddaa;
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
 .eyebrow {
   margin-bottom: 2px;
   color: var(--bark);
@@ -151,6 +158,22 @@ p {
 .hero-panel p {
   margin-bottom: 0;
   color: rgba(255, 255, 255, 0.86);
+}
+
+.support-strip {
+  display: grid;
+  gap: 6px;
+  margin-top: 13px;
+}
+
+.support-strip span {
+  display: block;
+  border-left: 4px solid var(--orange);
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff6dc;
+  font-size: 0.86rem;
+  font-weight: 850;
 }
 
 .hero-panel .primary-action {
@@ -1165,6 +1188,10 @@ textarea:focus {
 
   .hero-panel h2 {
     font-size: 1.35rem;
+  }
+
+  .header-credit {
+    font-size: 0.74rem;
   }
 
   .section-head,

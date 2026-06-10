@@ -1,6 +1,6 @@
 # WRSP Project Tracker
 
-Last updated: June 9, 2026
+Last updated: June 10, 2026
 
 ## Current product direction
 
@@ -46,7 +46,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Online repository `loggingchance/WRSP` created and visible to Codex.
 - First online WRSP commit created through the connector with `README.md`.
 - First full WRSP app publish completed to `loggingchance/WRSP` from the authenticated Windows session.
-- Lightweight `assets/wrsp-header.svg` added as a connector-friendly header asset while preserving the original PNG locally.
+- Provided WRSP header PNG is now the active home banner image, with the SVG retained only as a lightweight fallback asset.
 - Shared plan text leads with map link and read-aloud directions.
 - Preparedness profile and sharing exist.
 - Medical lookup exists through online map searches with urgent-care warnings.
@@ -72,6 +72,12 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Location entry now makes the distinction explicit: address/road notes describe the site, while exact coordinates come from phone GPS, manual coordinates, or a dropped map pin.
 - Map picker now has a center crosshair, Drop Pin at Map Center, Clear Pin, and Center controls.
 - Responder/contact lookup now includes a generated verification script, copy-script button, verified-today stamp, and one-tap append of verified agency/person/phone/source into saved local woods emergency contact notes.
+- Northeastern Loggers' Association is now visible as the provider in the sticky app header and first-screen home hero, not only in the About section.
+- About / Resources now leads with the Northeastern Loggers' Association as the provider that makes WRSP available, then THATS Foundation acknowledgement, required links, and no rejected publication reference.
+- Forester / plan preparer contact added to the plan form, reusable defaults, sample plan, full plan view, responder view, and responder share text.
+- Read-aloud directions helper added: users can search for a responder-known starting landmark and build a draft from route, gate, meeting point, and site coordinates.
+- Service worker cache moved to `wrsp-v9` so saved-home-screen users can receive this update.
+- Publish script now includes the local preview server helper, and the preview server serves PNG header images with the correct type.
 
 ## User feedback captured
 
@@ -81,7 +87,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Plans need phone-ready directions from a known landmark such as a town, village, fire station, or highway intersection.
 - Plans should record possible helicopter landing zone coordinates and hazards.
 - About/Resources must include real links and related app links.
-- About/Resources should follow the original required acknowledgements and should not mention The Northern Logger magazine.
+- About/Resources should follow the original required acknowledgements while leaving out the rejected publication reference.
 - Before calling the app finished, show and review WRSP in a phone-sized preview window so the user can see the mobile layout.
 - Share My Location should become Safety Share: a launch-and-guidance feature for the phone's built-in live location sharing tools.
 - Safety Share must clearly state that WRSP does not automatically start live tracking and does not build custom real-time tracking in this phase.
@@ -90,6 +96,8 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - The app needs an obvious "Share this app" button and clearer install/home-screen support.
 - The app needs a local-only medical card / KIWY-style feature that shares only when the user chooses.
 - The sample safety plan format confirms the one-page plan should include phones/service, emergency numbers, people, read-aloud access directions, gate/meet-responder instructions, and helicopter landing coordinates.
+- Foresters involved in the job often write the plan and must be captured as named contacts alongside crew, landowner, and agency contacts.
+- The Northeastern Loggers' Association must be visibly acknowledged in the app header/first screen, not hidden deep in resources.
 
 ## Next priorities
 
@@ -120,7 +128,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v7`.
+- Service worker cache is currently `wrsp-v9`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
