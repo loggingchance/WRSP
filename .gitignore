@@ -1,4 +1,7 @@
 work/*.log
 outputs/
+*.docx
+*.pdf
+publish-output.txt
 .DS_Store
 Thumbs.db

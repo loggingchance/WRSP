@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#123c2c">
+    <meta name="description" content="Create and share a site-specific Woods-Ready Safety Plan for logging-site emergency readiness.">
+    <meta property="og:title" content="WRSP | Woods-Ready Safety Plan">
+    <meta property="og:description" content="Create, save, print, and share responder-ready logging-site safety plans.">
+    <meta property="og:image" content="https://loggingchance.github.io/WRSP/assets/wrsp-header.png">
+    <meta name="twitter:card" content="summary_large_image">
     <title>WRSP | Woods-Ready Safety Plan</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.svg">
@@ -24,32 +29,30 @@
           <img class="hero-image" src="assets/wrsp-header.svg" alt="Woods-Ready Safety Plan WRSP">
           <div class="hero-copy">
             <p class="eyebrow">Field utility</p>
-            <h2 id="homeTitle">Start every logging job with emergency-ready information.</h2>
-            <p>Build, save, share, import, and reopen job safety plans on this phone, even after service drops.</p>
-            <p class="hero-note">Plans save on this phone and work offline after WRSP has loaded.</p>
+            <h2 id="homeTitle">Create the one-page safety plan before work starts.</h2>
+            <p>Site location, read-aloud 911 directions, contacts, hospital, hazards, and access notes.</p>
           </div>
           <button class="primary-action" data-route="create">Create Safety Plan</button>
         </div>
 
         <div id="continuePlanCard" class="continue-card" hidden></div>
 
-        <p class="more-label">More tools</p>
-        <div class="quick-grid">
+        <div class="home-actions">
           <button class="quick-action" data-route="saved">
             <span>Saved Plans</span>
             <small id="planCount">0 stored</small>
           </button>
-          <button class="quick-action" id="openSamplePlan">
-            <span>View Sample Plan</span>
-            <small>See a field-ready example</small>
-          </button>
-          <button class="quick-action" data-route="defaults">
-            <span>Set Defaults</span>
-            <small>Reuse company/contact info</small>
-          </button>
           <button class="quick-action emergency" data-route="emergency">
-            <span>Share My Location</span>
-            <small>GPS, maps, contacts</small>
+            <span>Share Pinned Location</span>
+            <small>GPS, map link, 911</small>
+          </button>
+        </div>
+
+        <p class="more-label">More tools</p>
+        <div class="quick-grid compact-tools">
+          <button class="quick-action" id="openSamplePlan">
+            <span>Sample Plan</span>
+            <small>Field-ready example</small>
           </button>
           <button class="quick-action emergency" data-route="safetyShare">
             <span>Safety Share</span>
@@ -59,21 +62,9 @@
             <span>Find Medical Care</span>
             <small>Online map search</small>
           </button>
-          <button class="quick-action" data-route="preparedness">
-            <span>Preparedness</span>
-            <small>Trusted contact info</small>
-          </button>
-          <button class="quick-action" data-route="import">
-            <span>Import Plan</span>
-            <small>From shared backup</small>
-          </button>
-          <button class="quick-action" data-route="install">
-            <span>Install / Help</span>
-            <small>Home screen steps</small>
-          </button>
-          <button class="quick-action" data-route="pwa">
-            <span>PWA Status</span>
-            <small>Offline/install checks</small>
+          <button class="quick-action" data-route="medicalCard">
+            <span>My Medical Card</span>
+            <small>Local-only personal info</small>
           </button>
           <button class="quick-action" data-route="feedback">
             <span>Send Feedback</span>
@@ -117,8 +108,9 @@
 
             <div class="card-head">
               <h3>Location</h3>
-              <button type="button" class="small-action" id="captureGps">Capture GPS</button>
+              <button type="button" class="small-action" id="captureGps">Use Phone GPS</button>
             </div>
+            <p class="helper">Address and road notes help people understand the site. Exact coordinates come from phone GPS or the map pin.</p>
             <div class="split">
               <label>Latitude
                 <input id="lat" name="lat" inputmode="decimal" placeholder="Selected from map or GPS">
@@ -132,6 +124,7 @@
               <div class="map-toolbar">
                 <strong>Select site point</strong>
                 <div>
+                  <button type="button" class="small-action" id="mapRecenter">Center</button>
                   <button type="button" class="small-action" id="mapZoomOut">-</button>
                   <button type="button" class="small-action" id="mapZoomIn">+</button>
                 </div>
@@ -139,12 +132,18 @@
               <div id="siteMap" class="site-map" role="button" aria-label="Tap map to select site location">
                 <div id="mapTiles" class="map-tiles"></div>
                 <div id="mapMarker" class="map-marker" hidden></div>
+                <div class="map-crosshair" aria-hidden="true"></div>
               </div>
-              <p class="helper">Use GPS to get close, then zoom and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
+              <div class="map-actions">
+                <button type="button" class="secondary-action" id="dropPinAtCenter">Drop Pin at Map Center</button>
+                <button type="button" class="secondary-action" id="clearSitePin">Clear Pin</button>
+              </div>
+              <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
             </div>
             <label>Nearest road / address
               <input id="roadAddress" name="roadAddress" placeholder="Town road, landing, or nearest address">
             </label>
+            <button type="button" class="secondary-action" id="openAddressInMaps">Open Address in Maps</button>
             <div class="split">
               <label>Town
                 <input id="town" name="town">
@@ -154,17 +153,20 @@
               </label>
             </div>
             <h3>Read-aloud directions</h3>
-            <p class="helper">Write directions that a caller can read out loud to 911 or dispatch. Start from a place responders can find without local woods knowledge.</p>
-            <label>Known starting landmark
+            <p class="helper">Start from a place responders can find without local woods knowledge, then add the site-specific gate, road, landing, and meet-responder instructions.</p>
+            <label>Responder-known starting point
               <input id="knownLandmark" name="knownLandmark" placeholder="Nearest town, village, fire station, or intersection of two state highways">
             </label>
-            <label>Read-aloud directions from that landmark
-              <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From the landmark, take Route __ for __ miles, turn onto __ Road, continue to the gate/landing, watch for..."></textarea>
+            <label>Site-specific read-aloud instructions
+              <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
             <label>Primary contact
               <input id="primaryContact" name="primaryContact" placeholder="Name and phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
+            <label>Phone service notes
+              <textarea id="phoneServiceNotes" name="phoneServiceNotes" rows="2" placeholder="Where mobile service works, dead zones, radio channel, or satellite device notes"></textarea>
+            </label>
           </details>
 
           <details class="card accordion-card">
@@ -223,6 +225,15 @@
             <div class="lookup-panel">
               <h4>Find the agency or person for this site</h4>
               <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely woods agency and build targeted searches.</p>
+              <div id="responderLookupChecklist" class="lookup-checklist"></div>
+              <div class="verification-script">
+                <strong>Verification script</strong>
+                <p id="responderVerificationScript">Enter the site state plus county or town to build a call/search script.</p>
+                <div class="action-row">
+                  <button type="button" class="secondary-action" id="copyResponderVerificationScript">Copy Script</button>
+                  <button type="button" class="secondary-action" id="stampResponderVerificationDate">Stamp Verified Today</button>
+                </div>
+              </div>
               <div class="action-row">
                 <button type="button" class="secondary-action" id="findStateWoodsAgency">State woods agency</button>
                 <button type="button" class="secondary-action" id="findSheriffSar">County dispatch / SAR</button>
@@ -230,9 +241,24 @@
                 <button type="button" class="secondary-action" id="findEmergencyManagement">Emergency management</button>
               </div>
             </div>
+            <div class="verified-contact-grid">
+              <label>Verified agency / dispatch
+                <input id="verifiedResponderAgency" name="verifiedResponderAgency" placeholder="Agency, dispatch center, or department">
+              </label>
+              <label>Verified phone
+                <input id="verifiedResponderPhone" name="verifiedResponderPhone" inputmode="tel" placeholder="Phone number">
+              </label>
+              <label>Verified person / role
+                <input id="verifiedResponderPerson" name="verifiedResponderPerson" placeholder="Ranger, warden, dispatcher, officer, chief">
+              </label>
+              <label>Verified date / source
+                <input id="verifiedResponderSource" name="verifiedResponderSource" placeholder="Date, website, call, or office">
+              </label>
+            </div>
             <label>Saved local woods emergency contacts
               <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Save the actual agency, dispatch number, ranger/warden name, fire/rescue contact, or local person who knows the roads/gates"></textarea>
             </label>
+            <button type="button" class="secondary-action" id="appendVerifiedResponderContact">Add Verified Contact to Notes</button>
           </details>
 
           <details class="card accordion-card">
@@ -304,20 +330,20 @@
         <div id="planOutput" class="plan-output"></div>
         <div class="action-row secondary-plan-actions">
           <button class="secondary-action" id="qrCurrentPlan">QR</button>
-          <button class="secondary-action" id="exportCurrentPlan">Export</button>
+          <button class="secondary-action" id="exportCurrentPlan">Backup File</button>
           <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
-          <button class="secondary-action" id="printCurrentPlan">Print</button>
+          <button class="secondary-action" id="printCurrentPlan">Print / Save PDF</button>
         </div>
         <div id="qrPanel" class="qr-panel" hidden>
           <div>
-            <h3>Import QR code</h3>
-            <p id="qrHelp" class="helper">Scan this code to open/import the plan. Best used from the hosted WRSP app, not the local file preview.</p>
+            <h3>Plan QR code</h3>
+            <p id="qrHelp" class="helper">Scan this code to open the responder plan. Best used from the hosted WRSP app, not the local file preview.</p>
           </div>
           <img id="qrImage" alt="WRSP plan import QR code">
-          <label>Import link
+          <label>Plan link
             <textarea id="qrImportLink" rows="3" readonly></textarea>
           </label>
-          <button class="secondary-action" id="copyQrLink">Copy Import Link</button>
+          <button class="secondary-action" id="copyQrLink">Copy Plan Link</button>
         </div>
         <div class="sticky-share">
           <button class="primary-action" id="shareCurrentPlan">Share Plan</button>
@@ -336,6 +362,7 @@
           <p class="warning strong">WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.</p>
           <p id="emergencyGps">GPS not captured yet.</p>
           <div class="action-row">
+            <a class="primary-action link-action emergency-dial" href="tel:911">Dial 911</a>
             <button class="primary-action" id="shareLocation">Text / Share Location</button>
             <button class="primary-action share-inline" data-route="safetyShare">Safety Share</button>
             <button class="secondary-action" id="copyLocation">Copy GPS</button>
@@ -545,16 +572,16 @@
           </div>
         </div>
         <div class="card">
-          <h3>Import from file</h3>
-          <p class="helper">Choose a WRSP plan export file that someone shared with you, then save it as a new local plan.</p>
-          <label>WRSP export file
+          <h3>Import backup file</h3>
+          <p class="helper">Choose a WRSP backup file that someone shared with you, then save it as a new local plan.</p>
+          <label>WRSP backup file
             <input id="importFile" type="file" accept=".json,.wrsp,.wrsp.json,application/json">
           </label>
           <button class="primary-action" id="importFilePlan">Import Selected File</button>
           <hr class="soft-divider">
           <h3>Paste backup code</h3>
-          <label>WRSP export text
-            <textarea id="importText" rows="8" placeholder="Paste a WRSP plan export here"></textarea>
+          <label>WRSP backup text
+            <textarea id="importText" rows="8" placeholder="Paste a WRSP plan backup here"></textarea>
           </label>
           <button class="secondary-action" id="importPlan">Import Pasted Text</button>
           <p id="importStatus" class="helper"></p>
@@ -584,6 +611,10 @@
             <li>Confirm.</li>
           </ol>
           <p class="helper">Saving WRSP to the home screen makes it easier to find and helps it remain available for field use after loading.</p>
+          <div class="action-row">
+            <button class="primary-action" id="shareApp">Share This App</button>
+            <button class="secondary-action" id="copyAppLink">Copy App Link</button>
+          </div>
         </div>
       </section>
 
@@ -596,7 +627,11 @@
           <button class="secondary-action" id="refreshPwaStatus">Refresh Status</button>
         </div>
         <div class="card">
+          <p class="helper"><strong id="appVersionLabel">WRSP version loading...</strong></p>
           <div id="pwaStatusList" class="status-list"></div>
+          <div class="action-row">
+            <button class="primary-action" id="checkForUpdate">Check for Update</button>
+          </div>
           <p class="notice">Full install/offline behavior requires WRSP to be opened from an HTTP/HTTPS address, such as GitHub Pages. The local file preview is useful for layout and workflow review, but it cannot fully test service worker caching.</p>
         </div>
         <div class="card">
@@ -610,6 +645,61 @@
             <li>Turn service back on and confirm maps, medical lookup, QR image generation, and feedback email work again.</li>
           </ol>
         </div>
+      </section>
+
+      <section id="medicalCardView" class="view" aria-labelledby="medicalCardTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Local only</p>
+            <h2 id="medicalCardTitle">My Medical Card</h2>
+          </div>
+          <button class="secondary-action" id="shareMedicalCard">Share</button>
+        </div>
+        <form id="medicalCardForm" class="form-stack">
+          <div class="card">
+            <p class="warning">This information saves only on this phone. Share it only when you choose to share it.</p>
+            <div class="split">
+              <label>Name
+                <input id="medCardName" autocomplete="name">
+              </label>
+              <label>Date of birth
+                <input id="medCardDob" inputmode="numeric" placeholder="MM/DD/YYYY">
+              </label>
+            </div>
+            <div class="split">
+              <label>Blood type
+                <input id="medCardBloodType" placeholder="Optional">
+              </label>
+              <label>Physician
+                <input id="medCardPhysician" placeholder="Name and phone">
+              </label>
+            </div>
+            <label>Allergies
+              <textarea id="medCardAllergies" rows="3"></textarea>
+            </label>
+            <label>Medications
+              <textarea id="medCardMeds" rows="3"></textarea>
+            </label>
+            <label>Medical conditions
+              <textarea id="medCardConditions" rows="3"></textarea>
+            </label>
+            <label>Emergency contacts
+              <textarea id="medCardEmergencyContacts" rows="3"></textarea>
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="medCardEmergencyContacts">Choose from contacts</button>
+            <label>Insurance / air medical notes
+              <textarea id="medCardInsurance" rows="3"></textarea>
+            </label>
+            <label>Advance directives / important notes
+              <textarea id="medCardDirectives" rows="3"></textarea>
+            </label>
+            <div class="action-row">
+              <button class="primary-action" type="submit">Save Medical Card</button>
+              <button class="secondary-action" type="button" id="copyMedicalCard">Copy</button>
+            </div>
+            <p id="medicalCardStatus" class="helper"></p>
+          </div>
+        </form>
       </section>
 
       <section id="resourcesView" class="view" aria-labelledby="resourcesTitle">
@@ -721,7 +811,9 @@
         </div>
         <div class="quick-grid more-tools">
           <button class="quick-action" data-route="safetyShare"><span>Safety Share</span><small>Launch live location sharing</small></button>
+          <button class="quick-action emergency" data-route="emergency"><span>Share Pinned Location</span><small>GPS, map link, 911</small></button>
           <button class="quick-action" data-route="medical"><span>Find Medical Care</span><small>Online map search</small></button>
+          <button class="quick-action" data-route="medicalCard"><span>My Medical Card</span><small>Local-only personal info</small></button>
           <button class="quick-action" data-route="preparedness"><span>Preparedness</span><small>Trusted contact info</small></button>
           <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>
           <button class="quick-action" id="openSamplePlanMore"><span>View Sample Plan</span><small>Field-ready example</small></button>
@@ -738,7 +830,7 @@
       <button data-route="home" class="active">Home</button>
       <button data-route="create">Create</button>
       <button data-route="saved">Plans</button>
-      <button data-route="emergency">GPS</button>
+      <button data-route="emergency">Location</button>
       <button data-route="more">More</button>
     </nav>
 

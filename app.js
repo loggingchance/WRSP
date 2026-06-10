@@ -5,6 +5,8 @@ const SETTINGS_STORE = "settings";
 const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
+const MEDICAL_CARD_KEY = "medicalCard";
+const APP_VERSION = "WRSP v0.6.1 - June 10, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -13,6 +15,7 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 let db;
 let currentPlanId = null;
 let currentPlanMode = "full";
+let sharedPlanPreview = null;
 let emergencyCoords = null;
 let autoSaveTimer = null;
 let siteMapState = {
@@ -198,6 +201,7 @@ const emptyPlan = () => ({
     lng: "",
     accuracy: "",
     capturedAt: "",
+    source: "",
     manualOverride: false,
     roadAddress: "",
     town: "",
@@ -207,6 +211,7 @@ const emptyPlan = () => ({
   access: {
     knownLandmark: "",
     phoneDirections: "",
+    phoneServiceNotes: "",
     routeNotes: "",
     gateNotes: "",
     meetingPoint: "",
@@ -233,6 +238,10 @@ const emptyPlan = () => ({
   },
   sar: {
     contacts: "",
+    verifiedAgency: "",
+    verifiedPhone: "",
+    verifiedPerson: "",
+    verifiedSource: "",
   },
   hazards: "",
   importedFrom: "",
@@ -253,6 +262,7 @@ function samplePlan() {
       lng: "-74.128440",
       accuracy: "",
       capturedAt: now,
+      source: "map pin",
       manualOverride: true,
       roadAddress: "Ridge Road landing, 2.4 miles north of Mill Creek Road",
       town: "Sample Town",
@@ -262,6 +272,7 @@ function samplePlan() {
     access: {
       knownLandmark: "Intersection of State Route 8 and County Route 14 in Sample Town",
       phoneDirections: "From the Route 8 / County Route 14 intersection, travel north on County Route 14 for 3.2 miles. Turn right on Ridge Road. Continue 2.4 miles to the locked green gate. The emergency meeting point is the wide landing immediately beyond the gate.",
+      phoneServiceNotes: "Mobile phone service is available near the landing and weak beyond the green gate.",
       routeNotes: "Ridge Road is passable by pickups and ambulances in dry conditions. Lowboy trucks should turn around at the landing only.",
       gateNotes: "Green gate with combination lock. Combination held by crew lead and landowner.",
       meetingPoint: "Wide gravel landing just inside the green gate on Ridge Road.",
@@ -288,6 +299,10 @@ function samplePlan() {
     },
     sar: {
       contacts: "County dispatch / sheriff search and rescue: 555-0300. State forestry/ranger district office: 555-0301.",
+      verifiedAgency: "Sample County Dispatch",
+      verifiedPhone: "555-0300",
+      verifiedPerson: "Dispatcher / SAR coordinator",
+      verifiedSource: "Sample verification note",
     },
     hazards: "Steep skid trail above landing, active equipment, narrow bridge on Ridge Road, limited cell service past gate.",
   };
@@ -356,6 +371,7 @@ function routeTo(route) {
   if (route === "saved") renderSavedPlans();
   if (route === "create") window.setTimeout(renderSiteMap, 50);
   if (route === "medical") prefillMedicalOrigin();
+  if (route === "medicalCard") loadMedicalCard();
   if (route === "safetyShare") updateSafetyShareScreen();
   if (route === "preparedness") loadPreparedness();
   if (route === "defaults") loadDefaultsForm();
@@ -374,12 +390,14 @@ function toast(message) {
 function updateConnectionBadge() {
   const badge = $("#connectionBadge");
   const online = navigator.onLine;
-  badge.textContent = online ? "Online" : "Offline";
+  badge.textContent = online ? "Connected" : "Offline";
   badge.className = `status-badge ${online ? "online" : "offline"}`;
 }
 
 async function updatePwaStatus() {
   const list = $("#pwaStatusList");
+  const version = $("#appVersionLabel");
+  if (version) version.textContent = APP_VERSION;
   if (!list) return;
   const isFile = window.location.protocol === "file:";
   const isSecure = window.isSecureContext || ["http:", "https:"].includes(window.location.protocol) && window.location.hostname === "127.0.0.1";
@@ -449,6 +467,7 @@ function formToPlan() {
       lng: $("#lng").value.trim(),
       accuracy: $("#planForm").dataset.accuracy || "",
       capturedAt: $("#planForm").dataset.capturedAt || "",
+      source: $("#planForm").dataset.locationSource || "",
       manualOverride: Boolean($("#lat").value || $("#lng").value),
       roadAddress: $("#roadAddress").value.trim(),
       town: $("#town").value.trim(),
@@ -458,6 +477,7 @@ function formToPlan() {
     access: {
       knownLandmark: $("#knownLandmark").value.trim(),
       phoneDirections: $("#phoneDirections").value.trim(),
+      phoneServiceNotes: $("#phoneServiceNotes").value.trim(),
       routeNotes: $("#routeNotes").value.trim(),
       gateNotes: $("#gateNotes").value.trim(),
       meetingPoint: $("#meetingPoint").value.trim(),
@@ -484,6 +504,10 @@ function formToPlan() {
     },
     sar: {
       contacts: $("#sarContacts").value.trim(),
+      verifiedAgency: $("#verifiedResponderAgency").value.trim(),
+      verifiedPhone: $("#verifiedResponderPhone").value.trim(),
+      verifiedPerson: $("#verifiedResponderPerson").value.trim(),
+      verifiedSource: $("#verifiedResponderSource").value.trim(),
     },
     hazards: $("#hazards").value.trim(),
   };
@@ -495,6 +519,7 @@ function planToForm(plan) {
   $("#planForm").dataset.createdAt = plan.createdAt;
   $("#planForm").dataset.accuracy = plan.location?.accuracy || "";
   $("#planForm").dataset.capturedAt = plan.location?.capturedAt || "";
+  $("#planForm").dataset.locationSource = plan.location?.source || "";
   $("#title").value = plan.title || "";
   $("#status").value = plan.status || "draft";
   $("#creator").value = plan.creator || "";
@@ -506,6 +531,7 @@ function planToForm(plan) {
   $("#state").value = plan.location?.state || "";
   $("#knownLandmark").value = plan.access?.knownLandmark || "";
   $("#phoneDirections").value = plan.access?.phoneDirections || "";
+  $("#phoneServiceNotes").value = plan.access?.phoneServiceNotes || "";
   $("#routeNotes").value = plan.access?.routeNotes || "";
   $("#gateNotes").value = plan.access?.gateNotes || "";
   $("#meetingPoint").value = plan.access?.meetingPoint || "";
@@ -526,6 +552,10 @@ function planToForm(plan) {
   $("#traumaDirectionsUrl").value = plan.medical?.traumaDirectionsUrl || "";
   $("#medicalNotes").value = plan.medical?.notes || "";
   $("#sarContacts").value = plan.sar?.contacts || "";
+  $("#verifiedResponderAgency").value = plan.sar?.verifiedAgency || "";
+  $("#verifiedResponderPhone").value = plan.sar?.verifiedPhone || "";
+  $("#verifiedResponderPerson").value = plan.sar?.verifiedPerson || "";
+  $("#verifiedResponderSource").value = plan.sar?.verifiedSource || "";
   $("#hazards").value = plan.hazards || "";
   updateGpsStatus(plan);
   updateWoodsContactSuggestion();
@@ -588,9 +618,10 @@ function updateGpsStatus(plan = formToPlan()) {
   const loc = plan.location || {};
   const status = $("#gpsStatus");
   if (loc.lat && loc.lng) {
-    status.textContent = `GPS set: ${loc.lat}, ${loc.lng}${loc.accuracy ? `, accuracy ${Math.round(loc.accuracy)} meters` : ""}`;
+    const source = loc.source || $("#planForm").dataset.locationSource || "coordinates";
+    status.textContent = `Exact coordinates set from ${source}: ${loc.lat}, ${loc.lng}${loc.accuracy ? `, accuracy about ${Math.round(loc.accuracy)} meters` : ""}`;
   } else {
-    status.textContent = "GPS has not been captured for this plan.";
+    status.textContent = "Exact coordinates have not been set. Use phone GPS or drop a map pin.";
   }
 }
 
@@ -671,9 +702,22 @@ function setSiteCoordinates(lat, lng, center = true) {
   $("#lng").value = safeLng.toFixed(6);
   $("#planForm").dataset.accuracy = "";
   $("#planForm").dataset.capturedAt = new Date().toISOString();
+  $("#planForm").dataset.locationSource = "map pin";
   updateGpsStatus();
   updateEssentialProgress();
   if (center) centerSiteMap(safeLat, safeLng);
+  scheduleAutoSave();
+}
+
+function clearSiteCoordinates() {
+  $("#lat").value = "";
+  $("#lng").value = "";
+  $("#planForm").dataset.accuracy = "";
+  $("#planForm").dataset.capturedAt = "";
+  $("#planForm").dataset.locationSource = "";
+  updateGpsStatus();
+  updateEssentialProgress();
+  renderSiteMap();
   scheduleAutoSave();
 }
 
@@ -695,6 +739,7 @@ async function savePlan(plan = formToPlan(), quiet = false) {
   if (!plan.title) plan.title = "Untitled WRSP Plan";
   await storePut(PLAN_STORE, plan);
   currentPlanId = plan.id;
+  sharedPlanPreview = null;
   $("#planId").value = plan.id;
   $("#planForm").dataset.createdAt = plan.createdAt;
   await updatePlanCount();
@@ -806,15 +851,32 @@ async function openPlan(id) {
   const plan = await storeGet(PLAN_STORE, id);
   if (!plan) return;
   currentPlanId = id;
+  sharedPlanPreview = null;
   $("#planViewTitle").textContent = plan.title || "WRSP Plan";
   renderCurrentPlan(plan);
   routeTo("plan");
+}
+
+async function activePlan() {
+  if (sharedPlanPreview) return sharedPlanPreview;
+  if (!currentPlanId) return null;
+  return storeGet(PLAN_STORE, currentPlanId);
 }
 
 function renderCurrentPlan(plan) {
   $("#planOutput").innerHTML = currentPlanMode === "responder" ? renderResponderPlanHtml(plan) : renderPlanHtml(plan);
   $("#fullPlanMode")?.classList.toggle("active", currentPlanMode === "full");
   $("#responderPlanMode")?.classList.toggle("active", currentPlanMode === "responder");
+}
+
+function responderLine(label, value) {
+  return value ? `<p><strong>${escapeHtml(label)}:</strong> ${allowMapLink(value)}</p>` : "";
+}
+
+function responderList(items) {
+  const filtered = items.filter(([, value]) => value);
+  if (!filtered.length) return `<p>Not entered</p>`;
+  return filtered.map(([label, value]) => responderLine(label, value)).join("");
 }
 
 function renderPlanHtml(plan) {
@@ -827,6 +889,7 @@ function renderPlanHtml(plan) {
       ["Maps link", mapsLink ? `<a href="${mapsLink}" target="_blank" rel="noopener">Open coordinates in maps</a>` : "Not set"],
       ["Nearest road / address", loc.roadAddress],
       ["Town / county / state", [loc.town, loc.county, loc.state].filter(Boolean).join(", ")],
+      ["Phone service", plan.access?.phoneServiceNotes],
     ]],
     ["Access", [
       ["Known starting landmark", plan.access?.knownLandmark],
@@ -844,6 +907,10 @@ function renderPlanHtml(plan) {
       ["Crew / supervisor", plan.contacts?.supervisor],
       ["Landowner", plan.contacts?.landowner],
       ["Trucking contact", plan.contacts?.truckingContact],
+      ["Verified agency / dispatch", plan.sar?.verifiedAgency],
+      ["Verified agency phone", plan.sar?.verifiedPhone],
+      ["Verified person / role", plan.sar?.verifiedPerson],
+      ["Verified source / date", plan.sar?.verifiedSource],
       ["Local woods emergency contacts", plan.sar?.contacts],
     ]],
     ["Medical and hazards", [
@@ -880,43 +947,77 @@ function renderResponderPlanHtml(plan) {
   const loc = plan.location || {};
   const access = plan.access || {};
   const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "";
-  const rows = [
-    ["GPS coordinates", loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not entered"],
-    ["Map link", mapsLink ? `<a href="${mapsLink}" target="_blank" rel="noopener">Open site in maps</a>` : "Not entered"],
-    ["Read-aloud directions", buildEmergencyDirections(plan)],
-    ["Known starting landmark", access.knownLandmark],
-    ["Emergency meeting point", access.meetingPoint],
-    ["Gate / lock / key notes", access.gateNotes],
-    ["Best access / truck route", access.routeNotes],
-    ["Primary job contact", plan.contacts?.primaryContact],
-    ["Crew / supervisor", plan.contacts?.supervisor],
-    ["Local woods emergency contacts", plan.sar?.contacts],
-    ["Nearest hospital / ER", plan.medical?.hospital],
-    ["Hospital / ER directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital / ER directions</a>` : ""],
-    ["Nearest urgent care", plan.medical?.urgentCare],
-    ["Trauma center / major hospital", plan.medical?.traumaCenter],
-    ["Trauma / major hospital directions", plan.medical?.traumaDirectionsUrl ? `<a href="${escapeHtml(plan.medical.traumaDirectionsUrl)}" target="_blank" rel="noopener">Open trauma center directions</a>` : ""],
-    ["Medical notes", plan.medical?.notes],
-    ["Possible helicopter landing zone", access.landingZoneDescription],
-    ["Landing zone GPS", access.landingZoneLat && access.landingZoneLng ? `${access.landingZoneLat}, ${access.landingZoneLng}` : ""],
-    ["Landing zone hazards / notes", access.landingZoneNotes],
-    ["Hazards at or near site", plan.hazards],
-  ];
+  const siteAddress = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+  const lzGps = access.landingZoneLat && access.landingZoneLng ? `${access.landingZoneLat}, ${access.landingZoneLng}` : "";
   return `
-    <h2>${escapeHtml(plan.title || "WRSP Responder View")}</h2>
+    <div class="safety-sheet">
+      <header class="safety-sheet-head">
+        <div>
+          <h2>${escapeHtml(plan.title || "WRSP Safety Plan")}</h2>
+          <p>${escapeHtml(siteAddress || "Site address/location not entered")}</p>
+          <strong>Safety Plan & Important Information</strong>
+          <p>Updated ${formatDate(plan.updatedAt)}</p>
+        </div>
+        <a class="primary-action link-action emergency-dial" href="tel:911">Dial 911</a>
+      </header>
     ${completenessHint(plan)}
-    <p class="warning strong">WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.</p>
-    <div class="read-aloud">
-      <h3>Read to 911 / dispatch</h3>
-      <p>${escapeHtml(buildEmergencyDirections(plan))}</p>
-    </div>
-    <div class="responder-grid">
-      ${rows.map(([label, value]) => `
-        <section>
-          <h3>${escapeHtml(label)}</h3>
-          <p>${value ? allowMapLink(value) : "Not entered"}</p>
-        </section>
-      `).join("")}
+      <section class="sheet-section phones-section">
+        <h3>Phones</h3>
+        <p class="warning strong">WRSP does not contact 911. Dial 911 for emergencies.</p>
+        ${responderLine("Phone service", access.phoneServiceNotes || "Not entered")}
+        <p>Keep this plan on your phone and text or email it to responders after you have spoken with them.</p>
+      </section>
+      <section class="sheet-section">
+        <h3>Site Location</h3>
+        ${responderLine("GPS", loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not entered")}
+        ${mapsLink ? responderLine("Map", `<a href="${mapsLink}" target="_blank" rel="noopener">Open site in maps</a>`) : responderLine("Map", "Not entered")}
+      </section>
+      <section class="sheet-section">
+        <h3>State & Emergency Numbers</h3>
+        ${responderList([
+          ["Verified agency / dispatch", plan.sar?.verifiedAgency],
+          ["Verified agency phone", plan.sar?.verifiedPhone],
+          ["Verified person / role", plan.sar?.verifiedPerson],
+          ["Verified source / date", plan.sar?.verifiedSource],
+          ["Local woods emergency contacts", plan.sar?.contacts],
+          ["Hospital / ER", plan.medical?.hospital],
+          ["Hospital directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital directions</a>` : ""],
+          ["Trauma / major hospital", plan.medical?.traumaCenter],
+          ["Trauma directions", plan.medical?.traumaDirectionsUrl ? `<a href="${escapeHtml(plan.medical.traumaDirectionsUrl)}" target="_blank" rel="noopener">Open trauma directions</a>` : ""],
+        ])}
+      </section>
+      <section class="sheet-section">
+        <h3>People</h3>
+        ${responderList([
+          ["Primary job contact", plan.contacts?.primaryContact],
+          ["Crew / supervisor", plan.contacts?.supervisor],
+          ["Landowner", plan.contacts?.landowner],
+          ["Trucking contact", plan.contacts?.truckingContact],
+        ])}
+      </section>
+      <section class="sheet-section directions-section">
+        <h3>Directions to Job Site for Emergency Vehicles</h3>
+        <p>${escapeHtml(buildEmergencyDirections(plan))}</p>
+      </section>
+      <section class="sheet-section">
+        <h3>Access and Hazards</h3>
+        ${responderList([
+          ["Emergency meeting point", access.meetingPoint],
+          ["Gate / lock / key notes", access.gateNotes],
+          ["Best access / truck route", access.routeNotes],
+          ["Alternate meeting point", access.alternateMeetingPoint],
+          ["Hazards at or near site", plan.hazards],
+          ["Medical notes", plan.medical?.notes],
+        ])}
+      </section>
+      <section class="sheet-section">
+        <h3>Potential Helicopter Landing Site</h3>
+        ${responderList([
+          ["Landing zone", access.landingZoneDescription],
+          ["Lat/Long", lzGps],
+          ["Hazards / notes", access.landingZoneNotes],
+        ])}
+      </section>
     </div>`;
 }
 
@@ -926,6 +1027,7 @@ function buildEmergencyDirections(plan) {
   const parts = [];
   parts.push(`The emergency is at ${plan.title || "a logging site"}.`);
   if (loc.lat && loc.lng) parts.push(`GPS coordinates are ${loc.lat}, ${loc.lng}.`);
+  if (access.phoneServiceNotes) parts.push(`Phone service notes: ${access.phoneServiceNotes}.`);
   if (access.knownLandmark) parts.push(`Start from ${access.knownLandmark}.`);
   if (access.phoneDirections) parts.push(access.phoneDirections);
   if (access.meetingPoint) parts.push(`The emergency meeting point is ${access.meetingPoint}.`);
@@ -935,6 +1037,9 @@ function buildEmergencyDirections(plan) {
     parts.push(`Possible helicopter landing zone: ${access.landingZoneDescription || "description not entered"}${access.landingZoneLat && access.landingZoneLng ? `; GPS ${access.landingZoneLat}, ${access.landingZoneLng}` : ""}.`);
   }
   if (access.landingZoneNotes) parts.push(`Landing zone hazards or notes: ${access.landingZoneNotes}.`);
+  if (plan.sar?.verifiedAgency || plan.sar?.verifiedPhone || plan.sar?.verifiedPerson) {
+    parts.push(`Verified emergency contact: ${[plan.sar?.verifiedAgency, plan.sar?.verifiedPerson, plan.sar?.verifiedPhone].filter(Boolean).join(", ")}.`);
+  }
   if (plan.sar?.contacts) parts.push(`Local woods emergency contacts or agency notes: ${plan.sar.contacts}.`);
   if (!access.knownLandmark && !access.phoneDirections) {
     parts.push("Directions from a known town, village, highway intersection, or other responder-friendly landmark have not been entered yet.");
@@ -945,27 +1050,22 @@ function buildEmergencyDirections(plan) {
 function planShareText(plan) {
   const loc = plan.location || {};
   const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "No GPS set";
+  const hospital = plan.medical?.hospital || plan.medical?.traumaCenter || "Not entered";
+  const agency = [plan.sar?.verifiedAgency, plan.sar?.verifiedPerson, plan.sar?.verifiedPhone].filter(Boolean).join(", ") || plan.sar?.contacts || "Not entered";
+  const lz = plan.access?.landingZoneLat && plan.access?.landingZoneLng
+    ? `${plan.access.landingZoneLat}, ${plan.access.landingZoneLng}`
+    : (plan.access?.landingZoneDescription || "Not entered");
   return [
     `WRSP Safety Plan: ${plan.title || "Untitled"}`,
-    `Maps: ${mapsLink}`,
-    `Read to 911 / dispatch: ${buildEmergencyDirections(plan)}`,
     `GPS: ${loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not set"}`,
-    `Status: ${plan.status || "draft"}`,
-    `Access: ${plan.access?.routeNotes || "Not entered"}`,
-    `Meeting point: ${plan.access?.meetingPoint || "Not entered"}`,
-    `Possible helicopter landing zone: ${plan.access?.landingZoneDescription || "Not entered"}`,
-    `Landing zone GPS: ${plan.access?.landingZoneLat && plan.access?.landingZoneLng ? `${plan.access.landingZoneLat}, ${plan.access.landingZoneLng}` : "Not entered"}`,
-    `Landing zone notes: ${plan.access?.landingZoneNotes || "Not entered"}`,
+    `Map: ${mapsLink}`,
+    `Read to 911: ${buildEmergencyDirections(plan)}`,
+    `Phone service: ${plan.access?.phoneServiceNotes || "Not entered"}`,
     `Primary contact: ${plan.contacts?.primaryContact || "Not entered"}`,
-    `Crew/supervisor: ${plan.contacts?.supervisor || "Not entered"}`,
-    `Local woods emergency contacts: ${plan.sar?.contacts || "Not entered"}`,
-    `Hospital/ER: ${plan.medical?.hospital || "Not entered"}`,
-    `Hospital/ER directions: ${plan.medical?.hospitalDirectionsUrl || "Not entered"}`,
-    `Urgent care: ${plan.medical?.urgentCare || "Not entered"}`,
-    `Urgent care directions: ${plan.medical?.urgentCareDirectionsUrl || "Not entered"}`,
-    `Trauma center/major hospital: ${plan.medical?.traumaCenter || "Not entered"}`,
-    `Trauma center directions: ${plan.medical?.traumaDirectionsUrl || "Not entered"}`,
-    `Medical notes: ${plan.medical?.notes || "Not entered"}`,
+    `Meeting point: ${plan.access?.meetingPoint || "Not entered"}`,
+    `Hospital/medical: ${hospital}`,
+    `Woods emergency contact: ${agency}`,
+    `Possible helicopter LZ: ${lz}`,
     `Hazards: ${plan.hazards || "Not entered"}`,
     "For serious injury or uncertain severity, call 911 and request EMS.",
   ].join("\n");
@@ -998,7 +1098,7 @@ function compactExportPackage(plan) {
 
 function importUrlForPlan(plan) {
   const baseUrl = window.location.href.split("#")[0];
-  return `${baseUrl}#import=${encodeURIComponent(compactExportPackage(plan))}`;
+  return `${baseUrl}#plan=${encodeURIComponent(compactExportPackage(plan))}`;
 }
 
 function showPlanQr(plan) {
@@ -1012,12 +1112,12 @@ function showPlanQr(plan) {
   if (importUrl.length > 2200) {
     image.removeAttribute("src");
     image.hidden = true;
-    help.textContent = "This plan is too large for a reliable QR code. Use Export to share the .wrsp.json file instead.";
+    help.textContent = "This plan is too large for a reliable QR code. Use Backup File to share the plan backup instead.";
     return;
   }
   image.hidden = false;
   image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(importUrl)}`;
-  help.textContent = "Scan this code to open/import the plan. Best used from the hosted WRSP app, not the local file preview.";
+  help.textContent = "Scan this code to open a read-only responder plan. Best used from the hosted WRSP app, not the local file preview.";
 }
 
 function safeFileName(value = "wrsp-plan") {
@@ -1042,8 +1142,8 @@ async function sharePlanExportFile(plan) {
   const file = new File([exportPackage(plan)], fileName, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] }) && navigator.share) {
     await navigator.share({
-      title: `WRSP export: ${plan.title || "Safety Plan"}`,
-      text: "WRSP importable safety plan export.",
+      title: `WRSP backup: ${plan.title || "Safety Plan"}`,
+      text: "WRSP plan backup file.",
       files: [file],
     });
     return true;
@@ -1062,7 +1162,7 @@ async function saveImportedPlanFromPayload(payload) {
     ...payload,
     id: crypto.randomUUID(),
     title: `${payload.title || "Imported WRSP Plan"} copy`,
-    importedFrom: payload.id || "shared export",
+    importedFrom: payload.id || "shared backup",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -1072,6 +1172,26 @@ async function saveImportedPlanFromPayload(payload) {
 }
 
 async function importFromUrlHash() {
+  if (window.location.hash.startsWith("#plan=")) {
+    try {
+      const raw = decodeURIComponent(window.location.hash.slice("#plan=".length));
+      const payload = parsePlanExport(raw);
+      sharedPlanPreview = {
+        ...emptyPlan(),
+        ...payload,
+        updatedAt: payload.updatedAt || new Date().toISOString(),
+      };
+      currentPlanId = null;
+      currentPlanMode = "responder";
+      $("#planViewTitle").textContent = sharedPlanPreview.title || "Shared WRSP Plan";
+      renderCurrentPlan(sharedPlanPreview);
+      routeTo("plan");
+      toast("Shared WRSP plan opened.");
+    } catch (error) {
+      toast(`Shared plan link failed: ${error.message}`);
+    }
+    return;
+  }
   if (!window.location.hash.startsWith("#import=")) return;
   try {
     const raw = decodeURIComponent(window.location.hash.slice("#import=".length));
@@ -1104,6 +1224,7 @@ async function capturePlanGps() {
     const position = await getCurrentPosition();
     $("#planForm").dataset.accuracy = String(position.coords.accuracy || "");
     $("#planForm").dataset.capturedAt = new Date(position.timestamp).toISOString();
+    $("#planForm").dataset.locationSource = "phone GPS";
     $("#lat").value = position.coords.latitude.toFixed(6);
     $("#lng").value = position.coords.longitude.toFixed(6);
     updateGpsStatus();
@@ -1312,6 +1433,24 @@ async function sendSafetyPage() {
   await shareText("WRSP Safety Share", message);
 }
 
+function appShareUrl() {
+  if (window.location.protocol === "file:") return "https://loggingchance.github.io/WRSP/";
+  return window.location.href.split("#")[0];
+}
+
+function appShareText() {
+  return [
+    "WRSP - Woods-Ready Safety Plan",
+    "Create and share a site-specific logging safety plan with GPS, read-aloud 911 directions, contacts, medical information, hazards, and access notes.",
+    appShareUrl(),
+    "On a phone: open the link, then use Add to Home Screen or Install app.",
+  ].join("\n");
+}
+
+async function shareAppLink() {
+  await shareText("WRSP - Woods-Ready Safety Plan", appShareText());
+}
+
 async function confirmLiveLocationStarted() {
   const existing = (await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY))?.value || {};
   const record = {
@@ -1406,6 +1545,11 @@ function planSearchOrigin() {
   return named || loc.roadAddress || "";
 }
 
+function planAddressSearchText() {
+  const loc = formToPlan().location || {};
+  return [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+}
+
 function updateWoodsContactSuggestion() {
   const plan = formToPlan();
   const origin = planSearchOrigin();
@@ -1413,13 +1557,67 @@ function updateWoodsContactSuggestion() {
   const suggestion = $("#woodsContactSuggestion");
   if (!origin && !agency) {
     suggestion.textContent = "Enter the site state plus county or town first. WRSP will suggest the likely woods agency and build targeted searches.";
+    renderResponderLookupChecklist(plan, agency, origin);
+    renderResponderVerificationScript(plan, agency, origin);
     return;
   }
   if (agency) {
     suggestion.textContent = `Likely state starting point: ${agency}. Use the buttons to look for the correct district, county contact, dispatch number, ranger, warden, or local responder for ${origin || "this site"}.`;
+    renderResponderLookupChecklist(plan, agency, origin);
+    renderResponderVerificationScript(plan, agency, origin);
     return;
   }
   suggestion.textContent = `Use the buttons to search for local responder contacts for ${origin}. Add the state for a better state-agency suggestion.`;
+  renderResponderLookupChecklist(plan, agency, origin);
+  renderResponderVerificationScript(plan, agency, origin);
+}
+
+function renderResponderLookupChecklist(plan = formToPlan(), agency = "", origin = "") {
+  const checklist = $("#responderLookupChecklist");
+  if (!checklist) return;
+  const loc = plan.location || {};
+  const county = loc.county ? `${loc.county} County` : "the county";
+  const state = loc.state || "the state";
+  const items = [
+    agency ? `Start with ${agency}; look for the district office, ranger, warden, forestry/fire dispatch, or duty officer covering ${origin || state}.` : `Add the state so WRSP can suggest the state forestry/ranger/warden agency.`,
+    `Verify the 24-hour dispatch path for ${county}, not only an office number.`,
+    `Confirm which local fire/rescue department covers the landing, gate, or woods road access point.`,
+    `Record a person or role, phone number, and source/date after calling or checking the official page.`,
+  ];
+  checklist.innerHTML = `
+    <strong>What to verify</strong>
+    <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+  `;
+}
+
+function responderVerificationText(plan = formToPlan(), agency = stateAgencyForPlan(plan).agency, origin = planSearchOrigin()) {
+  const loc = plan.location || {};
+  const site = plan.title || "this logging site";
+  const place = origin || [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ") || "the site location";
+  const coords = loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "coordinates not set yet";
+  return [
+    `I am preparing a Woods-Ready Safety Plan for ${site}.`,
+    `Location: ${place}. Coordinates: ${coords}.`,
+    agency ? `Likely state forestry/ranger starting point: ${agency}.` : "I still need to identify the state forestry/ranger/warden starting point.",
+    "Can you confirm the correct 24-hour dispatch path or emergency contact for a logging/woods emergency at this site?",
+    "Can you confirm the local fire/rescue coverage for the access road, gate, landing, or meeting point?",
+    "What agency, role/person, phone number, and source/date should I record in the plan?",
+  ].join("\n");
+}
+
+function renderResponderVerificationScript(plan = formToPlan(), agency = "", origin = "") {
+  const script = $("#responderVerificationScript");
+  if (!script) return;
+  script.textContent = responderVerificationText(plan, agency, origin);
+}
+
+function verifiedResponderSummary() {
+  return [
+    $("#verifiedResponderAgency").value.trim(),
+    $("#verifiedResponderPhone").value.trim(),
+    $("#verifiedResponderPerson").value.trim(),
+    $("#verifiedResponderSource").value.trim(),
+  ].filter(Boolean).join(" - ");
 }
 
 function localResponderSearch(kind) {
@@ -1435,10 +1633,10 @@ function localResponderSearch(kind) {
   const state = loc.state || "";
   const place = [county, loc.town, state].filter(Boolean).join(" ");
   const queries = {
-    stateWoods: `${agency || "state forestry forest ranger game warden"} ${place} district contact phone dispatch`,
-    sheriffSar: `${place} sheriff dispatch search and rescue emergency phone`,
-    fireRescue: `${place} fire rescue district non emergency dispatch logging woods access`,
-    emergencyManagement: `${place} emergency management contact phone`,
+    stateWoods: `${agency || `${state} state forestry forest ranger game warden`} ${place} district duty officer dispatch phone`,
+    sheriffSar: `${place} county sheriff dispatch search rescue 24 hour non emergency phone`,
+    fireRescue: `${place} fire rescue department district dispatch woods road emergency access`,
+    emergencyManagement: `${place} emergency management office dispatch contact phone`,
   };
   openWebSearch(queries[kind]);
 }
@@ -1477,6 +1675,13 @@ async function chooseContactForField(fieldId) {
       toast("Trusted contact added to Safety Share.");
       return;
     }
+    if (fieldId === "medCardEmergencyContacts") {
+      const formatted = formatPickedContact(contacts[0]);
+      target.value = formatted;
+      await saveMedicalCard();
+      toast("Emergency contact added to the medical card.");
+      return;
+    }
     const formatted = formatPickedContact(contacts[0]);
     if (!formatted) {
       toast("No usable contact details were selected.");
@@ -1497,6 +1702,73 @@ async function loadPreparedness() {
   ["companyInfo", "trustedContacts", "emergencyContacts", "insuranceInfo", "airMedicalNotes", "firstAidChecklist", "equipmentChecklist", "regularWorkAreas"].forEach((id) => {
     $(`#${id}`).value = profile[id] || "";
   });
+}
+
+async function loadMedicalCard() {
+  const record = await storeGet(SETTINGS_STORE, MEDICAL_CARD_KEY);
+  const card = record?.value || {};
+  [
+    "medCardName",
+    "medCardDob",
+    "medCardBloodType",
+    "medCardPhysician",
+    "medCardAllergies",
+    "medCardMeds",
+    "medCardConditions",
+    "medCardEmergencyContacts",
+    "medCardInsurance",
+    "medCardDirectives",
+  ].forEach((id) => {
+    const input = $(`#${id}`);
+    if (input) input.value = card[id] || "";
+  });
+}
+
+function medicalCardFromForm() {
+  const value = {};
+  [
+    "medCardName",
+    "medCardDob",
+    "medCardBloodType",
+    "medCardPhysician",
+    "medCardAllergies",
+    "medCardMeds",
+    "medCardConditions",
+    "medCardEmergencyContacts",
+    "medCardInsurance",
+    "medCardDirectives",
+  ].forEach((id) => {
+    value[id] = $(`#${id}`)?.value.trim() || "";
+  });
+  return value;
+}
+
+async function saveMedicalCard() {
+  await storePut(SETTINGS_STORE, { key: MEDICAL_CARD_KEY, value: medicalCardFromForm() });
+  $("#medicalCardStatus").textContent = "Medical card saved on this phone only.";
+}
+
+function medicalCardText() {
+  const card = medicalCardFromForm();
+  return [
+    "WRSP Medical Card",
+    `Name: ${card.medCardName || "Not entered"}`,
+    `DOB: ${card.medCardDob || "Not entered"}`,
+    `Blood type: ${card.medCardBloodType || "Not entered"}`,
+    `Allergies: ${card.medCardAllergies || "Not entered"}`,
+    `Medications: ${card.medCardMeds || "Not entered"}`,
+    `Conditions: ${card.medCardConditions || "Not entered"}`,
+    `Emergency contacts: ${card.medCardEmergencyContacts || "Not entered"}`,
+    `Physician: ${card.medCardPhysician || "Not entered"}`,
+    `Insurance / air medical: ${card.medCardInsurance || "Not entered"}`,
+    `Advance directives / notes: ${card.medCardDirectives || "Not entered"}`,
+    "This WRSP medical card was shared by the user. In an emergency, call 911 and follow EMS instructions.",
+  ].join("\n");
+}
+
+async function shareMedicalCardText() {
+  await saveMedicalCard();
+  await shareText("WRSP Medical Card", medicalCardText());
 }
 
 function preparednessText() {
@@ -1592,7 +1864,14 @@ function bindEvents() {
     $(`#${id}`).addEventListener("change", () => {
       const lat = parseFloat($("#lat").value);
       const lng = parseFloat($("#lng").value);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 13));
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        $("#planForm").dataset.locationSource = "manual coordinates";
+        $("#planForm").dataset.accuracy = "";
+        $("#planForm").dataset.capturedAt = new Date().toISOString();
+        updateGpsStatus();
+        centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 13));
+        scheduleAutoSave();
+      }
     });
   });
   $("#planForm").addEventListener("submit", async (event) => {
@@ -1618,6 +1897,14 @@ function bindEvents() {
     toast("Sample plan opened.");
   });
   $("#captureGps").addEventListener("click", capturePlanGps);
+  $("#openAddressInMaps").addEventListener("click", () => {
+    const query = planAddressSearchText();
+    if (!query) {
+      toast("Enter a road, address, town, county, or state first.");
+      return;
+    }
+    openMapsSearch(query);
+  });
   $$(".contact-picker").forEach((button) => {
     button.addEventListener("click", () => chooseContactForField(button.dataset.contactTarget));
   });
@@ -1640,6 +1927,24 @@ function bindEvents() {
   $("#mapZoomOut").addEventListener("click", () => {
     siteMapState.zoom = clamp(siteMapState.zoom - 1, 3, 19);
     renderSiteMap();
+  });
+  $("#mapRecenter").addEventListener("click", () => {
+    const lat = parseFloat($("#lat").value);
+    const lng = parseFloat($("#lng").value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      toast("Set exact coordinates first, then center the map.");
+      return;
+    }
+    centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 15));
+  });
+  $("#dropPinAtCenter").addEventListener("click", () => {
+    setSiteCoordinates(siteMapState.centerLat, siteMapState.centerLng, false);
+    renderSiteMap();
+    toast("Pin dropped at map center.");
+  });
+  $("#clearSitePin").addEventListener("click", () => {
+    clearSiteCoordinates();
+    toast("Site pin cleared.");
   });
   $("#siteMap").addEventListener("pointerdown", (event) => {
     const map = $("#siteMap");
@@ -1710,52 +2015,58 @@ function bindEvents() {
     }
   });
   $("#editCurrentPlan").addEventListener("click", async () => {
-    if (!currentPlanId) return;
-    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    const plan = await activePlan();
+    if (!plan) return;
     planToForm(plan);
     routeTo("create");
   });
   $("#fullPlanMode").addEventListener("click", async () => {
     currentPlanMode = "full";
-    if (currentPlanId) renderCurrentPlan(await storeGet(PLAN_STORE, currentPlanId));
+    const plan = await activePlan();
+    if (plan) renderCurrentPlan(plan);
   });
   $("#responderPlanMode").addEventListener("click", async () => {
     currentPlanMode = "responder";
-    if (currentPlanId) renderCurrentPlan(await storeGet(PLAN_STORE, currentPlanId));
+    const plan = await activePlan();
+    if (plan) renderCurrentPlan(plan);
   });
   $("#planOutput").addEventListener("click", async (event) => {
-    if (event.target.id !== "completePlanHint" || !currentPlanId) return;
-    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    if (event.target.id !== "completePlanHint") return;
+    const plan = await activePlan();
+    if (!plan) return;
     planToForm(plan);
     routeTo("create");
   });
   $("#shareCurrentPlan").addEventListener("click", async () => {
-    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    const plan = await activePlan();
+    if (!plan) return;
     await shareText(`WRSP: ${plan.title}`, planShareText(plan));
   });
   $("#qrCurrentPlan").addEventListener("click", async () => {
-    if (!currentPlanId) return;
-    showPlanQr(await storeGet(PLAN_STORE, currentPlanId));
+    const plan = await activePlan();
+    if (plan) showPlanQr(plan);
   });
   $("#copyQrLink").addEventListener("click", async () => {
     await navigator.clipboard.writeText($("#qrImportLink").value);
-    toast("Import link copied.");
+    toast("Plan link copied.");
   });
   $("#exportCurrentPlan").addEventListener("click", async () => {
-    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    const plan = await activePlan();
+    if (!plan) return;
     try {
       if (await sharePlanExportFile(plan)) {
-        toast("WRSP export shared.");
+        toast("WRSP backup shared.");
         return;
       }
     } catch {
       // Fall through to download when file sharing is unavailable or canceled.
     }
     downloadPlanExport(plan);
-    toast("WRSP export file downloaded.");
+    toast("WRSP backup file downloaded.");
   });
   $("#duplicateCurrentPlan").addEventListener("click", async () => {
-    const plan = await storeGet(PLAN_STORE, currentPlanId);
+    const plan = await activePlan();
+    if (!plan) return;
     const copy = {
       ...structuredClone(plan),
       id: crypto.randomUUID(),
@@ -1768,9 +2079,10 @@ function bindEvents() {
     await openPlan(copy.id);
   });
   $("#printCurrentPlan").addEventListener("click", async () => {
-    if (currentPlanId) {
+    const plan = await activePlan();
+    if (plan) {
       currentPlanMode = "responder";
-      renderCurrentPlan(await storeGet(PLAN_STORE, currentPlanId));
+      renderCurrentPlan(plan);
     }
     window.print();
   });
@@ -1789,6 +2101,20 @@ function bindEvents() {
   $("#openMaps").addEventListener("click", async () => {
     if (!emergencyCoords) await refreshEmergencyGps();
     if (emergencyCoords) window.open(`https://maps.google.com/?q=${emergencyCoords.lat},${emergencyCoords.lng}`, "_blank", "noopener");
+  });
+  $("#shareApp")?.addEventListener("click", shareAppLink);
+  $("#copyAppLink")?.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(appShareUrl());
+    toast("WRSP app link copied.");
+  });
+  $("#checkForUpdate")?.addEventListener("click", async () => {
+    if (!("serviceWorker" in navigator)) {
+      toast("This browser does not support app updates.");
+      return;
+    }
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.update()));
+    toast("Checked for WRSP updates. Reopen or refresh if your phone keeps an older version.");
   });
   ["safetyShareContactName", "safetyShareContactPhone", "safetyShareCheckIn", "safetyShareStartLocation", "safetyShareNotes"].forEach((id) => {
     $(`#${id}`)?.addEventListener("input", async () => {
@@ -1824,6 +2150,28 @@ function bindEvents() {
   $("#findFireRescue").addEventListener("click", () => localResponderSearch("fireRescue"));
   $("#findSheriffSar").addEventListener("click", () => localResponderSearch("sheriffSar"));
   $("#findEmergencyManagement").addEventListener("click", () => localResponderSearch("emergencyManagement"));
+  $("#copyResponderVerificationScript").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(responderVerificationText());
+    toast("Responder verification script copied.");
+  });
+  $("#stampResponderVerificationDate").addEventListener("click", () => {
+    const today = new Date().toLocaleDateString();
+    const current = $("#verifiedResponderSource").value.trim();
+    $("#verifiedResponderSource").value = current ? `${current}; verified ${today}` : `Verified ${today}`;
+    scheduleAutoSave();
+    toast("Verification date added.");
+  });
+  $("#appendVerifiedResponderContact").addEventListener("click", () => {
+    const summary = verifiedResponderSummary();
+    if (!summary) {
+      toast("Add verified agency, phone, person, or source first.");
+      return;
+    }
+    const notes = $("#sarContacts");
+    notes.value = [notes.value.trim(), summary].filter(Boolean).join("\n");
+    scheduleAutoSave();
+    toast("Verified contact added to saved notes.");
+  });
   $("#preparednessForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const value = {};
@@ -1834,6 +2182,16 @@ function bindEvents() {
     toast("Preparedness saved on this phone.");
   });
   $("#sharePreparedness").addEventListener("click", async () => shareText("WRSP preparedness", preparednessText()));
+  $("#medicalCardForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveMedicalCard();
+  });
+  $("#shareMedicalCard")?.addEventListener("click", shareMedicalCardText);
+  $("#copyMedicalCard")?.addEventListener("click", async () => {
+    await saveMedicalCard();
+    await navigator.clipboard.writeText(medicalCardText());
+    $("#medicalCardStatus").textContent = "Medical card text copied.";
+  });
   $("#defaultsForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     await storePut(SETTINGS_STORE, { key: DEFAULTS_KEY, value: defaultsFromForm() });
@@ -1862,7 +2220,7 @@ function bindEvents() {
     try {
       const file = $("#importFile").files?.[0];
       if (!file) {
-        $("#importStatus").textContent = "Choose a WRSP export file first.";
+        $("#importStatus").textContent = "Choose a WRSP backup file first.";
         return;
       }
       const payload = parsePlanExport(await file.text());

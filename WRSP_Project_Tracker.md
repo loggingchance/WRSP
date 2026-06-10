@@ -1,6 +1,6 @@
 # WRSP Project Tracker
 
-Last updated: June 7, 2026
+Last updated: June 9, 2026
 
 ## Current product direction
 
@@ -52,6 +52,26 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Medical lookup exists through online map searches with urgent-care warnings.
 - About / Resources expanded with real links and an Other Apps and Tools section.
 - Safety Share launcher added for iPhone Messages, Find My, Google Maps, SMS fallback, copy/share safety message, static backup pin, and user confirmation timestamp.
+- Local emergency contact lookup improved with a verification checklist and dedicated fields for verified agency/dispatch, phone, person/role, and source/date.
+- Home screen tightened for phone testing: primary Create Safety Plan action is above the fold, with saved plans and pinned-location sharing secondary.
+- "Share My Location" renamed to "Share Pinned Location" so it is clearly distinct from Safety Share live-location handoff.
+- Dial 911 action added to the emergency screen and responder view.
+- Plan share text shortened into a responder-readable message instead of a long field dump.
+- Share This App workflow added with hosted WRSP link and home-screen instruction text.
+- My Medical Card added as a local-only, user-shared record for allergies, medications, conditions, emergency contacts, physician, insurance/air-medical notes, and directives.
+- Open Graph / rich preview metadata added for shared WRSP app links.
+- PWA status now shows the app version and includes an update check; service worker cache moved to `wrsp-v7`.
+- Sample PDF safety plan reviewed; WRSP now includes phone-service notes in the plan data, responder view, and share text.
+- Plan action labels changed from technical export language toward field language: Backup File and Print / Save PDF.
+- Responder View reshaped into a one-page safety sheet modeled on the sample PDF: Phones, Site Location, State & Emergency Numbers, People, Directions, Access/Hazards, and Potential Helicopter Landing Site.
+- Import screen wording changed from export/file-format language to backup-file language.
+- Create form directions now separate the responder-known starting point from the site-specific woods access instructions.
+- Shared plan links now use `#plan=` and open a read-only responder safety sheet first, instead of immediately importing a backup into local storage.
+- QR codes and Safety Share plan links now point to the read-only shared-plan view.
+- Physical address / road descriptions can be opened directly in maps from the location section.
+- Location entry now makes the distinction explicit: address/road notes describe the site, while exact coordinates come from phone GPS, manual coordinates, or a dropped map pin.
+- Map picker now has a center crosshair, Drop Pin at Map Center, Clear Pin, and Center controls.
+- Responder/contact lookup now includes a generated verification script, copy-script button, verified-today stamp, and one-tap append of verified agency/person/phone/source into saved local woods emergency contact notes.
 
 ## User feedback captured
 
@@ -65,14 +85,17 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Before calling the app finished, show and review WRSP in a phone-sized preview window so the user can see the mobile layout.
 - Share My Location should become Safety Share: a launch-and-guidance feature for the phone's built-in live location sharing tools.
 - Safety Share must clearly state that WRSP does not automatically start live tracking and does not build custom real-time tracking in this phase.
+- Corrections on June 9 emphasized that plan sharing must be readable and plan-oriented, not JSON-oriented.
+- Mobile UI/UX brief emphasized one main phone action: create and distribute a one-page safety plan.
+- The app needs an obvious "Share this app" button and clearer install/home-screen support.
+- The app needs a local-only medical card / KIWY-style feature that shares only when the user chooses.
+- The sample safety plan format confirms the one-page plan should include phones/service, emergency numbers, people, read-aloud access directions, gate/meet-responder instructions, and helicopter landing coordinates.
 
 ## Next priorities
 
-1. Enable GitHub Pages for the repository and test the hosted URL.
-2. Test the hosted PWA on an actual phone, including offline use and Add to Home Screen.
-3. Test Safety Share on iPhone, Android, and unknown/desktop fallback paths.
-4. Improve agency/contact lookup beyond web search where feasible.
-5. Final mobile QA: show the app in a phone-sized preview window and check touch layout, text wrapping, sticky buttons, map picker, print sheet, and plan/responder views.
+1. Enable/test GitHub Pages and test the hosted PWA on an actual phone, including offline use, Add to Home Screen, update behavior, and Safety Share.
+2. Final mobile QA: show the app in a phone-sized preview window and check touch layout, text wrapping, sticky buttons, map picker, print sheet, and plan/responder views.
+3. Future data enhancement: replace/augment web search with a maintained agency/contact directory or vetted API if one becomes available.
 
 ## GitHub automation status
 
@@ -97,7 +120,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v5`.
+- Service worker cache is currently `wrsp-v7`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
