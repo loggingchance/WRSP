@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.6.6 - June 11, 2026";
+const APP_VERSION = "WRSP v0.6.7 - June 11, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -19,6 +19,7 @@ let sharedPlanPreview = null;
 let sharedMedicalCardPreview = null;
 let emergencyCoords = null;
 let autoSaveTimer = null;
+let deferredInstallPrompt = null;
 let siteMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
@@ -1483,6 +1484,33 @@ async function shareAppLink() {
   await shareText("WRSP - Woods-Ready Safety Plan", appShareText());
 }
 
+function isInstalledDisplayMode() {
+  return window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+async function installOrShowInstructions() {
+  if (isInstalledDisplayMode()) {
+    toast("WRSP is already running like an installed app.");
+    routeTo("install");
+    return;
+  }
+  if (deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice?.outcome === "accepted") {
+      toast("WRSP install started.");
+      return;
+    }
+    toast("Install was not completed.");
+    routeTo("install");
+    return;
+  }
+  routeTo("install");
+  toast("Use the steps shown for this phone or browser.");
+}
+
 async function confirmLiveLocationStarted() {
   const existing = (await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY))?.value || {};
   const record = {
@@ -2330,6 +2358,8 @@ function bindEvents() {
     if (emergencyCoords) window.open(`https://maps.google.com/?q=${emergencyCoords.lat},${emergencyCoords.lng}`, "_blank", "noopener");
   });
   $("#shareApp")?.addEventListener("click", shareAppLink);
+  $("#installAppHome")?.addEventListener("click", installOrShowInstructions);
+  $("#installAppPage")?.addEventListener("click", installOrShowInstructions);
   $("#copyAppLink")?.addEventListener("click", async () => {
     await navigator.clipboard.writeText(appShareUrl());
     toast("WRSP app link copied.");
@@ -2493,6 +2523,16 @@ function bindEvents() {
   window.addEventListener("offline", updateConnectionBadge);
   window.addEventListener("online", updatePwaStatus);
   window.addEventListener("offline", updatePwaStatus);
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    toast("WRSP can be installed on this device.");
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    toast("WRSP installed.");
+    updatePwaStatus();
+  });
 }
 
 async function initServiceWorker() {

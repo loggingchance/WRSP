@@ -193,6 +193,39 @@ p {
   color: var(--muted);
 }
 
+.install-callout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 18px;
+  border: 1px solid rgba(212, 99, 31, 0.32);
+  border-radius: 8px;
+  padding: 13px;
+  background: #fff7ed;
+}
+
+.install-callout strong {
+  display: block;
+  color: var(--forest);
+  font-size: 1rem;
+}
+
+.install-callout p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.install-callout .secondary-action,
+.install-callout .primary-action {
+  min-width: 150px;
+}
+
+.install-callout-inline {
+  margin-bottom: 18px;
+}
+
 .more-label {
   margin: 6px 0 10px;
   color: var(--muted);
@@ -1226,6 +1259,15 @@ textarea:focus {
 
   .medical-card-row {
     grid-template-columns: 1fr;
+  }
+
+  .install-callout {
+    grid-template-columns: 1fr;
+  }
+
+  .install-callout .secondary-action,
+  .install-callout .primary-action {
+    width: 100%;
   }
 
   .section-head,

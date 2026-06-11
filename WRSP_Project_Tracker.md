@@ -74,11 +74,12 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Responder/contact lookup now includes a generated verification script, copy-script button, verified-today stamp, and one-tap append of verified agency/person/phone/source into saved local woods emergency contact notes.
 - Northeastern Loggers' Association is now visible as the provider in the sticky app header and first-screen home hero, not only in the About section.
 - About section replaced with the definitive June 11 HTML mockup content, fitted into WRSP cards and colors.
+- Home screen now has an obvious Install / Save App callout, plus an install page button that uses the browser install prompt when available and falls back to phone/desktop instructions.
 - Forester / plan preparer contact added to the plan form, reusable defaults, sample plan, full plan view, responder view, and responder share text.
 - Read-aloud directions helper added: users can search for a responder-known starting landmark and build a draft from route, gate, meeting point, and site coordinates.
 - Medical Card now has explicit sharing actions for family/trusted contacts and EMS/medical responders, with different message context.
 - Medical Card now has Print / Save PDF, PNG, and QR/share-link options, with a dedicated card preview.
-- Service worker cache moved to `wrsp-v12` so saved-home-screen users can receive this update.
+- Service worker cache moved to `wrsp-v13` so saved-home-screen users can receive this update.
 - Publish script now includes the local preview server helper, and the preview server serves PNG header images with the correct type.
 
 ## User feedback captured
@@ -96,6 +97,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Corrections on June 9 emphasized that plan sharing must be readable and plan-oriented, not JSON-oriented.
 - Mobile UI/UX brief emphasized one main phone action: create and distribute a one-page safety plan.
 - The app needs an obvious "Share this app" button and clearer install/home-screen support.
+- The app needs an obvious up-front way to save/install WRSP on a phone home screen or desktop.
 - The app needs a local-only medical card / KIWY-style feature that shares only when the user chooses.
 - The sample safety plan format confirms the one-page plan should include phones/service, emergency numbers, people, read-aloud access directions, gate/meet-responder instructions, and helicopter landing coordinates.
 - Foresters involved in the job often write the plan and must be captured as named contacts alongside crew, landowner, and agency contacts.
@@ -130,7 +132,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v12`.
+- Service worker cache is currently `wrsp-v13`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
