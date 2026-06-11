@@ -1,4 +1,4 @@
-const CACHE_NAME = "wrsp-v11";
+const CACHE_NAME = "wrsp-v12";
 const APP_SHELL = [
   "./",
   "./index.html",
