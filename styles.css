@@ -77,6 +77,23 @@ p {
   font-weight: 760;
 }
 
+.header-actions {
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+  min-width: 92px;
+}
+
+.header-mini-action {
+  border: 1px solid rgba(247, 221, 170, 0.7);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff6dc;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
 .eyebrow {
   margin-bottom: 2px;
   color: var(--bark);
@@ -224,6 +241,16 @@ p {
 
 .install-callout-inline {
   margin-bottom: 18px;
+}
+
+.privacy-note {
+  margin: -4px 0 18px;
+  border-left: 4px solid var(--spruce);
+  padding: 10px 12px;
+  background: rgba(31, 90, 66, 0.08);
+  color: var(--forest);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .more-label {
@@ -468,16 +495,15 @@ textarea:focus {
 }
 
 .sticky-actions {
-  position: sticky;
-  bottom: 76px;
+  position: static;
   display: grid;
   grid-template-columns: 1.5fr 0.8fr;
   gap: 10px;
+  margin-top: 14px;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(247, 245, 238, 0.94);
-  backdrop-filter: blur(12px);
+  background: var(--white);
 }
 
 .sticky-share {
@@ -789,7 +815,7 @@ textarea:focus {
 .site-map {
   position: relative;
   overflow: hidden;
-  height: clamp(240px, 52vw, 420px);
+  height: clamp(300px, 66vw, 520px);
   border: 1px solid #b7c8b5;
   border-radius: 8px;
   background: #dbe6d7;
@@ -1255,6 +1281,16 @@ textarea:focus {
 
   .header-credit {
     font-size: 0.74rem;
+  }
+
+  .header-actions {
+    min-width: 78px;
+  }
+
+  .header-mini-action,
+  .status-badge {
+    font-size: 0.72rem;
+    padding: 5px 7px;
   }
 
   .medical-card-row {

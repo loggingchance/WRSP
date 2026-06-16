@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.6.7 - June 11, 2026";
+const APP_VERSION = "WRSP v0.7.1 - June 15, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -21,6 +21,15 @@ let emergencyCoords = null;
 let autoSaveTimer = null;
 let deferredInstallPrompt = null;
 let siteMapState = {
+  centerLat: 39.5,
+  centerLng: -98.35,
+  zoom: 4,
+  dragging: false,
+  dragStart: null,
+  startCenter: null,
+  moved: 0,
+};
+let landingZoneMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
   zoom: 4,
@@ -286,11 +295,11 @@ function samplePlan() {
       landingZoneNotes: "Check for overhead wires along field edge. Soft ground after rain. EMS/dispatch determines air medical use.",
     },
     contacts: {
-      primaryContact: "Crew lead - 555-0101",
-      supervisor: "Supervisor - 555-0102",
-      foresterContact: "Forester / plan preparer - 555-0105",
-      landowner: "Landowner - 555-0103",
-      truckingContact: "Trucking coordinator - 555-0104",
+      primaryContact: "Logger - 555-0101",
+      supervisor: "Crew members - 555-0102",
+      foresterContact: "Forester - 555-0105",
+      landowner: "Landowners - 555-0103",
+      truckingContact: "Truck coordinator - 555-0104",
     },
     medical: {
       hospital: "Sample Memorial Hospital ER, 100 Main Street, Sample City, 555-0200",
@@ -373,7 +382,12 @@ function routeTo(route) {
   });
   if (route === "home") renderContinuePlan();
   if (route === "saved") renderSavedPlans();
-  if (route === "create") window.setTimeout(renderSiteMap, 50);
+  if (route === "create") {
+    window.setTimeout(() => {
+      renderSiteMap();
+      renderLandingZoneMap();
+    }, 50);
+  }
   if (route === "medical") prefillMedicalOrigin();
   if (route === "medicalCard") {
     if (sharedMedicalCardPreview) {
@@ -575,7 +589,16 @@ function planToForm(plan) {
   updateEssentialProgress();
   const lat = parseFloat(plan.location?.lat);
   const lng = parseFloat(plan.location?.lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 13));
+  if (Number.isFinite(lat) && Number.isFinite(lng)) centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
+  const lzLat = parseFloat(plan.access?.landingZoneLat);
+  const lzLng = parseFloat(plan.access?.landingZoneLng);
+  if (Number.isFinite(lzLat) && Number.isFinite(lzLng)) {
+    centerLandingZoneMap(lzLat, lzLng, Math.max(landingZoneMapState.zoom, 17));
+  } else if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 15));
+  } else {
+    renderLandingZoneMap();
+  }
 }
 
 async function loadDefaults() {
@@ -663,17 +686,17 @@ function tileYToLat(y, zoom) {
   return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
 }
 
-function renderSiteMap() {
-  const map = $("#siteMap");
-  const tiles = $("#mapTiles");
-  const marker = $("#mapMarker");
+function renderCoordinateMap({ state, mapSelector, tilesSelector, markerSelector, latSelector, lngSelector }) {
+  const map = $(mapSelector);
+  const tiles = $(tilesSelector);
+  const marker = $(markerSelector);
   if (!map || !tiles || !marker) return;
 
   const width = map.clientWidth || 360;
   const height = map.clientHeight || 260;
-  const zoom = siteMapState.zoom;
-  const centerX = lngToTileX(siteMapState.centerLng, zoom);
-  const centerY = latToTileY(siteMapState.centerLat, zoom);
+  const zoom = state.zoom;
+  const centerX = lngToTileX(state.centerLng, zoom);
+  const centerY = latToTileY(state.centerLat, zoom);
   const startTileX = Math.floor((centerX - width / 2) / 256) - 1;
   const endTileX = Math.floor((centerX + width / 2) / 256) + 1;
   const startTileY = Math.floor((centerY - height / 2) / 256) - 1;
@@ -692,8 +715,8 @@ function renderSiteMap() {
   }
   tiles.innerHTML = imgs.join("");
 
-  const lat = parseFloat($("#lat").value);
-  const lng = parseFloat($("#lng").value);
+  const lat = parseFloat($(latSelector).value);
+  const lng = parseFloat($(lngSelector).value);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     marker.hidden = false;
     marker.style.left = `${lngToTileX(lng, zoom) - centerX + width / 2}px`;
@@ -703,12 +726,42 @@ function renderSiteMap() {
   }
 }
 
+function renderSiteMap() {
+  renderCoordinateMap({
+    state: siteMapState,
+    mapSelector: "#siteMap",
+    tilesSelector: "#mapTiles",
+    markerSelector: "#mapMarker",
+    latSelector: "#lat",
+    lngSelector: "#lng",
+  });
+}
+
+function renderLandingZoneMap() {
+  renderCoordinateMap({
+    state: landingZoneMapState,
+    mapSelector: "#landingZoneMap",
+    tilesSelector: "#landingZoneMapTiles",
+    markerSelector: "#landingZoneMapMarker",
+    latSelector: "#landingZoneLat",
+    lngSelector: "#landingZoneLng",
+  });
+}
+
 function centerSiteMap(lat, lng, zoom = siteMapState.zoom) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
   siteMapState.centerLat = clamp(lat, -85, 85);
   siteMapState.centerLng = lng;
   siteMapState.zoom = clamp(zoom, 3, 19);
   renderSiteMap();
+}
+
+function centerLandingZoneMap(lat, lng, zoom = landingZoneMapState.zoom) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  landingZoneMapState.centerLat = clamp(lat, -85, 85);
+  landingZoneMapState.centerLng = lng;
+  landingZoneMapState.zoom = clamp(zoom, 3, 19);
+  renderLandingZoneMap();
 }
 
 function setSiteCoordinates(lat, lng, center = true) {
@@ -725,6 +778,16 @@ function setSiteCoordinates(lat, lng, center = true) {
   scheduleAutoSave();
 }
 
+function setLandingZoneCoordinates(lat, lng, center = true) {
+  const safeLat = clamp(lat, -85, 85);
+  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
+  $("#landingZoneLat").value = safeLat.toFixed(6);
+  $("#landingZoneLng").value = safeLng.toFixed(6);
+  if (center) centerLandingZoneMap(safeLat, safeLng, Math.max(landingZoneMapState.zoom, 17));
+  renderLandingZoneMap();
+  scheduleAutoSave();
+}
+
 function clearSiteCoordinates() {
   $("#lat").value = "";
   $("#lng").value = "";
@@ -737,18 +800,29 @@ function clearSiteCoordinates() {
   scheduleAutoSave();
 }
 
-function pointToLatLng(clientX, clientY) {
-  const map = $("#siteMap");
+function clearLandingZoneCoordinates() {
+  $("#landingZoneLat").value = "";
+  $("#landingZoneLng").value = "";
+  renderLandingZoneMap();
+  scheduleAutoSave();
+}
+
+function pointToLatLngFromMap(mapSelector, state, clientX, clientY) {
+  const map = $(mapSelector);
   const rect = map.getBoundingClientRect();
-  const zoom = siteMapState.zoom;
-  const centerX = lngToTileX(siteMapState.centerLng, zoom);
-  const centerY = latToTileY(siteMapState.centerLat, zoom);
+  const zoom = state.zoom;
+  const centerX = lngToTileX(state.centerLng, zoom);
+  const centerY = latToTileY(state.centerLat, zoom);
   const worldX = centerX + (clientX - rect.left) - rect.width / 2;
   const worldY = centerY + (clientY - rect.top) - rect.height / 2;
   return {
     lat: tileYToLat(worldY, zoom),
     lng: tileXToLng(worldX, zoom),
   };
+}
+
+function pointToLatLng(clientX, clientY) {
+  return pointToLatLngFromMap("#siteMap", siteMapState, clientX, clientY);
 }
 
 async function savePlan(plan = formToPlan(), quiet = false) {
@@ -782,7 +856,7 @@ function essentialStatus(plan = formToPlan()) {
     { label: "GPS or location", done: hasLocation },
     { label: "known starting landmark", done: Boolean(plan.access?.knownLandmark) },
     { label: "read-aloud 911 directions", done: Boolean(plan.access?.phoneDirections) },
-    { label: "primary job contact", done: Boolean(plan.contacts?.primaryContact || plan.contacts?.supervisor || plan.contacts?.foresterContact) },
+    { label: "logger, crew, or forester contact", done: Boolean(plan.contacts?.primaryContact || plan.contacts?.supervisor || plan.contacts?.foresterContact) },
     { label: "local woods emergency contact", done: Boolean(plan.sar?.contacts) },
   ];
   return { checks, done: checks.filter((check) => check.done).length, total: checks.length };
@@ -825,7 +899,7 @@ async function renderSavedPlans() {
         </div>
         <div class="action-row">
           <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share</button>
+          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Link</button>
           <button class="secondary-action quiet-action" data-edit-plan="${plan.id}">Edit</button>
           <button class="secondary-action quiet-action" data-delete-plan="${plan.id}">Delete</button>
         </div>
@@ -859,7 +933,7 @@ async function renderContinuePlan() {
     </div>
     <div class="action-row">
       <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share</button>
+      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Link</button>
     </div>`;
 }
 
@@ -903,7 +977,7 @@ function renderPlanHtml(plan) {
     ["Location", [
       ["GPS", loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not set"],
       ["Maps link", mapsLink ? `<a href="${mapsLink}" target="_blank" rel="noopener">Open coordinates in maps</a>` : "Not set"],
-      ["Nearest road / address", loc.roadAddress],
+      ["Nearest public road / address", loc.roadAddress],
       ["Town / county / state", [loc.town, loc.county, loc.state].filter(Boolean).join(", ")],
       ["Phone service", plan.access?.phoneServiceNotes],
     ]],
@@ -919,11 +993,11 @@ function renderPlanHtml(plan) {
       ["Landing zone hazards / notes", plan.access?.landingZoneNotes],
     ]],
     ["Contacts", [
-      ["Primary contact", plan.contacts?.primaryContact],
-      ["Crew / supervisor", plan.contacts?.supervisor],
-      ["Forester / plan preparer", plan.contacts?.foresterContact],
-      ["Landowner", plan.contacts?.landowner],
-      ["Trucking contact", plan.contacts?.truckingContact],
+      ["Logger", plan.contacts?.primaryContact],
+      ["Crew member(s)", plan.contacts?.supervisor],
+      ["Forester", plan.contacts?.foresterContact],
+      ["Landowner(s)", plan.contacts?.landowner],
+      ["Other contact / role", plan.contacts?.truckingContact],
       ["Verified agency / dispatch", plan.sar?.verifiedAgency],
       ["Verified agency phone", plan.sar?.verifiedPhone],
       ["Verified person / role", plan.sar?.verifiedPerson],
@@ -986,8 +1060,8 @@ function renderResponderPlanHtml(plan) {
       </section>
       <section class="sheet-section">
         <h3>Site Location</h3>
-        ${responderLine("GPS", loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not entered")}
-        ${mapsLink ? responderLine("Map", `<a href="${mapsLink}" target="_blank" rel="noopener">Open site in maps</a>`) : responderLine("Map", "Not entered")}
+        ${responderLine("GPS", loc.lat && loc.lng ? `<a href="${mapsLink}" target="_blank" rel="noopener">${loc.lat}, ${loc.lng}</a>` : "Not entered")}
+        ${mapsLink ? responderLine("Map link", `<a href="${mapsLink}" target="_blank" rel="noopener">${mapsLink}</a>`) : responderLine("Map link", "Not entered")}
       </section>
       <section class="sheet-section">
         <h3>State & Emergency Numbers</h3>
@@ -1006,11 +1080,11 @@ function renderResponderPlanHtml(plan) {
       <section class="sheet-section">
         <h3>People</h3>
         ${responderList([
-          ["Primary job contact", plan.contacts?.primaryContact],
-          ["Crew / supervisor", plan.contacts?.supervisor],
-          ["Forester / plan preparer", plan.contacts?.foresterContact],
-          ["Landowner", plan.contacts?.landowner],
-          ["Trucking contact", plan.contacts?.truckingContact],
+          ["Logger", plan.contacts?.primaryContact],
+          ["Crew member(s)", plan.contacts?.supervisor],
+          ["Forester", plan.contacts?.foresterContact],
+          ["Landowner(s)", plan.contacts?.landowner],
+          ["Other contact / role", plan.contacts?.truckingContact],
         ])}
       </section>
       <section class="sheet-section directions-section">
@@ -1079,8 +1153,8 @@ function planShareText(plan) {
     `Map: ${mapsLink}`,
     `Read to 911: ${buildEmergencyDirections(plan)}`,
     `Phone service: ${plan.access?.phoneServiceNotes || "Not entered"}`,
-    `Primary contact: ${plan.contacts?.primaryContact || "Not entered"}`,
-    `Forester / plan preparer: ${plan.contacts?.foresterContact || "Not entered"}`,
+    `Logger: ${plan.contacts?.primaryContact || "Not entered"}`,
+    `Forester: ${plan.contacts?.foresterContact || "Not entered"}`,
     `Meeting point: ${plan.access?.meetingPoint || "Not entered"}`,
     `Hospital/medical: ${hospital}`,
     `Woods emergency contact: ${agency}`,
@@ -1137,6 +1211,121 @@ function showPlanQr(plan) {
   image.hidden = false;
   image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(importUrl)}`;
   help.textContent = "Scan this code to open a read-only responder plan. Best used from the hosted WRSP app, not the local file preview.";
+}
+
+function planLinkShareText(plan) {
+  return [
+    `WRSP Safety Plan: ${plan.title || "Untitled"}`,
+    "Open this link for the formatted responder safety plan. From the browser, use Print / Save PDF if a PDF copy is needed.",
+    importUrlForPlan(plan),
+  ].join("\n");
+}
+
+function planPngRows(plan) {
+  const loc = plan.location || {};
+  const access = plan.access || {};
+  const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : "";
+  const lzGps = access.landingZoneLat && access.landingZoneLng ? `${access.landingZoneLat}, ${access.landingZoneLng}` : "";
+  return [
+    ["PHONE / 911", `Dial 911 for emergencies. Phone service: ${access.phoneServiceNotes || "Not entered"}`],
+    ["SITE LOCATION", [
+      loc.lat && loc.lng ? `GPS: ${loc.lat}, ${loc.lng}` : "GPS: Not entered",
+      mapsLink ? `Map: ${mapsLink}` : "",
+      [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", "),
+    ].filter(Boolean).join("\n")],
+    ["PEOPLE", [
+      plan.contacts?.primaryContact && `Logger: ${plan.contacts.primaryContact}`,
+      plan.contacts?.supervisor && `Crew: ${plan.contacts.supervisor}`,
+      plan.contacts?.foresterContact && `Forester: ${plan.contacts.foresterContact}`,
+      plan.contacts?.landowner && `Landowner(s): ${plan.contacts.landowner}`,
+      plan.contacts?.truckingContact && `Other: ${plan.contacts.truckingContact}`,
+    ].filter(Boolean).join("\n") || "Not entered"],
+    ["DIRECTIONS TO JOB SITE", buildEmergencyDirections(plan)],
+    ["STATE & EMERGENCY NUMBERS", [
+      plan.sar?.verifiedAgency,
+      plan.sar?.verifiedPhone,
+      plan.sar?.verifiedPerson,
+      plan.sar?.contacts,
+    ].filter(Boolean).join("\n") || "Not entered"],
+    ["MEDICAL", [
+      plan.medical?.hospital && `Hospital / ER: ${plan.medical.hospital}`,
+      plan.medical?.hospitalDirectionsUrl && `Hospital map: ${plan.medical.hospitalDirectionsUrl}`,
+      plan.medical?.urgentCare && `Urgent care: ${plan.medical.urgentCare}`,
+      plan.medical?.traumaCenter && `Trauma / major hospital: ${plan.medical.traumaCenter}`,
+      plan.medical?.notes,
+    ].filter(Boolean).join("\n") || "Not entered"],
+    ["ACCESS / HAZARDS", [
+      access.gateNotes && `Gate: ${access.gateNotes}`,
+      access.meetingPoint && `Meeting point: ${access.meetingPoint}`,
+      plan.hazards && `Hazards: ${plan.hazards}`,
+    ].filter(Boolean).join("\n") || "Not entered"],
+    ["POTENTIAL HELICOPTER LANDING SITE", [
+      access.landingZoneDescription,
+      lzGps && `GPS: ${lzGps}`,
+      access.landingZoneNotes && `Hazards/notes: ${access.landingZoneNotes}`,
+    ].filter(Boolean).join("\n") || "Not entered"],
+  ];
+}
+
+function drawCanvasBlock(ctx, label, value, x, y, width) {
+  ctx.fillStyle = "#123c2c";
+  ctx.font = "800 26px Arial";
+  ctx.fillText(label, x, y);
+  y += 34;
+  ctx.fillStyle = "#1d2520";
+  ctx.font = "24px Arial";
+  y = wrapCanvasText(ctx, value || "Not entered", x, y, width, 30);
+  return y + 18;
+}
+
+function planCanvas(plan) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1400;
+  canvas.height = 2200;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f7f5ee";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#123c2c";
+  ctx.fillRect(0, 0, canvas.width, 190);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 50px Arial";
+  ctx.fillText(plan.title || "WRSP Safety Plan", 70, 78);
+  ctx.font = "700 30px Arial";
+  ctx.fillText("Safety Plan & Important Information", 70, 128);
+  ctx.font = "24px Arial";
+  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, 70, 162);
+  ctx.fillStyle = "#d4631f";
+  ctx.fillRect(0, 190, canvas.width, 10);
+  let y = 255;
+  planPngRows(plan).forEach(([label, value]) => {
+    y = drawCanvasBlock(ctx, label, value, 70, y, 1260);
+    ctx.fillStyle = "#d8ded5";
+    ctx.fillRect(70, y - 8, 1260, 2);
+    y += 16;
+  });
+  ctx.fillStyle = "#70310e";
+  ctx.font = "700 24px Arial";
+  wrapCanvasText(ctx, "WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.", 70, 2130, 1260, 30);
+  return canvas;
+}
+
+async function sharePlanPng(plan) {
+  const canvas = planCanvas(plan);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.png`, { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+    await navigator.share({ title: `WRSP: ${plan.title}`, text: "WRSP responder safety plan image", files: [file] });
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  toast("WRSP plan PNG downloaded.");
 }
 
 function safeFileName(value = "wrsp-plan") {
@@ -1262,10 +1451,20 @@ async function capturePlanGps() {
     $("#lng").value = position.coords.longitude.toFixed(6);
     updateGpsStatus();
     updateEssentialProgress();
-    centerSiteMap(position.coords.latitude, position.coords.longitude, 15);
+    centerSiteMap(position.coords.latitude, position.coords.longitude, 17);
     scheduleAutoSave();
   } catch (error) {
     $("#gpsStatus").textContent = `GPS unavailable: ${error.message}`;
+  }
+}
+
+async function captureLandingZoneGps() {
+  try {
+    const position = await getCurrentPosition();
+    setLandingZoneCoordinates(position.coords.latitude, position.coords.longitude, true);
+    toast("Landing zone GPS captured.");
+  } catch (error) {
+    toast(`LZ GPS unavailable: ${error.message}`);
   }
 }
 
@@ -1511,6 +1710,16 @@ async function installOrShowInstructions() {
   toast("Use the steps shown for this phone or browser.");
 }
 
+async function checkForAppUpdate() {
+  if (!("serviceWorker" in navigator)) {
+    toast("This browser does not support app updates.");
+    return;
+  }
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.update()));
+  toast("Checked for WRSP updates. Reopen or refresh if your phone keeps an older version.");
+}
+
 async function confirmLiveLocationStarted() {
   const existing = (await storeGet(SETTINGS_STORE, SAFETY_SHARE_KEY))?.value || {};
   const record = {
@@ -1533,6 +1742,43 @@ function mapSearch(query) {
   openMapsSearch(fullQuery);
 }
 
+const MEDICAL_FACILITY_CONFIG = {
+  hospital: {
+    query: "emergency room hospital",
+    label: "Hospital / ER",
+    placeholder: "Facility name, address, phone for the confirmed ER or hospital",
+  },
+  urgentCare: {
+    query: "urgent care",
+    label: "Urgent care",
+    placeholder: "Facility name, address, phone for the confirmed urgent care",
+  },
+  traumaCenter: {
+    query: "trauma center hospital",
+    label: "Trauma center / major hospital",
+    placeholder: "Facility name, address, phone for the confirmed trauma center or major hospital",
+  },
+};
+
+function medicalSearchQueryForType(type) {
+  const origin = $("#medicalSearchOrigin").value.trim();
+  const config = MEDICAL_FACILITY_CONFIG[type] || MEDICAL_FACILITY_CONFIG.hospital;
+  return origin ? `${config.query} near ${origin}` : `${config.query} near me`;
+}
+
+function medicalSearchUrlForType(type) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(medicalSearchQueryForType(type))}`;
+}
+
+function prepareMedicalFacility(type, openSearch = true) {
+  const config = MEDICAL_FACILITY_CONFIG[type] || MEDICAL_FACILITY_CONFIG.hospital;
+  $("#medicalFacilityType").value = type;
+  $("#medicalFacilityDetails").placeholder = config.placeholder;
+  $("#medicalFacilityDirectionsUrl").value = medicalSearchUrlForType(type);
+  $("#medicalSaveStatus").textContent = `${config.label}: confirm the correct facility in maps, then enter the name/address/phone and save to the current plan.`;
+  if (openSearch) openMapsSearch(medicalSearchQueryForType(type));
+}
+
 async function saveMedicalFacilityToCurrentPlan() {
   if (!currentPlanId) {
     $("#medicalSaveStatus").textContent = "Open or create a plan first, then save facility information.";
@@ -1542,6 +1788,11 @@ async function saveMedicalFacilityToCurrentPlan() {
   const type = $("#medicalFacilityType").value;
   const details = $("#medicalFacilityDetails").value.trim();
   const directionsUrl = $("#medicalFacilityDirectionsUrl").value.trim();
+  const config = MEDICAL_FACILITY_CONFIG[type] || MEDICAL_FACILITY_CONFIG.hospital;
+  if (!details) {
+    $("#medicalSaveStatus").textContent = `Enter the confirmed ${config.label} name, address, and phone before saving.`;
+    return;
+  }
   plan.medical = plan.medical || {};
   if (type === "hospital") {
     plan.medical.hospital = details;
@@ -1558,7 +1809,7 @@ async function saveMedicalFacilityToCurrentPlan() {
   plan.updatedAt = new Date().toISOString();
   await storePut(PLAN_STORE, plan);
   planToForm(plan);
-  $("#medicalSaveStatus").textContent = "Saved to the current plan.";
+  $("#medicalSaveStatus").textContent = `${config.label} saved to the current plan.`;
   await renderContinuePlan();
 }
 
@@ -1571,7 +1822,7 @@ async function prefillMedicalOrigin() {
     input.value = `${loc.lat}, ${loc.lng}`;
     return;
   }
-  input.value = [loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+  input.value = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
 }
 
 function openMapsSearch(query) {
@@ -2109,7 +2360,7 @@ function bindEvents() {
         $("#planForm").dataset.accuracy = "";
         $("#planForm").dataset.capturedAt = new Date().toISOString();
         updateGpsStatus();
-        centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 13));
+        centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
         scheduleAutoSave();
       }
     });
@@ -2172,8 +2423,43 @@ function bindEvents() {
     }
     $("#landingZoneLat").value = lat;
     $("#landingZoneLng").value = lng;
+    centerLandingZoneMap(parseFloat(lat), parseFloat(lng), Math.max(landingZoneMapState.zoom, 17));
     scheduleAutoSave();
     toast("Landing zone coordinates copied from site point.");
+  });
+  $("#captureLandingZoneGps").addEventListener("click", captureLandingZoneGps);
+  $("#landingZoneMapZoomIn").addEventListener("click", () => {
+    landingZoneMapState.zoom = clamp(landingZoneMapState.zoom + 1, 3, 19);
+    renderLandingZoneMap();
+  });
+  $("#landingZoneMapZoomOut").addEventListener("click", () => {
+    landingZoneMapState.zoom = clamp(landingZoneMapState.zoom - 1, 3, 19);
+    renderLandingZoneMap();
+  });
+  $("#landingZoneMapRecenter").addEventListener("click", () => {
+    const lat = parseFloat($("#landingZoneLat").value);
+    const lng = parseFloat($("#landingZoneLng").value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      const siteLat = parseFloat($("#lat").value);
+      const siteLng = parseFloat($("#lng").value);
+      if (Number.isFinite(siteLat) && Number.isFinite(siteLng)) {
+        centerLandingZoneMap(siteLat, siteLng, Math.max(landingZoneMapState.zoom, 15));
+        toast("LZ map centered on site point. Drop the LZ pin where the helicopter could land.");
+        return;
+      }
+      toast("Set the LZ point or site point first, then center the map.");
+      return;
+    }
+    centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 17));
+  });
+  $("#dropLandingZonePinAtCenter").addEventListener("click", () => {
+    setLandingZoneCoordinates(landingZoneMapState.centerLat, landingZoneMapState.centerLng, false);
+    renderLandingZoneMap();
+    toast("Landing zone pin dropped at map center.");
+  });
+  $("#clearLandingZonePin").addEventListener("click", () => {
+    clearLandingZoneCoordinates();
+    toast("Landing zone pin cleared.");
   });
   $("#mapZoomIn").addEventListener("click", () => {
     siteMapState.zoom = clamp(siteMapState.zoom + 1, 3, 19);
@@ -2190,7 +2476,7 @@ function bindEvents() {
       toast("Set exact coordinates first, then center the map.");
       return;
     }
-    centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 15));
+    centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
   });
   $("#dropPinAtCenter").addEventListener("click", () => {
     setSiteCoordinates(siteMapState.centerLat, siteMapState.centerLng, false);
@@ -2234,7 +2520,43 @@ function bindEvents() {
       renderSiteMap();
     }
   });
-  window.addEventListener("resize", renderSiteMap);
+  $("#landingZoneMap").addEventListener("pointerdown", (event) => {
+    const map = $("#landingZoneMap");
+    map.setPointerCapture(event.pointerId);
+    landingZoneMapState.dragging = true;
+    landingZoneMapState.moved = 0;
+    landingZoneMapState.dragStart = { x: event.clientX, y: event.clientY };
+    landingZoneMapState.startCenter = {
+      x: lngToTileX(landingZoneMapState.centerLng, landingZoneMapState.zoom),
+      y: latToTileY(landingZoneMapState.centerLat, landingZoneMapState.zoom),
+    };
+  });
+  $("#landingZoneMap").addEventListener("pointermove", (event) => {
+    if (!landingZoneMapState.dragging) return;
+    const dx = event.clientX - landingZoneMapState.dragStart.x;
+    const dy = event.clientY - landingZoneMapState.dragStart.y;
+    landingZoneMapState.moved = Math.max(landingZoneMapState.moved, Math.abs(dx), Math.abs(dy));
+    const centerX = landingZoneMapState.startCenter.x - dx;
+    const centerY = landingZoneMapState.startCenter.y - dy;
+    landingZoneMapState.centerLng = tileXToLng(centerX, landingZoneMapState.zoom);
+    landingZoneMapState.centerLat = clamp(tileYToLat(centerY, landingZoneMapState.zoom), -85, 85);
+    renderLandingZoneMap();
+  });
+  $("#landingZoneMap").addEventListener("pointerup", (event) => {
+    const map = $("#landingZoneMap");
+    if (map.hasPointerCapture(event.pointerId)) map.releasePointerCapture(event.pointerId);
+    const wasTap = landingZoneMapState.moved < 8;
+    landingZoneMapState.dragging = false;
+    if (wasTap) {
+      const picked = pointToLatLngFromMap("#landingZoneMap", landingZoneMapState, event.clientX, event.clientY);
+      setLandingZoneCoordinates(picked.lat, picked.lng, false);
+      renderLandingZoneMap();
+    }
+  });
+  window.addEventListener("resize", () => {
+    renderSiteMap();
+    renderLandingZoneMap();
+  });
   $("#previewPlan").addEventListener("click", async () => {
     await savePlan(formToPlan(), true);
     toast("Draft saved. Keep editing when ready.");
@@ -2247,7 +2569,7 @@ function bindEvents() {
     if (openId) await openPlan(openId);
     if (shareId) {
       const plan = await storeGet(PLAN_STORE, shareId);
-      await shareText(`WRSP: ${plan.title}`, planShareText(plan));
+      await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
     }
     if (editId) {
       const plan = await storeGet(PLAN_STORE, editId);
@@ -2266,7 +2588,7 @@ function bindEvents() {
     if (openId) await openPlan(openId);
     if (shareId) {
       const plan = await storeGet(PLAN_STORE, shareId);
-      await shareText(`WRSP: ${plan.title}`, planShareText(plan));
+      await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
     }
   });
   $("#editCurrentPlan").addEventListener("click", async () => {
@@ -2295,11 +2617,16 @@ function bindEvents() {
   $("#shareCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
     if (!plan) return;
-    await shareText(`WRSP: ${plan.title}`, planShareText(plan));
+    await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
   });
   $("#qrCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
     if (plan) showPlanQr(plan);
+  });
+  $("#sharePlanPng").addEventListener("click", async () => {
+    const plan = await activePlan();
+    if (!plan) return;
+    await sharePlanPng(plan);
   });
   $("#copyQrLink").addEventListener("click", async () => {
     await navigator.clipboard.writeText($("#qrImportLink").value);
@@ -2358,21 +2685,15 @@ function bindEvents() {
     if (emergencyCoords) window.open(`https://maps.google.com/?q=${emergencyCoords.lat},${emergencyCoords.lng}`, "_blank", "noopener");
   });
   $("#shareApp")?.addEventListener("click", shareAppLink);
+  $("#installAppHeader")?.addEventListener("click", installOrShowInstructions);
   $("#installAppHome")?.addEventListener("click", installOrShowInstructions);
   $("#installAppPage")?.addEventListener("click", installOrShowInstructions);
   $("#copyAppLink")?.addEventListener("click", async () => {
     await navigator.clipboard.writeText(appShareUrl());
     toast("WRSP app link copied.");
   });
-  $("#checkForUpdate")?.addEventListener("click", async () => {
-    if (!("serviceWorker" in navigator)) {
-      toast("This browser does not support app updates.");
-      return;
-    }
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map((registration) => registration.update()));
-    toast("Checked for WRSP updates. Reopen or refresh if your phone keeps an older version.");
-  });
+  $("#updateAppHeader")?.addEventListener("click", checkForAppUpdate);
+  $("#checkForUpdate")?.addEventListener("click", checkForAppUpdate);
   ["safetyShareContactName", "safetyShareContactPhone", "safetyShareCheckIn", "safetyShareStartLocation", "safetyShareNotes"].forEach((id) => {
     $(`#${id}`)?.addEventListener("input", async () => {
       await updateSafetyShareMessage();
@@ -2400,9 +2721,19 @@ function bindEvents() {
   });
   $("#refreshPwaStatus").addEventListener("click", updatePwaStatus);
   $("#saveMedicalFacilityToPlan").addEventListener("click", saveMedicalFacilityToCurrentPlan);
-  $("#findEr").addEventListener("click", () => mapSearch("emergency room hospital"));
-  $("#findUrgentCare").addEventListener("click", () => mapSearch("urgent care"));
-  $("#findTrauma").addEventListener("click", () => mapSearch("trauma center hospital"));
+  $("#findEr").addEventListener("click", () => prepareMedicalFacility("hospital"));
+  $("#findUrgentCare").addEventListener("click", () => prepareMedicalFacility("urgentCare"));
+  $("#findTrauma").addEventListener("click", () => prepareMedicalFacility("traumaCenter"));
+  $("#medicalFacilityType").addEventListener("change", () => prepareMedicalFacility($("#medicalFacilityType").value, false));
+  $("#openFacilityDirectionsSearch").addEventListener("click", () => {
+    const type = $("#medicalFacilityType").value;
+    const url = $("#medicalFacilityDirectionsUrl").value.trim();
+    if (url) {
+      window.open(url, "_blank", "noopener");
+      return;
+    }
+    openMapsSearch(medicalSearchQueryForType(type));
+  });
   $("#findStateWoodsAgency").addEventListener("click", () => localResponderSearch("stateWoods"));
   $("#findFireRescue").addEventListener("click", () => localResponderSearch("fireRescue"));
   $("#findSheriffSar").addEventListener("click", () => localResponderSearch("sheriffSar"));

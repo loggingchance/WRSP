@@ -21,7 +21,11 @@
         <h1>WRSP</h1>
         <p class="header-credit">Provided by the Northeastern Loggers' Association</p>
       </div>
-      <div id="connectionBadge" class="status-badge">Checking</div>
+      <div class="header-actions">
+        <div id="connectionBadge" class="status-badge">Checking</div>
+        <button class="header-mini-action" id="installAppHeader">Install</button>
+        <button class="header-mini-action" id="updateAppHeader">Update</button>
+      </div>
     </header>
 
     <main id="app" class="app-shell">
@@ -42,6 +46,8 @@
           </div>
           <button class="secondary-action" id="installAppHome">Install / Save App</button>
         </div>
+
+        <p class="privacy-note">WRSP does not collect data about you, your work, your medical condition, or anything else. Saved plans and medical card details stay on this device unless you choose to share them.</p>
 
         <div id="continuePlanCard" class="continue-card" hidden></div>
 
@@ -118,13 +124,13 @@
               <h3>Location</h3>
               <button type="button" class="small-action" id="captureGps">Use Phone GPS</button>
             </div>
-            <p class="helper">Address and road notes help people understand the site. Exact coordinates come from phone GPS or the map pin.</p>
+            <p class="helper">Address and road notes help people understand the site. Exact coordinates are captured from phone GPS or a dropped map pin.</p>
             <div class="split">
-              <label>Latitude
-                <input id="lat" name="lat" inputmode="decimal" placeholder="Selected from map or GPS">
+              <label>Site latitude
+                <input id="lat" name="lat" inputmode="decimal" placeholder="Automatic from map or GPS" readonly>
               </label>
-              <label>Longitude
-                <input id="lng" name="lng" inputmode="decimal" placeholder="Selected from map or GPS">
+              <label>Site longitude
+                <input id="lng" name="lng" inputmode="decimal" placeholder="Automatic from map or GPS" readonly>
               </label>
             </div>
             <p id="gpsStatus" class="helper">GPS has not been captured for this plan.</p>
@@ -148,8 +154,8 @@
               </div>
               <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
             </div>
-            <label>Nearest road / address
-              <input id="roadAddress" name="roadAddress" placeholder="Town road, landing, or nearest address">
+            <label>Nearest public road / address
+              <input id="roadAddress" name="roadAddress" placeholder="Public road, landing, gate, or nearest address">
             </label>
             <button type="button" class="secondary-action" id="openAddressInMaps">Open Address in Maps</button>
             <div class="split">
@@ -172,8 +178,8 @@
             <label>Site-specific read-aloud instructions
               <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
-            <label>Primary contact
-              <input id="primaryContact" name="primaryContact" placeholder="Name and phone">
+            <label>Logger
+              <input id="primaryContact" name="primaryContact" placeholder="Name and mobile phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
             <label>Phone service notes
@@ -203,13 +209,34 @@
               </label>
               <div class="split">
                 <label>Landing zone latitude
-                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" placeholder="Optional">
+                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" placeholder="Set from map/GPS" readonly>
                 </label>
                 <label>Landing zone longitude
-                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" placeholder="Optional">
+                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" placeholder="Set from map/GPS" readonly>
                 </label>
               </div>
-              <button type="button" class="secondary-action" id="useSiteForLandingZone">Use selected site coordinates</button>
+              <div class="map-picker">
+                <div class="map-toolbar">
+                  <strong>Select landing zone point</strong>
+                  <div>
+                    <button type="button" class="small-action" id="landingZoneMapRecenter">Center</button>
+                    <button type="button" class="small-action" id="landingZoneMapZoomOut">-</button>
+                    <button type="button" class="small-action" id="landingZoneMapZoomIn">+</button>
+                  </div>
+                </div>
+                <div id="landingZoneMap" class="site-map" role="button" aria-label="Tap map to select helicopter landing zone location">
+                  <div id="landingZoneMapTiles" class="map-tiles"></div>
+                  <div id="landingZoneMapMarker" class="map-marker" hidden></div>
+                  <div class="map-crosshair" aria-hidden="true"></div>
+                </div>
+                <div class="map-actions">
+                  <button type="button" class="secondary-action" id="dropLandingZonePinAtCenter">Drop LZ Pin at Map Center</button>
+                  <button type="button" class="secondary-action" id="clearLandingZonePin">Clear LZ Pin</button>
+                  <button type="button" class="secondary-action" id="captureLandingZoneGps">Use Phone GPS for LZ</button>
+                  <button type="button" class="secondary-action" id="useSiteForLandingZone">Use Site Point for LZ</button>
+                </div>
+                <p class="helper">Pick the possible helicopter landing zone separately from the job site. Dispatch/EMS decides whether air medical response is appropriate.</p>
+              </div>
               <label>Landing zone hazards / notes
                 <textarea id="landingZoneNotes" name="landingZoneNotes" rows="3" placeholder="Wires, slope, stumps, soft ground, trees, smoke, wind exposure, locked gates, ground contact"></textarea>
               </label>
@@ -219,24 +246,24 @@
           <details class="card accordion-card">
             <summary>Crew & contacts</summary>
             <div class="split">
-              <label>Crew / supervisor
-                <input id="supervisor" name="supervisor" placeholder="Name and phone">
+              <label>Crew member(s)
+                <input id="supervisor" name="supervisor" placeholder="Names and mobile phones">
               </label>
               <button type="button" class="secondary-action contact-picker" data-contact-target="supervisor">Choose from contacts</button>
             </div>
             <div class="split">
-              <label>Forester / plan preparer
-                <input id="foresterContact" name="foresterContact" placeholder="Name, role, phone">
+              <label>Forester
+                <input id="foresterContact" name="foresterContact" placeholder="Name and mobile phone">
               </label>
               <button type="button" class="secondary-action contact-picker" data-contact-target="foresterContact">Choose from contacts</button>
             </div>
             <div class="split">
-              <label>Landowner
-                <input id="landowner" name="landowner" placeholder="Name and phone">
+              <label>Landowner(s)
+                <input id="landowner" name="landowner" placeholder="Names and mobile phones">
                 <button type="button" class="secondary-action contact-picker" data-contact-target="landowner">Choose from contacts</button>
               </label>
-              <label>Trucking contact
-                <input id="truckingContact" name="truckingContact" placeholder="Name and phone">
+              <label>Other contact / role
+                <input id="truckingContact" name="truckingContact" placeholder="Role, name, mobile phone">
                 <button type="button" class="secondary-action contact-picker" data-contact-target="truckingContact">Choose from contacts</button>
               </label>
             </div>
@@ -348,6 +375,7 @@
         <div id="planOutput" class="plan-output"></div>
         <div class="action-row secondary-plan-actions">
           <button class="secondary-action" id="qrCurrentPlan">QR</button>
+          <button class="secondary-action" id="sharePlanPng">PNG</button>
           <button class="secondary-action" id="exportCurrentPlan">Backup File</button>
           <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
           <button class="secondary-action" id="printCurrentPlan">Print / Save PDF</button>
@@ -364,7 +392,7 @@
           <button class="secondary-action" id="copyQrLink">Copy Plan Link</button>
         </div>
         <div class="sticky-share">
-          <button class="primary-action" id="shareCurrentPlan">Share Plan</button>
+          <button class="primary-action" id="shareCurrentPlan">Share Plan Link</button>
         </div>
       </section>
 
@@ -468,13 +496,13 @@
             <input id="medicalSearchOrigin" placeholder="Current GPS, plan location, town, or address">
           </label>
           <div class="action-row">
-            <button class="primary-action" id="findEr">Nearest ER / Hospital</button>
-            <button class="secondary-action" id="findUrgentCare">Nearest Urgent Care</button>
-            <button class="secondary-action" id="findTrauma">Trauma Center</button>
+            <button class="primary-action" id="findEr">Find ER</button>
+            <button class="secondary-action" id="findUrgentCare">Find Urgent Care</button>
+            <button class="secondary-action" id="findTrauma">Find Trauma Center</button>
           </div>
           <div class="subsection-block">
-            <h3>Save facility information to current plan</h3>
-            <p class="helper">After finding a facility, paste or type the name, address, phone, and directions link here so it becomes part of the saved safety plan.</p>
+            <h3>Confirm and save to current plan</h3>
+            <p class="helper">WRSP opens map search, but you must confirm the correct facility. Enter or paste the facility details, then save it into the current safety plan.</p>
             <label>Facility type
               <select id="medicalFacilityType">
                 <option value="hospital">Hospital / ER</option>
@@ -488,7 +516,10 @@
             <label>Directions link
               <input id="medicalFacilityDirectionsUrl" placeholder="Paste map/directions link">
             </label>
-            <button class="primary-action" id="saveMedicalFacilityToPlan">Save to Current Plan</button>
+            <div class="action-row">
+              <button class="secondary-action" id="openFacilityDirectionsSearch">Open Directions Search</button>
+              <button class="primary-action" id="saveMedicalFacilityToPlan">Save to Current Plan</button>
+            </div>
             <p id="medicalSaveStatus" class="helper"></p>
           </div>
         </div>
@@ -557,20 +588,20 @@
             <label>Default state / province
               <input id="defaultState" placeholder="Optional">
             </label>
-            <label>Primary contact
-              <input id="defaultPrimaryContact" placeholder="Name and phone">
+            <label>Logger
+              <input id="defaultPrimaryContact" placeholder="Name and mobile phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultPrimaryContact">Choose from contacts</button>
-            <label>Forester / plan preparer
-              <input id="defaultForesterContact" placeholder="Name and phone">
+            <label>Forester
+              <input id="defaultForesterContact" placeholder="Name and mobile phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultForesterContact">Choose from contacts</button>
-            <label>Crew / supervisor
-              <input id="defaultSupervisor" placeholder="Name and phone">
+            <label>Crew member(s)
+              <input id="defaultSupervisor" placeholder="Names and mobile phones">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultSupervisor">Choose from contacts</button>
-            <label>Trucking contact
-              <input id="defaultTruckingContact" placeholder="Name and phone">
+            <label>Other contact / role
+              <input id="defaultTruckingContact" placeholder="Role, name, mobile phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultTruckingContact">Choose from contacts</button>
             <label>Common local woods emergency contact notes
@@ -764,6 +795,7 @@
             <p>The Woods-Ready Safety Plan helps loggers, foresters, crew leads, trucking coordinators, and landowner representatives prepare the emergency information needed before work begins on a logging site.</p>
             <p>WRSP is a practical field utility: create a site safety plan, save it on this phone, reopen it offline, and share responder-ready directions, contacts, medical information, hazards, and access notes when needed.</p>
             <p>The app is not a substitute for training, calling 911, EMS, or local emergency procedures. It is meant to make critical site information easier to assemble and share before something goes wrong.</p>
+            <p><strong>Privacy:</strong> WRSP does not collect data about you, your work, your medical condition, or anything else. Saved plans and medical card details stay on this device unless you choose to share them.</p>
           </div>
 
           <div class="card prose resource-card">
