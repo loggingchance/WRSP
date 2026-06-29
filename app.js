@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.1 - June 15, 2026";
+const APP_VERSION = "WRSP v0.7.2 - June 29, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -20,6 +20,7 @@ let sharedMedicalCardPreview = null;
 let emergencyCoords = null;
 let autoSaveTimer = null;
 let deferredInstallPrompt = null;
+let updateReloading = false;
 let siteMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
@@ -1716,8 +1717,35 @@ async function checkForAppUpdate() {
     return;
   }
   const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((registration) => registration.update()));
-  toast("Checked for WRSP updates. Reopen or refresh if your phone keeps an older version.");
+  if (!registrations.length) {
+    toast("WRSP is checking for offline/install support. Try again after opening from the hosted site.");
+    return;
+  }
+  let updateFound = false;
+  await Promise.all(registrations.map(async (registration) => {
+    await registration.update();
+    const waiting = registration.waiting;
+    const installing = registration.installing;
+    if (waiting) {
+      updateFound = true;
+      waiting.postMessage({ type: "SKIP_WAITING" });
+    } else if (installing) {
+      updateFound = true;
+      installing.addEventListener("statechange", () => {
+        if (installing.state === "installed" && registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+    }
+  }));
+  if (updateFound) {
+    toast("Updating WRSP. The app will reload if the browser allows it.");
+    window.setTimeout(() => {
+      if (!updateReloading) window.location.reload();
+    }, 1800);
+    return;
+  }
+  toast("WRSP checked for updates. You appear to have the latest available version.");
 }
 
 async function confirmLiveLocationStarted() {
@@ -2693,6 +2721,7 @@ function bindEvents() {
     toast("WRSP app link copied.");
   });
   $("#updateAppHeader")?.addEventListener("click", checkForAppUpdate);
+  $("#updateAppHome")?.addEventListener("click", checkForAppUpdate);
   $("#checkForUpdate")?.addEventListener("click", checkForAppUpdate);
   ["safetyShareContactName", "safetyShareContactPhone", "safetyShareCheckIn", "safetyShareStartLocation", "safetyShareNotes"].forEach((id) => {
     $(`#${id}`)?.addEventListener("input", async () => {
@@ -2863,6 +2892,11 @@ function bindEvents() {
     deferredInstallPrompt = null;
     toast("WRSP installed.");
     updatePwaStatus();
+  });
+  navigator.serviceWorker?.addEventListener("controllerchange", () => {
+    if (updateReloading) return;
+    updateReloading = true;
+    window.location.reload();
   });
 }
 
