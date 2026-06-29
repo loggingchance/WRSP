@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.2 - June 29, 2026";
+const APP_VERSION = "WRSP v0.7.4 - June 29, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);

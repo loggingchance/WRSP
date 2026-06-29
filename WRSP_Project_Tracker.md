@@ -77,6 +77,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Home screen now has an obvious Install / Save App callout, plus an install page button that uses the browser install prompt when available and falls back to phone/desktop instructions.
 - Header now includes small Install and Update buttons under the connection status for saved-home-screen users.
 - Home screen now has a prominent Update WRSP button beside Install / Save App, and the update flow attempts to activate a waiting service worker and reload the app.
+- Social preview support added: root `og-image.png` plus Open Graph and Twitter/X metadata pointing to the absolute GitHub Pages image URL.
 - Contact labels changed from primary/supervisor language to logger, crew member(s), forester, landowner(s), and other contact/role.
 - Forester label no longer says "plan preparer."
 - Site and helicopter landing coordinates are read-only fields populated by GPS/map actions rather than manual entry fields.
@@ -93,8 +94,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Read-aloud directions helper added: users can search for a responder-known starting landmark and build a draft from route, gate, meeting point, and site coordinates.
 - Medical Card now has explicit sharing actions for family/trusted contacts and EMS/medical responders, with different message context.
 - Medical Card now has Print / Save PDF, PNG, and QR/share-link options, with a dedicated card preview.
-- Service worker cache moved to `wrsp-v18` so saved-home-screen users can receive this update.
+- Service worker cache moved to `wrsp-v19` so saved-home-screen users can receive this update.
 - Publish script now includes the local preview server helper, and the preview server serves PNG header images with the correct type.
+- Search/discovery support added: descriptive SEO title, meta description, keywords, author, robots, canonical URL, SoftwareApplication JSON-LD, manifest discovery fields, root sitemap, and root robots file.
+- Service worker cache moved to `wrsp-v20` so saved-home-screen users can receive the SEO/manifest update.
 
 ## User feedback captured
 
@@ -117,6 +120,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - The sample safety plan format confirms the one-page plan should include phones/service, emergency numbers, people, read-aloud access directions, gate/meet-responder instructions, and helicopter landing coordinates.
 - Foresters involved in the job often write the plan and must be captured as named contacts alongside crew, landowner, and agency contacts.
 - The Northeastern Loggers' Association must be visibly acknowledged in the app header/first screen, not hidden deep in resources.
+- WRSP needs basic search discoverability through SEO metadata, social preview metadata, sitemap, robots file, and Search Console submission after deployment.
 
 ## Next priorities
 
@@ -147,9 +151,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v18`.
+- Service worker cache is currently `wrsp-v20`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
 - Medical lookup currently opens map searches and lets users save facility details manually; automatic facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
+- After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.

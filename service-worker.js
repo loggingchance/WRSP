@@ -1,10 +1,11 @@
-const CACHE_NAME = "wrsp-v18";
+const CACHE_NAME = "wrsp-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
+  "./og-image.png",
   "./assets/wrsp-header.png",
   "./assets/wrsp-header.svg",
   "./assets/icon-192.svg",

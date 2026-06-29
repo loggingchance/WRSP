@@ -39,7 +39,7 @@ git remote add origin https://github.com/loggingchance/WRSP.git
 if errorlevel 1 goto failed
 
 echo Adding WRSP files...
-git add index.html app.js styles.css service-worker.js manifest.webmanifest README.md DEPLOYMENT_CHECKLIST.md WRSP_Project_Tracker.md phone-preview.html .nojekyll .gitignore assets work\dev-server.js "Publish WRSP to GitHub.cmd" "Start WRSP Preview.cmd"
+git add index.html app.js styles.css service-worker.js manifest.webmanifest README.md DEPLOYMENT_CHECKLIST.md WRSP_Project_Tracker.md phone-preview.html og-image.png sitemap.xml robots.txt .nojekyll .gitignore assets work\dev-server.js "Publish WRSP to GitHub.cmd" "Start WRSP Preview.cmd"
 if errorlevel 1 goto failed
 
 echo Committing WRSP files...

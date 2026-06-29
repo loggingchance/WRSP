@@ -1,7 +1,9 @@
 {
-  "name": "Woods-Ready Safety Plan",
+  "name": "WRSP – Woods-Ready Safety Plan",
   "short_name": "WRSP",
-  "description": "Offline-first mobile safety plan utility for logging sites.",
+  "description": "Create and share a one-page logging site safety plan. Free. Offline-capable.",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
