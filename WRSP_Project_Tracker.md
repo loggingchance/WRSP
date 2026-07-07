@@ -49,7 +49,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Provided WRSP header PNG is now the active home banner image, with the SVG retained only as a lightweight fallback asset.
 - Shared plan text leads with map link and read-aloud directions.
 - Preparedness profile and sharing exist.
-- Medical lookup exists through online map searches with urgent-care warnings.
+- Medical lookup exists through online map searches focused on the nearest ER.
 - About / Resources expanded with real links and an Other Apps and Tools section.
 - Safety Share launcher added for iPhone Messages, Find My, Google Maps, SMS fallback, copy/share safety message, static backup pin, and user confirmation timestamp.
 - Local emergency contact lookup improved with a verification checklist and dedicated fields for verified agency/dispatch, phone, person/role, and source/date.
@@ -84,7 +84,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Site map now opens/recenters at a closer zoom and uses a taller picker to make phone pin placement easier.
 - Helicopter landing zone now has its own GPS/map picker with pan, zoom, drop pin, clear pin, and use-site-point actions.
 - Site location wording now prioritizes nearest public road/address instead of manual coordinate entry.
-- Medical lookup now has explicit Find ER, Find Urgent Care, and Find Trauma Center actions that prepare the correct save type, generate a directions/search link, and require the user to confirm facility details before saving them into the current plan.
+- Medical lookup now has an explicit Find ER action that prepares the correct save type, generates a directions/search link, and requires the user to confirm facility details before saving them into the current plan.
 - Plan view now includes a PNG export/share option for a formatted responder safety plan image.
 - Save Plan / Keep Editing controls no longer float over the phone screen.
 - Home and About now state that WRSP does not collect user, work, medical, or other data.
@@ -98,6 +98,18 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Publish script now includes the local preview server helper, and the preview server serves PNG header images with the correct type.
 - Search/discovery support added: descriptive SEO title, meta description, keywords, author, robots, canonical URL, SoftwareApplication JSON-LD, manifest discovery fields, root sitemap, and root robots file.
 - Service worker cache moved to `wrsp-v20` so saved-home-screen users can receive the SEO/manifest update.
+- Contact-picker buttons now show honest fallback wording when the browser blocks phone contact access.
+- Local responder lookup button relabeled to State Natural Resources Department, and lookup links now open in the same tab/window so browser Back returns to WRSP more readily.
+- Header credit now puts "Provided by" on its own line above Northeastern Loggers' Association.
+- Plan medical section restricted to nearest ER only; town/county/state can now build a nearest-ER lookup entry automatically.
+- Service worker cache moved to `wrsp-v21` so saved-home-screen users can receive the July 7 corrections.
+- Service worker cache moved to `wrsp-v22` so saved-home-screen users can receive the nearest-ER-only correction.
+- Plan readiness changed from a strict draft/complete mindset to Draft, Usable, and Complete. WRSP can save/share an incomplete plan while clearly showing what is still missing.
+- Contact entry workflow now follows logger(s), crew member(s), forester, landowner, and other contact/role, with dispatch/emergency numbers kept in the responder/emergency section of the plan.
+- Reusable defaults now include landowner contact.
+- Service worker cache moved to `wrsp-v23` so saved-home-screen users can receive the readiness/contact workflow update.
+- Lookup workflow improved: after opening a state natural resources, county dispatch/SAR, fire/rescue, or emergency management search, WRSP prompts the user to return with Back, enter the found agency/phone/person/source, and tap Use This Information in Plan.
+- Service worker cache moved to `wrsp-v24` so saved-home-screen users can receive the lookup capture workflow.
 
 ## User feedback captured
 
@@ -121,6 +133,11 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Foresters involved in the job often write the plan and must be captured as named contacts alongside crew, landowner, and agency contacts.
 - The Northeastern Loggers' Association must be visibly acknowledged in the app header/first screen, not hidden deep in resources.
 - WRSP needs basic search discoverability through SEO metadata, social preview metadata, sitemap, robots file, and Search Console submission after deployment.
+- July 7 testing notes: contact picking may be blocked by browser support; State woods agency label should be State Natural Resources Department; lookup return path must be easier; header provider wording needs separate lines; single-page plan should not pull too many medical-care choices and should build nearest-ER lookup entries from town/county/state.
+- July 7 decision: restrict plan medical-care lookup to nearest ER, not urgent care.
+- July 7 decision: an unfinished but usable plan is better than no plan; WRSP should make partial completion easy and clearly labeled.
+- Contact workflow should be easy enough that people will actually use it: logger(s), crew, forester, landowner, others, then important dispatch/emergency numbers on the plan.
+- Lookup/search should not strand the user; the app should make it obvious how to bring found dispatch/contact information back into the plan.
 
 ## Next priorities
 
@@ -151,10 +168,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v20`.
+- Service worker cache is currently `wrsp-v24`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
-- Phone contact import depends on browser Contact Picker API support and may not work from desktop/file preview.
+- Phone contact import depends on browser Contact Picker API support; unsupported browsers now show type/paste fallback wording.
 - QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
-- Medical lookup currently opens map searches and lets users save facility details manually; automatic facility selection would require a places/search API.
+- Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
 - After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.

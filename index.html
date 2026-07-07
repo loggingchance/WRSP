@@ -31,7 +31,7 @@
       <div>
         <p class="eyebrow">Woods-Ready Safety Plan</p>
         <h1>WRSP</h1>
-        <p class="header-credit">Provided by the Northeastern Loggers' Association</p>
+        <p class="header-credit"><span>Provided by</span><span>Northeastern Loggers' Association</span></p>
       </div>
       <div class="header-actions">
         <div id="connectionBadge" class="status-badge">Checking</div>
@@ -193,10 +193,6 @@
             <label>Site-specific read-aloud instructions
               <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
-            <label>Logger
-              <input id="primaryContact" name="primaryContact" placeholder="Name and mobile phone">
-            </label>
-            <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
             <label>Phone service notes
               <textarea id="phoneServiceNotes" name="phoneServiceNotes" rows="2" placeholder="Where mobile service works, dead zones, radio channel, or satellite device notes"></textarea>
             </label>
@@ -260,6 +256,13 @@
 
           <details class="card accordion-card">
             <summary>Crew & contacts</summary>
+            <p class="helper">Add people in the order they are most likely to matter in an emergency. A partial list is still better than no plan.</p>
+            <div class="split">
+              <label>Logger(s)
+                <input id="primaryContact" name="primaryContact" placeholder="Names and mobile phones">
+              </label>
+              <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
+            </div>
             <div class="split">
               <label>Crew member(s)
                 <input id="supervisor" name="supervisor" placeholder="Names and mobile phones">
@@ -284,7 +287,7 @@
             </div>
             <div class="lookup-panel">
               <h4>Find the agency or person for this site</h4>
-              <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely woods agency and build targeted searches.</p>
+              <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely state natural resources / forestry starting point and build targeted searches.</p>
               <div id="responderLookupChecklist" class="lookup-checklist"></div>
               <div class="verification-script">
                 <strong>Verification script</strong>
@@ -295,10 +298,15 @@
                 </div>
               </div>
               <div class="action-row">
-                <button type="button" class="secondary-action" id="findStateWoodsAgency">State woods agency</button>
+                <button type="button" class="secondary-action" id="findStateWoodsAgency">State Natural Resources Department</button>
                 <button type="button" class="secondary-action" id="findSheriffSar">County dispatch / SAR</button>
                 <button type="button" class="secondary-action" id="findFireRescue">Local fire / rescue</button>
                 <button type="button" class="secondary-action" id="findEmergencyManagement">Emergency management</button>
+              </div>
+              <div class="lookup-capture">
+                <strong>After lookup</strong>
+                <p id="lookupReturnPrompt" class="helper">Use the search result, call, or official page to fill the fields below, then save it into the plan.</p>
+                <button type="button" class="primary-action" id="useLookupInfoInPlan">Use This Information in Plan</button>
               </div>
             </div>
             <div class="verified-contact-grid">
@@ -316,7 +324,7 @@
               </label>
             </div>
             <label>Saved local woods emergency contacts
-              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Save the actual agency, dispatch number, ranger/warden name, fire/rescue contact, or local person who knows the roads/gates"></textarea>
+              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Important dispatch numbers or local emergency contacts, such as NYS Forest Ranger Dispatch, county dispatch, fire/rescue, or a local person who knows the roads/gates"></textarea>
             </label>
             <button type="button" class="secondary-action" id="appendVerifiedResponderContact">Add Verified Contact to Notes</button>
           </details>
@@ -325,32 +333,24 @@
             <summary>Medical & hazards</summary>
             <label>Plan status
               <select id="status" name="status">
-                <option value="draft">Draft</option>
-                <option value="complete">Complete</option>
+                <option value="draft">Draft - started, still incomplete</option>
+                <option value="usable">Usable - better than no plan</option>
+                <option value="complete">Complete - key items verified</option>
               </select>
             </label>
+            <p id="readinessGuidance" class="helper">WRSP never blocks saving. A usable incomplete plan is better than no plan.</p>
             <label>Nearest hospital / ER
               <input id="hospital" name="hospital" placeholder="Name, address, phone">
             </label>
             <label>Hospital / ER directions link
               <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
             </label>
-            <label>Nearest urgent care
-              <input id="urgentCare" name="urgentCare" placeholder="Name, address, phone">
-            </label>
-            <label>Urgent care directions link
-              <input id="urgentCareDirectionsUrl" name="urgentCareDirectionsUrl" placeholder="Paste map/directions link">
-            </label>
-            <label>Trauma center / major hospital
-              <input id="traumaCenter" name="traumaCenter" placeholder="Name, address, phone">
-            </label>
-            <label>Trauma center / major hospital directions link
-              <input id="traumaDirectionsUrl" name="traumaDirectionsUrl" placeholder="Paste map/directions link">
-            </label>
+            <button type="button" class="secondary-action" id="autofillMedicalCare">Autofill nearest ER from town and county</button>
+            <p id="medicalAutofillStatus" class="helper">Enter town, county, and state first. WRSP will build a nearest-ER lookup entry for the plan.</p>
             <label>Medical notes
               <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
             </label>
-            <p class="warning">Use urgent care only for non-life-threatening issues. For serious injury or uncertain severity, call 911 and request EMS.</p>
+            <p class="warning">For serious injury or uncertain severity, call 911 and request EMS. Confirm the nearest ER before relying on this plan.</p>
             <label>Hazard notes
               <textarea id="hazards" name="hazards" rows="3" placeholder="Steep ground, blocked roads, active equipment, weather, bridge limits"></textarea>
             </label>
@@ -512,8 +512,6 @@
           </label>
           <div class="action-row">
             <button class="primary-action" id="findEr">Find ER</button>
-            <button class="secondary-action" id="findUrgentCare">Find Urgent Care</button>
-            <button class="secondary-action" id="findTrauma">Find Trauma Center</button>
           </div>
           <div class="subsection-block">
             <h3>Confirm and save to current plan</h3>
@@ -521,8 +519,6 @@
             <label>Facility type
               <select id="medicalFacilityType">
                 <option value="hospital">Hospital / ER</option>
-                <option value="urgentCare">Urgent care</option>
-                <option value="traumaCenter">Trauma center / major hospital</option>
               </select>
             </label>
             <label>Name, address, phone
@@ -603,18 +599,22 @@
             <label>Default state / province
               <input id="defaultState" placeholder="Optional">
             </label>
-            <label>Logger
+            <label>Logger(s)
               <input id="defaultPrimaryContact" placeholder="Name and mobile phone">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultPrimaryContact">Choose from contacts</button>
-            <label>Forester
-              <input id="defaultForesterContact" placeholder="Name and mobile phone">
-            </label>
-            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultForesterContact">Choose from contacts</button>
             <label>Crew member(s)
               <input id="defaultSupervisor" placeholder="Names and mobile phones">
             </label>
             <button type="button" class="secondary-action contact-picker" data-contact-target="defaultSupervisor">Choose from contacts</button>
+            <label>Forester
+              <input id="defaultForesterContact" placeholder="Name and mobile phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultForesterContact">Choose from contacts</button>
+            <label>Landowner
+              <input id="defaultLandowner" placeholder="Name and mobile phone">
+            </label>
+            <button type="button" class="secondary-action contact-picker" data-contact-target="defaultLandowner">Choose from contacts</button>
             <label>Other contact / role
               <input id="defaultTruckingContact" placeholder="Role, name, mobile phone">
             </label>

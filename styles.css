@@ -77,6 +77,16 @@ p {
   font-weight: 760;
 }
 
+.header-credit span {
+  display: block;
+}
+
+.contact-picker.unavailable {
+  border-color: #d8d1c4;
+  background: #eee9dd;
+  color: #6d665c;
+}
+
 .header-actions {
   display: grid;
   gap: 6px;
@@ -409,6 +419,11 @@ p {
   color: #1c5a38;
 }
 
+.status-pill.usable {
+  background: #fff3cf;
+  color: #704f00;
+}
+
 .form-stack label {
   display: grid;
   gap: 7px;
@@ -731,6 +746,24 @@ textarea:focus {
 .verification-script p {
   margin-bottom: 10px;
   white-space: pre-wrap;
+}
+
+.lookup-capture {
+  margin-top: 12px;
+  border: 1px solid #b9d1aa;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.lookup-capture strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--forest);
+}
+
+.lookup-capture .primary-action {
+  width: 100%;
 }
 
 .verified-contact-grid {
