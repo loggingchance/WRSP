@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.10 - July 16, 2026";
+const APP_VERSION = "WRSP v0.7.11 - July 16, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -22,6 +22,7 @@ let autoSaveTimer = null;
 let deferredInstallPrompt = null;
 let updateReloading = false;
 let activeLookupKind = "";
+let pendingSharePlanId = null;
 let siteMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
@@ -271,6 +272,7 @@ function samplePlan() {
     createdAt: now,
     updatedAt: now,
     creator: "Everett Miller, crew lead",
+    importedFrom: "built-in-complete-example",
     location: {
       lat: "43.466470",
       lng: "-74.517820",
@@ -321,6 +323,21 @@ function samplePlan() {
     },
     hazards: "Steep skid trail below landing, active feller-buncher and skidder, narrow single-lane road, slash piles near deck, limited cell service away from landing, possible icy grade after rain/freeze.",
   };
+}
+
+async function ensureCompleteExamplePlan() {
+  const plans = await storeAll(PLAN_STORE);
+  const exists = plans.some((plan) => plan.importedFrom === "built-in-complete-example" || plan.title === "Complete Example WRSP Plan - Tarbell Hawkins Job");
+  if (exists) return;
+  await storePut(PLAN_STORE, samplePlan());
+}
+
+async function openCompleteExamplePlan() {
+  await ensureCompleteExamplePlan();
+  const plans = await storeAll(PLAN_STORE);
+  const plan = plans.find((item) => item.importedFrom === "built-in-complete-example" || item.title === "Complete Example WRSP Plan - Tarbell Hawkins Job");
+  if (!plan) return;
+  await openPlan(plan.id);
 }
 
 function openDb() {
@@ -964,7 +981,7 @@ async function renderSavedPlans() {
         </div>
         <div class="action-row">
           <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Image</button>
+          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share</button>
           <button class="secondary-action quiet-action" data-edit-plan="${plan.id}">Edit</button>
           <button class="secondary-action quiet-action" data-delete-plan="${plan.id}">Delete</button>
         </div>
@@ -999,7 +1016,7 @@ async function renderContinuePlan() {
     </div>
     <div class="action-row">
       <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Image</button>
+      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share</button>
     </div>`;
 }
 
@@ -1017,6 +1034,31 @@ async function activePlan() {
   if (sharedPlanPreview) return sharedPlanPreview;
   if (!currentPlanId) return null;
   return storeGet(PLAN_STORE, currentPlanId);
+}
+
+async function planForSharing() {
+  if (pendingSharePlanId) return storeGet(PLAN_STORE, pendingSharePlanId);
+  return activePlan();
+}
+
+function openShareChoice(planId = null) {
+  pendingSharePlanId = planId;
+  $("#shareChoicePanel").hidden = false;
+}
+
+function closeShareChoice() {
+  $("#shareChoicePanel").hidden = true;
+}
+
+async function shareChosenPlan(format) {
+  const plan = await planForSharing();
+  if (!plan) return;
+  closeShareChoice();
+  if (format === "pdf") {
+    await sharePlanPdf(plan);
+    return;
+  }
+  await sharePlanPng(plan);
 }
 
 function renderCurrentPlan(plan) {
@@ -1324,45 +1366,98 @@ function planPngRows(plan) {
   ];
 }
 
+function wrappedLineCount(ctx, text, maxWidth) {
+  const words = String(text || "Not entered").split(/\s+/);
+  let line = "";
+  let count = 0;
+  words.forEach((word) => {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      count += 1;
+      line = word;
+    } else {
+      line = testLine;
+    }
+  });
+  return count + (line ? 1 : 0);
+}
+
+function canvasSectionHeight(ctx, value, width) {
+  ctx.font = "32px Arial";
+  const lines = String(value || "Not entered").split("\n").reduce((total, part) => total + wrappedLineCount(ctx, part, width), 0);
+  return 112 + Math.max(1, lines) * 39;
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
 function drawCanvasBlock(ctx, label, value, x, y, width) {
+  const innerX = x + 24;
+  const innerWidth = width - 48;
+  const height = canvasSectionHeight(ctx, value, innerWidth);
+  ctx.fillStyle = "#ffffff";
+  roundRect(ctx, x, y, width, height, 14);
+  ctx.fill();
+  ctx.strokeStyle = "#d8ded5";
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.fillStyle = "#123c2c";
-  ctx.font = "800 26px Arial";
-  ctx.fillText(label, x, y);
-  y += 34;
+  ctx.font = "900 31px Arial";
+  ctx.fillText(label, innerX, y + 45);
   ctx.fillStyle = "#1d2520";
-  ctx.font = "24px Arial";
-  y = wrapCanvasText(ctx, value || "Not entered", x, y, width, 30);
-  return y + 18;
+  ctx.font = "32px Arial";
+  let textY = y + 88;
+  String(value || "Not entered").split("\n").forEach((part) => {
+    textY = wrapCanvasText(ctx, part || " ", innerX, textY, innerWidth, 39);
+  });
+  return y + height + 18;
 }
 
 function planCanvas(plan) {
+  const width = 1080;
+  const margin = 44;
+  const contentWidth = width - margin * 2;
+  const measureCanvas = document.createElement("canvas");
+  measureCanvas.width = width;
+  const measureCtx = measureCanvas.getContext("2d");
+  const rows = planPngRows(plan);
+  let height = 230 + rows.reduce((total, [, value]) => total + canvasSectionHeight(measureCtx, value, contentWidth) + 18, 0) + 120;
+  height = Math.max(height, 1600);
   const canvas = document.createElement("canvas");
-  canvas.width = 1400;
-  canvas.height = 2200;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#f7f5ee";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#123c2c";
-  ctx.fillRect(0, 0, canvas.width, 190);
+  ctx.fillRect(0, 0, canvas.width, 198);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 50px Arial";
-  ctx.fillText(plan.title || "WRSP Safety Plan", 70, 78);
-  ctx.font = "700 30px Arial";
-  ctx.fillText("Safety Plan & Important Information", 70, 128);
+  ctx.font = "900 46px Arial";
+  wrapCanvasText(ctx, plan.title || "WRSP Safety Plan", margin, 64, contentWidth, 50);
+  ctx.font = "800 27px Arial";
+  ctx.fillText("Safety Plan & Important Information", margin, 136);
   ctx.font = "24px Arial";
-  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, 70, 162);
+  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, margin, 170);
   ctx.fillStyle = "#d4631f";
-  ctx.fillRect(0, 190, canvas.width, 10);
-  let y = 255;
-  planPngRows(plan).forEach(([label, value]) => {
-    y = drawCanvasBlock(ctx, label, value, 70, y, 1260);
-    ctx.fillStyle = "#d8ded5";
-    ctx.fillRect(70, y - 8, 1260, 2);
-    y += 16;
+  ctx.fillRect(0, 198, canvas.width, 8);
+  let y = 236;
+  rows.forEach(([label, value]) => {
+    y = drawCanvasBlock(ctx, label, value, margin, y, contentWidth);
   });
   ctx.fillStyle = "#70310e";
-  ctx.font = "700 24px Arial";
-  wrapCanvasText(ctx, "WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.", 70, 2130, 1260, 30);
+  ctx.font = "800 27px Arial";
+  wrapCanvasText(ctx, "WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.", margin, y + 30, contentWidth, 34);
   return canvas;
 }
 
@@ -1398,12 +1493,12 @@ async function planPdfBlob(plan) {
   const canvas = planCanvas(plan);
   const jpeg = await canvasJpegBytes(canvas);
   const pageW = 612;
-  const pageH = 792;
-  const scale = Math.min(pageW / canvas.width, pageH / canvas.height);
+  const scale = pageW / canvas.width;
+  const pageH = canvas.height * scale;
   const drawW = canvas.width * scale;
   const drawH = canvas.height * scale;
-  const x = (pageW - drawW) / 2;
-  const y = (pageH - drawH) / 2;
+  const x = 0;
+  const y = 0;
   const content = `q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im0 Do\nQ\n`;
   const encoder = new TextEncoder();
   const chunks = [];
@@ -2606,16 +2701,12 @@ function bindEvents() {
     toast("New plan ready.");
   });
   $("#openSamplePlan").addEventListener("click", async () => {
-    const plan = samplePlan();
-    await savePlan(plan, true);
-    await openPlan(plan.id);
-    toast("Sample plan opened.");
+    await openCompleteExamplePlan();
+    toast("Complete example plan opened.");
   });
   $("#openSamplePlanMore").addEventListener("click", async () => {
-    const plan = samplePlan();
-    await savePlan(plan, true);
-    await openPlan(plan.id);
-    toast("Sample plan opened.");
+    await openCompleteExamplePlan();
+    toast("Complete example plan opened.");
   });
   $("#captureGps").addEventListener("click", capturePlanGps);
   $("#openAddressInMaps").addEventListener("click", () => {
@@ -2791,6 +2882,7 @@ function bindEvents() {
     await savePlan(formToPlan(), true);
     toast("Draft saved. Keep editing when ready.");
   });
+  $("#loadCompleteExamplePlan")?.addEventListener("click", openCompleteExamplePlan);
   $("#savedPlansList").addEventListener("click", async (event) => {
     const openId = event.target.dataset.openPlan;
     const shareId = event.target.dataset.sharePlan;
@@ -2798,8 +2890,7 @@ function bindEvents() {
     const deleteId = event.target.dataset.deletePlan;
     if (openId) await openPlan(openId);
     if (shareId) {
-      const plan = await storeGet(PLAN_STORE, shareId);
-      await sharePlanPng(plan);
+      openShareChoice(shareId);
     }
     if (editId) {
       const plan = await storeGet(PLAN_STORE, editId);
@@ -2817,8 +2908,7 @@ function bindEvents() {
     const shareId = event.target.dataset.sharePlan;
     if (openId) await openPlan(openId);
     if (shareId) {
-      const plan = await storeGet(PLAN_STORE, shareId);
-      await sharePlanPng(plan);
+      openShareChoice(shareId);
     }
   });
   $("#editCurrentPlan").addEventListener("click", async () => {
@@ -2845,23 +2935,32 @@ function bindEvents() {
     routeTo("create");
   });
   $("#shareCurrentPlan").addEventListener("click", async () => {
-    const plan = await activePlan();
-    if (!plan) return;
-    await sharePlanPng(plan);
+    pendingSharePlanId = null;
+    openShareChoice(null);
+  });
+  $("#sharePlanOptions").addEventListener("click", () => {
+    pendingSharePlanId = null;
+    openShareChoice(null);
   });
   $("#qrCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
     if (plan) showPlanQr(plan);
   });
-  $("#sharePlanPng").addEventListener("click", async () => {
+  $("#sharePlanPng")?.addEventListener("click", async () => {
     const plan = await activePlan();
     if (!plan) return;
     await sharePlanPng(plan);
   });
-  $("#sharePlanPdf").addEventListener("click", async () => {
+  $("#sharePlanPdf")?.addEventListener("click", async () => {
     const plan = await activePlan();
     if (!plan) return;
     await sharePlanPdf(plan);
+  });
+  $("#shareChoicePng").addEventListener("click", () => shareChosenPlan("png"));
+  $("#shareChoicePdf").addEventListener("click", () => shareChosenPlan("pdf"));
+  $("#closeShareChoice").addEventListener("click", closeShareChoice);
+  $("#shareChoicePanel").addEventListener("click", (event) => {
+    if (event.target.id === "shareChoicePanel") closeShareChoice();
   });
   $("#copyQrLink").addEventListener("click", async () => {
     await navigator.clipboard.writeText($("#qrImportLink").value);
@@ -3130,6 +3229,7 @@ async function init() {
   bindEvents();
   updateContactPickerButtons();
   updateConnectionBadge();
+  await ensureCompleteExamplePlan();
   await updatePlanCount();
   planToForm(await newPlanWithDefaults());
   await renderContinuePlan();

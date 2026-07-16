@@ -116,6 +116,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Service worker cache moved to `wrsp-v25` so saved-home-screen users can receive the share-flow correction.
 - Built-in sample plan replaced with a fully filled Complete Example WRSP Plan for the Tarbell Hawkins job, intended specifically for testing PNG/PDF sharing without entering a plan from scratch.
 - Service worker cache moved to `wrsp-v26` so saved-home-screen users can receive the complete example plan.
+- Complete Example Plan is now automatically seeded into Saved Plans if missing, and the Saved Plans screen also has a Load Complete Example Plan button.
+- Share workflow changed from separate image buttons to a Share chooser: choose Image/PNG or PDF, then use the phone's native share sheet.
+- Generated plan PNG/PDF layout rebuilt as a larger, phone-readable safety sheet with dynamic height and section cards instead of a cramped page thumbnail.
+- Service worker cache moved to `wrsp-v27` so saved-home-screen users can receive the sample/chooser/readability fixes.
 
 ## User feedback captured
 
@@ -175,7 +179,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v26`.
+- Service worker cache is currently `wrsp-v27`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers now show type/paste fallback wording.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Share PNG or Share PDF.

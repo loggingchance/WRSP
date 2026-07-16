@@ -372,6 +372,7 @@
           <button class="secondary-action" data-route="create">Create</button>
         </div>
         <p class="notice">Saved plans are stored only on this device unless you choose to share or export them. Clearing browser data or replacing the phone may remove saved plans.</p>
+        <button class="secondary-action" id="loadCompleteExamplePlan">Load Complete Example Plan</button>
         <div id="savedPlansList" class="list-stack"></div>
       </section>
 
@@ -389,8 +390,7 @@
         </div>
         <div id="planOutput" class="plan-output"></div>
         <div class="action-row secondary-plan-actions">
-          <button class="secondary-action" id="sharePlanPng">Share PNG</button>
-          <button class="secondary-action" id="sharePlanPdf">Share PDF</button>
+          <button class="primary-action" id="sharePlanOptions">Share</button>
           <button class="secondary-action" id="qrCurrentPlan">QR / Backup Link</button>
           <button class="secondary-action" id="exportCurrentPlan">Backup File</button>
           <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
@@ -408,9 +408,19 @@
           <button class="secondary-action" id="copyQrLink">Copy Backup Link</button>
         </div>
         <div class="sticky-share">
-          <button class="primary-action" id="shareCurrentPlan">Share Plan Image</button>
+          <button class="primary-action" id="shareCurrentPlan">Share Plan</button>
         </div>
       </section>
+
+      <div id="shareChoicePanel" class="share-choice-panel" hidden>
+        <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
+          <h3 id="shareChoiceTitle">Share this plan</h3>
+          <p class="helper">Choose the file type, then use the phone's normal share sheet for text, email, AirDrop, or another app.</p>
+          <button class="primary-action" id="shareChoicePng">Share Image / PNG</button>
+          <button class="primary-action" id="shareChoicePdf">Share PDF</button>
+          <button class="secondary-action" id="closeShareChoice">Cancel</button>
+        </div>
+      </div>
 
       <section id="emergencyView" class="view" aria-labelledby="emergencyTitle">
         <div class="section-head">
