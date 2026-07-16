@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.8 - July 7, 2026";
+const APP_VERSION = "WRSP v0.7.10 - July 16, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -266,60 +266,60 @@ function samplePlan() {
   return {
     ...emptyPlan(),
     id: crypto.randomUUID(),
-    title: "Sample WRSP Plan - Ridge Road Timber Sale",
+    title: "Complete Example WRSP Plan - Tarbell Hawkins Job",
     status: "complete",
     createdAt: now,
     updatedAt: now,
-    creator: "Sample crew lead",
+    creator: "Everett Miller, crew lead",
     location: {
-      lat: "43.983210",
-      lng: "-74.128440",
+      lat: "43.466470",
+      lng: "-74.517820",
       accuracy: "",
       capturedAt: now,
       source: "map pin",
       manualOverride: true,
-      roadAddress: "Ridge Road landing, 2.4 miles north of Mill Creek Road",
-      town: "Sample Town",
-      county: "Sample County",
-      state: "State",
+      roadAddress: "Tarbell Road landing, 1.8 miles west of NY-30",
+      town: "Wells",
+      county: "Hamilton",
+      state: "NY",
     },
     access: {
-      knownLandmark: "Intersection of State Route 8 and County Route 14 in Sample Town",
-      phoneDirections: "From the Route 8 / County Route 14 intersection, travel north on County Route 14 for 3.2 miles. Turn right on Ridge Road. Continue 2.4 miles to the locked green gate. The emergency meeting point is the wide landing immediately beyond the gate.",
-      phoneServiceNotes: "Mobile phone service is available near the landing and weak beyond the green gate.",
-      routeNotes: "Ridge Road is passable by pickups and ambulances in dry conditions. Lowboy trucks should turn around at the landing only.",
-      gateNotes: "Green gate with combination lock. Combination held by crew lead and landowner.",
-      meetingPoint: "Wide gravel landing just inside the green gate on Ridge Road.",
-      alternateMeetingPoint: "County Route 14 pull-off at Ridge Road entrance.",
-      landingZoneDescription: "Open hay field south of the Ridge Road gate, approximately 0.3 mile from landing.",
-      landingZoneLat: "43.980900",
-      landingZoneLng: "-74.131200",
-      landingZoneNotes: "Check for overhead wires along field edge. Soft ground after rain. EMS/dispatch determines air medical use.",
+      knownLandmark: "Four corners in Wells at NY-30 and NY-8",
+      phoneDirections: "From the NY-30 / NY-8 intersection in Wells, travel north on NY-30 for 4.6 miles. Turn left onto Tarbell Road. Continue 1.8 miles to the orange-flagged landing on the right. Send responders to the landing; a crew member will meet them there and guide them to the injured person.",
+      phoneServiceNotes: "Cell service is reliable at the NY-30 intersection, weak at the landing, and unreliable in the lower skid trail.",
+      routeNotes: "Tarbell Road is passable for pickups, ambulances, and fire apparatus in dry or frozen conditions. Large trucks should turn around at the landing only.",
+      gateNotes: "No locked gate at NY-30. Orange flagging marks the landing entrance. Keep the landing clear for emergency vehicles.",
+      meetingPoint: "Orange-flagged log landing on Tarbell Road, 1.8 miles west of NY-30.",
+      alternateMeetingPoint: "NY-30 pull-off at Tarbell Road entrance if road conditions prevent access.",
+      landingZoneDescription: "Open hay field on north side of Tarbell Road near the landing, approximately 600 feet east of the deck.",
+      landingZoneLat: "43.468120",
+      landingZoneLng: "-74.512440",
+      landingZoneNotes: "Walk field before use. Watch for soft ground near ditch, overhead wires along road edge, and loose slash near landing. EMS/dispatch decides whether air medical response is appropriate.",
     },
     contacts: {
-      primaryContact: "Logger - 555-0101",
-      supervisor: "Crew members - 555-0102",
-      foresterContact: "Forester - 555-0105",
-      landowner: "Landowners - 555-0103",
-      truckingContact: "Truck coordinator - 555-0104",
+      primaryContact: "Everett Miller, logger / crew lead - 518-555-0101",
+      supervisor: "Jake Ross and Tyler Grant, crew members - 518-555-0102",
+      foresterContact: "Sarah Collins, consulting forester - 518-555-0105",
+      landowner: "Tarbell Hawkins LLC, landowner representative Mark Davis - 518-555-0103",
+      truckingContact: "North Road Trucking, dispatcher Pete Allen - 518-555-0104",
     },
     medical: {
-      hospital: "Sample Memorial Hospital ER, 100 Main Street, Sample City, 555-0200",
-      hospitalDirectionsUrl: "",
-      urgentCare: "Sample Urgent Care, 22 Clinic Road, Sample City, 555-0201",
+      hospital: "Nathan Littauer Hospital Emergency Department, 99 E State St, Gloversville, NY - 518-725-8621",
+      hospitalDirectionsUrl: "https://www.google.com/maps/search/?api=1&query=Nathan%20Littauer%20Hospital%20Emergency%20Department%20Gloversville%20NY",
+      urgentCare: "",
       urgentCareDirectionsUrl: "",
-      traumaCenter: "Regional Trauma Center, 400 Hospital Drive, Regional City, 555-0202",
+      traumaCenter: "",
       traumaDirectionsUrl: "",
-      notes: "Use urgent care only for non-life-threatening issues. For serious injury or uncertain severity, call 911 and request EMS.",
+      notes: "For serious injury or uncertain severity, call 911 and request EMS. Confirm destination with EMS/dispatch.",
     },
     sar: {
-      contacts: "County dispatch / sheriff search and rescue: 555-0300. State forestry/ranger district office: 555-0301.",
-      verifiedAgency: "Sample County Dispatch",
-      verifiedPhone: "555-0300",
-      verifiedPerson: "Dispatcher / SAR coordinator",
-      verifiedSource: "Sample verification note",
+      contacts: "Hamilton County 911 / Sheriff's dispatch: 518-548-3113. NYS Forest Ranger Dispatch / DEC emergency dispatch: 1-833-NYS-RANGERS (1-833-697-7264).",
+      verifiedAgency: "Hamilton County Sheriff's Office dispatch / NYS Forest Ranger Dispatch",
+      verifiedPhone: "518-548-3113; 1-833-697-7264",
+      verifiedPerson: "Dispatcher / Forest Ranger dispatch contact",
+      verifiedSource: "Complete example plan for WRSP sharing test - verify before field use",
     },
-    hazards: "Steep skid trail above landing, active equipment, narrow bridge on Ridge Road, limited cell service past gate.",
+    hazards: "Steep skid trail below landing, active feller-buncher and skidder, narrow single-lane road, slash piles near deck, limited cell service away from landing, possible icy grade after rain/freeze.",
   };
 }
 
@@ -964,7 +964,7 @@ async function renderSavedPlans() {
         </div>
         <div class="action-row">
           <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Link</button>
+          <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Image</button>
           <button class="secondary-action quiet-action" data-edit-plan="${plan.id}">Edit</button>
           <button class="secondary-action quiet-action" data-delete-plan="${plan.id}">Delete</button>
         </div>
@@ -999,7 +999,7 @@ async function renderContinuePlan() {
     </div>
     <div class="action-row">
       <button class="primary-action" data-open-plan="${plan.id}">Open</button>
-      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Link</button>
+      <button class="primary-action share-inline" data-share-plan="${plan.id}">Share Image</button>
     </div>`;
 }
 
@@ -1267,24 +1267,17 @@ function showPlanQr(plan) {
   const help = $("#qrHelp");
   const importUrl = importUrlForPlan(plan);
   panel.hidden = false;
-  linkBox.value = importUrl;
   if (importUrl.length > 2200) {
+    linkBox.value = "Plan is too large for a reliable QR/backup link. Use Share PNG, Share PDF, or Backup File.";
     image.removeAttribute("src");
     image.hidden = true;
-    help.textContent = "This plan is too large for a reliable QR code. Use Backup File to share the plan backup instead.";
+    help.textContent = "This plan is too large for a reliable QR backup link. Use Share PNG or Share PDF for normal texting/emailing, or Backup File if someone needs an editable WRSP backup.";
     return;
   }
+  linkBox.value = importUrl;
   image.hidden = false;
   image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(importUrl)}`;
-  help.textContent = "Scan this code to open a read-only responder plan. Best used from the hosted WRSP app, not the local file preview.";
-}
-
-function planLinkShareText(plan) {
-  return [
-    `WRSP Safety Plan: ${plan.title || "Untitled"}`,
-    "Open this link for the formatted responder safety plan. From the browser, use Print / Save PDF if a PDF copy is needed.",
-    importUrlForPlan(plan),
-  ].join("\n");
+  help.textContent = "Scan this code only when someone needs to open the WRSP backup link. For normal sharing, use Share PNG or Share PDF.";
 }
 
 function planPngRows(plan) {
@@ -1390,6 +1383,84 @@ async function sharePlanPng(plan) {
   link.remove();
   URL.revokeObjectURL(url);
   toast("WRSP plan PNG downloaded.");
+}
+
+function pdfEscape(value = "") {
+  return String(value).replace(/[\\()]/g, "\\$&");
+}
+
+async function canvasJpegBytes(canvas) {
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.88));
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+async function planPdfBlob(plan) {
+  const canvas = planCanvas(plan);
+  const jpeg = await canvasJpegBytes(canvas);
+  const pageW = 612;
+  const pageH = 792;
+  const scale = Math.min(pageW / canvas.width, pageH / canvas.height);
+  const drawW = canvas.width * scale;
+  const drawH = canvas.height * scale;
+  const x = (pageW - drawW) / 2;
+  const y = (pageH - drawH) / 2;
+  const content = `q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im0 Do\nQ\n`;
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const offsets = [0];
+  let length = 0;
+  const appendText = (text) => {
+    const bytes = encoder.encode(text);
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  const appendBytes = (bytes) => {
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  const startObject = (id) => {
+    offsets[id] = length;
+    appendText(`${id} 0 obj\n`);
+  };
+
+  appendText("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  startObject(1);
+  appendText("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  startObject(2);
+  appendText("<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+  startObject(3);
+  appendText(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n`);
+  startObject(4);
+  appendText(`<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream\nendobj\n`);
+  startObject(5);
+  appendText(`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+  appendBytes(jpeg);
+  appendText("\nendstream\nendobj\n");
+  const xrefAt = length;
+  appendText("xref\n0 6\n0000000000 65535 f \n");
+  for (let id = 1; id <= 5; id += 1) {
+    appendText(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+  }
+  appendText(`trailer\n<< /Size 6 /Root 1 0 R /Title (${pdfEscape(plan.title || "WRSP Safety Plan")}) >>\nstartxref\n${xrefAt}\n%%EOF`);
+  return new Blob(chunks, { type: "application/pdf" });
+}
+
+async function sharePlanPdf(plan) {
+  const blob = await planPdfBlob(plan);
+  const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.pdf`, { type: "application/pdf" });
+  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+    await navigator.share({ title: `WRSP: ${plan.title}`, text: "WRSP responder safety plan PDF", files: [file] });
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+  toast("WRSP plan PDF downloaded.");
 }
 
 function safeFileName(value = "wrsp-plan") {
@@ -2728,7 +2799,7 @@ function bindEvents() {
     if (openId) await openPlan(openId);
     if (shareId) {
       const plan = await storeGet(PLAN_STORE, shareId);
-      await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
+      await sharePlanPng(plan);
     }
     if (editId) {
       const plan = await storeGet(PLAN_STORE, editId);
@@ -2747,7 +2818,7 @@ function bindEvents() {
     if (openId) await openPlan(openId);
     if (shareId) {
       const plan = await storeGet(PLAN_STORE, shareId);
-      await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
+      await sharePlanPng(plan);
     }
   });
   $("#editCurrentPlan").addEventListener("click", async () => {
@@ -2776,7 +2847,7 @@ function bindEvents() {
   $("#shareCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
     if (!plan) return;
-    await shareText(`WRSP: ${plan.title}`, planLinkShareText(plan));
+    await sharePlanPng(plan);
   });
   $("#qrCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
@@ -2786,6 +2857,11 @@ function bindEvents() {
     const plan = await activePlan();
     if (!plan) return;
     await sharePlanPng(plan);
+  });
+  $("#sharePlanPdf").addEventListener("click", async () => {
+    const plan = await activePlan();
+    if (!plan) return;
+    await sharePlanPdf(plan);
   });
   $("#copyQrLink").addEventListener("click", async () => {
     await navigator.clipboard.writeText($("#qrImportLink").value);

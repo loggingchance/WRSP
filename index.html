@@ -80,8 +80,8 @@
         <p class="more-label">More tools</p>
         <div class="quick-grid compact-tools">
           <button class="quick-action" id="openSamplePlan">
-            <span>Sample Plan</span>
-            <small>Field-ready example</small>
+            <span>Complete Example Plan</span>
+            <small>Use to test sharing</small>
           </button>
           <button class="quick-action emergency" data-route="safetyShare">
             <span>Safety Share</span>
@@ -389,8 +389,9 @@
         </div>
         <div id="planOutput" class="plan-output"></div>
         <div class="action-row secondary-plan-actions">
-          <button class="secondary-action" id="qrCurrentPlan">QR</button>
-          <button class="secondary-action" id="sharePlanPng">PNG</button>
+          <button class="secondary-action" id="sharePlanPng">Share PNG</button>
+          <button class="secondary-action" id="sharePlanPdf">Share PDF</button>
+          <button class="secondary-action" id="qrCurrentPlan">QR / Backup Link</button>
           <button class="secondary-action" id="exportCurrentPlan">Backup File</button>
           <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
           <button class="secondary-action" id="printCurrentPlan">Print / Save PDF</button>
@@ -398,16 +399,16 @@
         <div id="qrPanel" class="qr-panel" hidden>
           <div>
             <h3>Plan QR code</h3>
-            <p id="qrHelp" class="helper">Scan this code to open the responder plan. Best used from the hosted WRSP app, not the local file preview.</p>
+            <p id="qrHelp" class="helper">QR is for small backup links only. For normal sharing, use Share PNG or Share PDF.</p>
           </div>
           <img id="qrImage" alt="WRSP plan import QR code">
           <label>Plan link
             <textarea id="qrImportLink" rows="3" readonly></textarea>
           </label>
-          <button class="secondary-action" id="copyQrLink">Copy Plan Link</button>
+          <button class="secondary-action" id="copyQrLink">Copy Backup Link</button>
         </div>
         <div class="sticky-share">
-          <button class="primary-action" id="shareCurrentPlan">Share Plan Link</button>
+          <button class="primary-action" id="shareCurrentPlan">Share Plan Image</button>
         </div>
       </section>
 
@@ -905,7 +906,7 @@
           <button class="quick-action" data-route="medicalCard"><span>My Medical Card</span><small>Local-only personal info</small></button>
           <button class="quick-action" data-route="preparedness"><span>Preparedness</span><small>Trusted contact info</small></button>
           <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>
-          <button class="quick-action" id="openSamplePlanMore"><span>View Sample Plan</span><small>Field-ready example</small></button>
+          <button class="quick-action" id="openSamplePlanMore"><span>Complete Example Plan</span><small>Use to test sharing</small></button>
           <button class="quick-action" data-route="import"><span>Import Plan</span><small>From shared backup</small></button>
           <button class="quick-action" data-route="install"><span>Install / Help</span><small>Home screen steps</small></button>
           <button class="quick-action" data-route="pwa"><span>PWA Status</span><small>Offline/install checks</small></button>

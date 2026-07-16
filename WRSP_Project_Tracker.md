@@ -66,8 +66,8 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Responder View reshaped into a one-page safety sheet modeled on the sample PDF: Phones, Site Location, State & Emergency Numbers, People, Directions, Access/Hazards, and Potential Helicopter Landing Site.
 - Import screen wording changed from export/file-format language to backup-file language.
 - Create form directions now separate the responder-known starting point from the site-specific woods access instructions.
-- Shared plan links now use `#plan=` and open a read-only responder safety sheet first, instead of immediately importing a backup into local storage.
-- QR codes and Safety Share plan links now point to the read-only shared-plan view.
+- Backup/import links can still use `#plan=` for small plans and open a read-only responder safety sheet first, but normal plan sharing now uses PNG/PDF files instead of encoded plan links.
+- QR codes are backup/import-only for small plans; Safety Share avoids giant encoded plan text.
 - Physical address / road descriptions can be opened directly in maps from the location section.
 - Location entry now makes the distinction explicit: address/road notes describe the site, while exact coordinates come from phone GPS, manual coordinates, or a dropped map pin.
 - Map picker now has a center crosshair, Drop Pin at Map Center, Clear Pin, and Center controls.
@@ -110,6 +110,12 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Service worker cache moved to `wrsp-v23` so saved-home-screen users can receive the readiness/contact workflow update.
 - Lookup workflow improved: after opening a state natural resources, county dispatch/SAR, fire/rescue, or emergency management search, WRSP prompts the user to return with Back, enter the found agency/phone/person/source, and tap Use This Information in Plan.
 - Service worker cache moved to `wrsp-v24` so saved-home-screen users can receive the lookup capture workflow.
+- Logger testing exposed that encoded `#plan=` backup links are unusable in text messages and often too large for QR. Primary plan sharing now sends a formatted PNG image file, with a Share PDF option that generates a PDF file from the responder safety sheet.
+- QR/backup links are now explicitly backup/import-only; large plans no longer leave a giant encoded URL as the thing to copy.
+- Saved plan cards and the sticky plan share button now share the plan image instead of sending an encoded plan link.
+- Service worker cache moved to `wrsp-v25` so saved-home-screen users can receive the share-flow correction.
+- Built-in sample plan replaced with a fully filled Complete Example WRSP Plan for the Tarbell Hawkins job, intended specifically for testing PNG/PDF sharing without entering a plan from scratch.
+- Service worker cache moved to `wrsp-v26` so saved-home-screen users can receive the complete example plan.
 
 ## User feedback captured
 
@@ -138,6 +144,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - July 7 decision: an unfinished but usable plan is better than no plan; WRSP should make partial completion easy and clearly labeled.
 - Contact workflow should be easy enough that people will actually use it: logger(s), crew, forester, landowner, others, then important dispatch/emergency numbers on the plan.
 - Lookup/search should not strand the user; the app should make it obvious how to bring found dispatch/contact information back into the plan.
+- July 16 logger test: QR failed because full plans are too large for encoded backup links, and text-message sharing exposed the raw encoded JSON URL instead of a usable PDF/PNG plan. The primary sharing path must send an actual image or PDF file.
 
 ## Next priorities
 
@@ -168,10 +175,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v24`.
+- Service worker cache is currently `wrsp-v26`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers now show type/paste fallback wording.
-- QR code image generation currently depends on online access to the QR image service; import links are most useful from a hosted WRSP URL rather than `file:///` preview.
+- QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Share PNG or Share PDF.
 - Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
 - After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.
