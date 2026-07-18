@@ -120,6 +120,11 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Share workflow changed from separate image buttons to a Share chooser: choose Image/PNG or PDF, then use the phone's native share sheet.
 - Generated plan PNG/PDF layout rebuilt as a larger, phone-readable safety sheet with dynamic height and section cards instead of a cramped page thumbnail.
 - Service worker cache moved to `wrsp-v27` so saved-home-screen users can receive the sample/chooser/readability fixes.
+- Hard sharing requirement clarified: the plan share path must attach a real image/PDF file in Messages/email/AirDrop, not send a link, copied text, or encoded JSON. Image sharing now creates a smaller JPEG file for better iPhone Messages compatibility and reports clearly if the browser refuses file attachment.
+- Service worker cache moved to `wrsp-v28` so saved-home-screen users can receive the file-attachment sharing fix.
+- July 18 decision: keep WRSP as a simple offline-first app for this phase. Do not add hosted PDF links, Google Drive upload, Firebase, Supabase, or backend storage yet.
+- Share chooser wording now makes the offline path explicit: text/share the image; use PDF for email, AirDrop, Files, or printing. If the phone blocks PDF texting, WRSP treats that as a platform limit rather than trying to host the file.
+- Service worker cache moved to `wrsp-v29` so saved-home-screen users can receive the offline-sharing wording update.
 
 ## User feedback captured
 
@@ -149,6 +154,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Contact workflow should be easy enough that people will actually use it: logger(s), crew, forester, landowner, others, then important dispatch/emergency numbers on the plan.
 - Lookup/search should not strand the user; the app should make it obvious how to bring found dispatch/contact information back into the plan.
 - July 16 logger test: QR failed because full plans are too large for encoded backup links, and text-message sharing exposed the raw encoded JSON URL instead of a usable PDF/PNG plan. The primary sharing path must send an actual image or PDF file.
+- July 18 decision: no hosted sharing service yet; maintain the offline app model and make image/PDF file sharing limits clear.
 
 ## Next priorities
 
@@ -179,10 +185,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v27`.
+- Service worker cache is currently `wrsp-v29`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers now show type/paste fallback wording.
-- QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Share PNG or Share PDF.
+- QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text / Share Image or Share PDF / Save.
 - Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
 - After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.

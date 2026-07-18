@@ -399,7 +399,7 @@
         <div id="qrPanel" class="qr-panel" hidden>
           <div>
             <h3>Plan QR code</h3>
-            <p id="qrHelp" class="helper">QR is for small backup links only. For normal sharing, use Share PNG or Share PDF.</p>
+            <p id="qrHelp" class="helper">QR is for small backup links only. For normal offline sharing, use Text / Share Image or Share PDF / Save.</p>
           </div>
           <img id="qrImage" alt="WRSP plan import QR code">
           <label>Plan link
@@ -415,9 +415,10 @@
       <div id="shareChoicePanel" class="share-choice-panel" hidden>
         <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
           <h3 id="shareChoiceTitle">Share this plan</h3>
-          <p class="helper">Choose the file type, then use the phone's normal share sheet for text, email, AirDrop, or another app.</p>
-          <button class="primary-action" id="shareChoicePng">Share Image / PNG</button>
-          <button class="primary-action" id="shareChoicePdf">Share PDF</button>
+          <p class="helper">WRSP stays offline-first. Text the image, or use PDF for email, AirDrop, Files, and printing.</p>
+          <button class="primary-action" id="shareChoicePng">Text / Share Image</button>
+          <button class="primary-action" id="shareChoicePdf">Share PDF / Save</button>
+          <p id="shareChoiceStatus" class="helper"></p>
           <button class="secondary-action" id="closeShareChoice">Cancel</button>
         </div>
       </div>

@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.11 - July 16, 2026";
+const APP_VERSION = "WRSP v0.7.13 - July 18, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -1043,6 +1043,7 @@ async function planForSharing() {
 
 function openShareChoice(planId = null) {
   pendingSharePlanId = planId;
+  setShareChoiceStatus("");
   $("#shareChoicePanel").hidden = false;
 }
 
@@ -1281,6 +1282,11 @@ async function shareText(title, text) {
   toast("Sharing is not available here, so the text was copied.");
 }
 
+function setShareChoiceStatus(message) {
+  const status = $("#shareChoiceStatus");
+  if (status) status.textContent = message || "";
+}
+
 function exportPackage(plan) {
   return JSON.stringify({
     type: "WRSP_PLAN_EXPORT",
@@ -1310,16 +1316,16 @@ function showPlanQr(plan) {
   const importUrl = importUrlForPlan(plan);
   panel.hidden = false;
   if (importUrl.length > 2200) {
-    linkBox.value = "Plan is too large for a reliable QR/backup link. Use Share PNG, Share PDF, or Backup File.";
+    linkBox.value = "Plan is too large for a reliable QR/backup link. Use Text / Share Image, Share PDF / Save, or Backup File.";
     image.removeAttribute("src");
     image.hidden = true;
-    help.textContent = "This plan is too large for a reliable QR backup link. Use Share PNG or Share PDF for normal texting/emailing, or Backup File if someone needs an editable WRSP backup.";
+    help.textContent = "This plan is too large for a reliable QR backup link. Use Text / Share Image for texting, Share PDF / Save for email/AirDrop/Files, or Backup File if someone needs an editable WRSP backup.";
     return;
   }
   linkBox.value = importUrl;
   image.hidden = false;
   image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(importUrl)}`;
-  help.textContent = "Scan this code only when someone needs to open the WRSP backup link. For normal sharing, use Share PNG or Share PDF.";
+  help.textContent = "Scan this code only when someone needs to open the WRSP backup link. For normal offline sharing, use Text / Share Image or Share PDF / Save.";
 }
 
 function planPngRows(plan) {
@@ -1461,14 +1467,8 @@ function planCanvas(plan) {
   return canvas;
 }
 
-async function sharePlanPng(plan) {
-  const canvas = planCanvas(plan);
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-  const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.png`, { type: "image/png" });
-  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-    await navigator.share({ title: `WRSP: ${plan.title}`, text: "WRSP responder safety plan image", files: [file] });
-    return;
-  }
+async function fallbackDownloadFile(file, message) {
+  const blob = file instanceof Blob ? file : new Blob([file]);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -1476,8 +1476,45 @@ async function sharePlanPng(plan) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
-  toast("WRSP plan PNG downloaded.");
+  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+  setShareChoiceStatus(message);
+  toast(message);
+}
+
+async function shareFileAttachment(file, title, fallbackMessage) {
+  if (navigator.share) {
+    const canShareFile = !navigator.canShare || navigator.canShare({ files: [file] });
+    if (canShareFile) {
+      try {
+        await navigator.share({ title, files: [file] });
+        setShareChoiceStatus("File sent to the phone share sheet. Choose Messages, Mail, AirDrop, or another app.");
+        return true;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          setShareChoiceStatus("Sharing canceled.");
+          return false;
+        }
+        setShareChoiceStatus(`The phone would not attach this file: ${error.message}`);
+      }
+    } else {
+      setShareChoiceStatus("This browser will not attach this file through the share sheet.");
+    }
+  } else {
+    setShareChoiceStatus("This browser does not support file sharing from WRSP.");
+  }
+  await fallbackDownloadFile(file, fallbackMessage);
+  return false;
+}
+
+async function sharePlanPng(plan) {
+  const canvas = planCanvas(plan);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+  const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.jpg`, { type: "image/jpeg" });
+  await shareFileAttachment(
+    file,
+    `WRSP: ${plan.title}`,
+    "Image saved. If Messages did not open with the image attached, attach this JPG manually from Photos or Files/Downloads."
+  );
 }
 
 function pdfEscape(value = "") {
@@ -1543,19 +1580,11 @@ async function planPdfBlob(plan) {
 async function sharePlanPdf(plan) {
   const blob = await planPdfBlob(plan);
   const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.pdf`, { type: "application/pdf" });
-  if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-    await navigator.share({ title: `WRSP: ${plan.title}`, text: "WRSP responder safety plan PDF", files: [file] });
-    return;
-  }
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = file.name;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 500);
-  toast("WRSP plan PDF downloaded.");
+  await shareFileAttachment(
+    file,
+    `WRSP: ${plan.title}`,
+    "PDF saved. In offline mode, use PDF for email, AirDrop, Files, or printing. Texting a PDF may be blocked by the phone."
+  );
 }
 
 function safeFileName(value = "wrsp-plan") {
