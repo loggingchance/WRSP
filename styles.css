@@ -281,15 +281,25 @@ p {
   background: #ffffff;
 }
 
+.prominent-about {
+  border-color: rgba(31, 90, 66, 0.42);
+  background: #eef6ec;
+}
+
 .about-callout strong {
   display: block;
   color: var(--forest);
+  font-size: 1.04rem;
 }
 
 .about-callout p {
   margin-bottom: 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.about-callout .primary-action {
+  min-width: 170px;
 }
 
 .more-label {

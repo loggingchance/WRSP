@@ -131,6 +131,8 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Contact picker buttons are now progressive enhancement only: unsupported browsers hide the choose-from-contacts buttons instead of showing a prominent control that appears broken. Manual typing/pasting remains the core workflow.
 - Nearest ER language changed from "autofill" to a lookup-entry workflow that explicitly requires the user to confirm the actual facility before relying on it.
 - Service worker cache moved to `wrsp-v30` so saved-home-screen users can receive the August feedback-spec update.
+- About WRSP moved directly under the Home screen Create panel with a more prominent card and primary Read About WRSP button so attribution/origin/privacy information is easier to find.
+- Service worker cache moved to `wrsp-v31` so saved-home-screen users can receive the About discoverability correction.
 
 ## User feedback captured
 
@@ -192,7 +194,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v30`.
+- Service worker cache is currently `wrsp-v31`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text / Share Image or Share PDF / Save.
