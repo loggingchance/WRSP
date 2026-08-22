@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.15 - August 22, 2026";
+const APP_VERSION = "WRSP v0.7.16 - August 22, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -23,6 +23,7 @@ let deferredInstallPrompt = null;
 let updateReloading = false;
 let activeLookupKind = "";
 let pendingSharePlanId = null;
+let pendingAddressSuggestion = null;
 let siteMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
@@ -693,6 +694,7 @@ function defaultsFromForm() {
     truckingContact: $("#defaultTruckingContact").value.trim(),
     sarContacts: $("#defaultSarContacts").value.trim(),
     medicalNotes: $("#defaultMedicalNotes").value.trim(),
+    geoapifyKey: $("#defaultGeoapifyKey").value.trim(),
   };
 }
 
@@ -708,6 +710,7 @@ async function loadDefaultsForm() {
   $("#defaultTruckingContact").value = defaults.truckingContact || "";
   $("#defaultSarContacts").value = defaults.sarContacts || "";
   $("#defaultMedicalNotes").value = defaults.medicalNotes || "";
+  $("#defaultGeoapifyKey").value = defaults.geoapifyKey || "";
 }
 
 function applyDefaultsToPlanObject(plan, defaults) {
@@ -845,6 +848,8 @@ function centerLandingZoneMap(lat, lng, zoom = landingZoneMapState.zoom) {
 function setSiteCoordinates(lat, lng, center = true) {
   const safeLat = clamp(lat, -85, 85);
   const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
+  pendingAddressSuggestion = null;
+  $("#addressSuggestionPanel").hidden = true;
   $("#lat").value = safeLat.toFixed(6);
   $("#lng").value = safeLng.toFixed(6);
   $("#planForm").dataset.accuracy = "";
@@ -867,6 +872,8 @@ function setLandingZoneCoordinates(lat, lng, center = true) {
 }
 
 function clearSiteCoordinates() {
+  pendingAddressSuggestion = null;
+  $("#addressSuggestionPanel").hidden = true;
   $("#lat").value = "";
   $("#lng").value = "";
   $("#planForm").dataset.accuracy = "";
@@ -883,6 +890,94 @@ function clearLandingZoneCoordinates() {
   $("#landingZoneLng").value = "";
   renderLandingZoneMap();
   scheduleAutoSave();
+}
+
+function cleanCountyName(value = "") {
+  return value.replace(/\s+County$/i, "").trim();
+}
+
+function addressFromGeoapifyProperties(properties = {}) {
+  const road = properties.address_line1
+    || [properties.housenumber, properties.street].filter(Boolean).join(" ")
+    || properties.name
+    || properties.formatted
+    || "";
+  const town = properties.city
+    || properties.town
+    || properties.village
+    || properties.hamlet
+    || properties.municipality
+    || properties.suburb
+    || "";
+  const county = cleanCountyName(properties.county || "");
+  const state = properties.state_code || properties.state || "";
+  const display = [road, town, county && `${county} County`, state].filter(Boolean).join(", ");
+  return { roadAddress: road, town, county, state, display };
+}
+
+function setAddressSuggestionStatus(message) {
+  const panel = $("#addressSuggestionPanel");
+  const status = $("#addressSuggestionStatus");
+  if (panel) panel.hidden = false;
+  if (status) status.textContent = message;
+}
+
+async function suggestAddressFromPin() {
+  const lat = parseFloat($("#lat").value);
+  const lng = parseFloat($("#lng").value);
+  const text = $("#addressSuggestionText");
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    pendingAddressSuggestion = null;
+    setAddressSuggestionStatus("Drop a site pin or enter coordinates first.");
+    if (text) text.textContent = "";
+    return;
+  }
+  const defaults = await loadDefaults();
+  const apiKey = defaults.geoapifyKey || "";
+  if (!apiKey) {
+    pendingAddressSuggestion = null;
+    setAddressSuggestionStatus("Add a free Geoapify API key under More > Set Defaults before using in-app address suggestions. Manual address entry still works.");
+    if (text) text.textContent = "";
+    return;
+  }
+  setAddressSuggestionStatus("Looking up the nearest road and place from the map pin...");
+  if (text) text.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  try {
+    const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=geojson&apiKey=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`Geoapify returned ${response.status}`);
+    const data = await response.json();
+    const properties = data.features?.[0]?.properties;
+    if (!properties) throw new Error("No reverse-geocoding result");
+    const suggestion = addressFromGeoapifyProperties(properties);
+    if (!suggestion.display) throw new Error("No usable address fields");
+    pendingAddressSuggestion = suggestion;
+    text.textContent = suggestion.display;
+    setAddressSuggestionStatus("Check this suggestion before relying on it. Rural road names and county lines can be imperfect.");
+  } catch (error) {
+    pendingAddressSuggestion = null;
+    if (text) text.textContent = "";
+    setAddressSuggestionStatus("Could not suggest an address from this pin. Type the nearest road, town, county, and state manually.");
+  }
+}
+
+function usePendingAddressSuggestion(editAfterUse = false) {
+  if (!pendingAddressSuggestion) {
+    setAddressSuggestionStatus("No address suggestion is ready yet.");
+    return;
+  }
+  const suggestion = pendingAddressSuggestion;
+  if (suggestion.roadAddress) $("#roadAddress").value = suggestion.roadAddress;
+  if (suggestion.town) $("#town").value = suggestion.town;
+  if (suggestion.county) $("#county").value = suggestion.county;
+  if (suggestion.state) $("#state").value = suggestion.state;
+  updateWoodsContactSuggestion();
+  autofillMedicalCareFromLocation(false);
+  syncReadinessStatus();
+  updateEssentialProgress();
+  scheduleAutoSave();
+  setAddressSuggestionStatus(editAfterUse ? "Suggestion copied into the form. Edit the road, town, county, or state before relying on it." : "Suggestion copied into the form.");
+  if (editAfterUse) $("#roadAddress").focus();
 }
 
 function pointToLatLngFromMap(mapSelector, state, clientX, clientY) {
@@ -2846,6 +2941,13 @@ function bindEvents() {
     setSiteCoordinates(siteMapState.centerLat, siteMapState.centerLng, false);
     renderSiteMap();
     toast("Pin dropped at map center.");
+  });
+  $("#suggestAddressFromPin").addEventListener("click", suggestAddressFromPin);
+  $("#useSuggestedAddress").addEventListener("click", () => usePendingAddressSuggestion(false));
+  $("#editSuggestedAddress").addEventListener("click", () => usePendingAddressSuggestion(true));
+  $("#ignoreSuggestedAddress").addEventListener("click", () => {
+    pendingAddressSuggestion = null;
+    $("#addressSuggestionPanel").hidden = true;
   });
   $("#clearSitePin").addEventListener("click", () => {
     clearSiteCoordinates();

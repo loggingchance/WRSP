@@ -173,7 +173,18 @@
               </div>
               <div class="map-actions">
                 <button type="button" class="secondary-action" id="dropPinAtCenter">Drop Pin at Map Center</button>
+                <button type="button" class="secondary-action" id="suggestAddressFromPin">Suggest Address from Pin</button>
                 <button type="button" class="secondary-action" id="clearSitePin">Clear Pin</button>
+              </div>
+              <div class="address-suggestion-panel" id="addressSuggestionPanel" hidden>
+                <strong>Suggested from map pin</strong>
+                <p id="addressSuggestionText"></p>
+                <div class="action-row">
+                  <button type="button" class="primary-action" id="useSuggestedAddress">Use This</button>
+                  <button type="button" class="secondary-action" id="editSuggestedAddress">Edit First</button>
+                  <button type="button" class="quiet-action" id="ignoreSuggestedAddress">Ignore</button>
+                </div>
+                <p id="addressSuggestionStatus" class="helper"></p>
               </div>
               <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
             </div>
@@ -646,6 +657,10 @@
             <label>Common medical notes
               <textarea id="defaultMedicalNotes" rows="3" placeholder="Regional EMS notes, trauma center reminders, or other repeated notes"></textarea>
             </label>
+            <label>Geoapify API key for address suggestions
+              <input id="defaultGeoapifyKey" autocomplete="off" placeholder="Optional; saved only on this device">
+            </label>
+            <p class="helper">Optional: lets WRSP suggest road, town, county, and state from a dropped pin without sending the user to another map page.</p>
             <button class="primary-action" type="submit">Save Defaults</button>
             <button class="secondary-action" type="button" id="applyDefaultsToPlan">Apply to Current Plan</button>
             <p id="defaultsStatus" class="helper"></p>
