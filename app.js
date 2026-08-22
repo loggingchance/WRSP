@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.16 - August 22, 2026";
+const APP_VERSION = "WRSP v0.7.17 - August 22, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -957,8 +957,18 @@ async function suggestAddressFromPin() {
   } catch (error) {
     pendingAddressSuggestion = null;
     if (text) text.textContent = "";
-    setAddressSuggestionStatus("Could not suggest an address from this pin. Type the nearest road, town, county, and state manually.");
+    setAddressSuggestionStatus("Could not suggest a road/town from this pin. Open the pin in Google Maps or type the nearest road, town, county, and state manually.");
   }
+}
+
+function openSitePinInGoogleMaps() {
+  const lat = parseFloat($("#lat").value);
+  const lng = parseFloat($("#lng").value);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    toast("Drop a site pin or enter coordinates first.");
+    return;
+  }
+  window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat.toFixed(6)},${lng.toFixed(6)}`)}`;
 }
 
 function usePendingAddressSuggestion(editAfterUse = false) {
@@ -1037,10 +1047,36 @@ function essentialStatus(plan = formToPlan()) {
 function updateEssentialProgress() {
   const progressText = $("#essentialProgressText");
   const progressBar = $("#essentialProgressBar");
+  const checklist = $("#minimumPlanChecklist");
   if (!progressText || !progressBar) return;
   const status = essentialStatus();
   progressText.textContent = `${status.done} of ${status.total} plan essentials added`;
   progressBar.style.width = `${(status.done / status.total) * 100}%`;
+  if (checklist) {
+    checklist.innerHTML = status.checks.map((check) => `
+      <li class="${check.done ? "done" : ""}">
+        <span aria-hidden="true">${check.done ? "OK" : "Add"}</span>
+        ${escapeHtml(check.label)}
+      </li>
+    `).join("");
+  }
+}
+
+function shareReadinessHtml(plan) {
+  const status = essentialStatus(plan);
+  const label = planReadiness(plan).label;
+  return `
+    <strong>Before you share: ${escapeHtml(label)}</strong>
+    <ul class="minimum-checklist compact">
+      ${status.checks.map((check) => `
+        <li class="${check.done ? "done" : ""}">
+          <span aria-hidden="true">${check.done ? "OK" : "Add"}</span>
+          ${escapeHtml(check.label)}
+        </li>
+      `).join("")}
+    </ul>
+    <p class="helper">WRSP will still let you share a partial plan. Add missing items when you can.</p>
+  `;
 }
 
 function completenessHint(plan) {
@@ -1140,6 +1176,10 @@ function openShareChoice(planId = null) {
   pendingSharePlanId = planId;
   setShareChoiceStatus("");
   $("#shareChoicePanel").hidden = false;
+  planForSharing().then((plan) => {
+    const panel = $("#shareChoiceReadiness");
+    if (panel && plan) panel.innerHTML = shareReadinessHtml(plan);
+  });
 }
 
 function closeShareChoice() {
@@ -1159,6 +1199,7 @@ async function shareChosenPlan(format) {
 
 function renderCurrentPlan(plan) {
   $("#planOutput").innerHTML = currentPlanMode === "responder" ? renderResponderPlanHtml(plan) : renderPlanHtml(plan);
+  $("#shareReadinessCard").innerHTML = shareReadinessHtml(plan);
   $("#fullPlanMode")?.classList.toggle("active", currentPlanMode === "full");
   $("#responderPlanMode")?.classList.toggle("active", currentPlanMode === "responder");
 }
@@ -1411,16 +1452,16 @@ function showPlanQr(plan) {
   const importUrl = importUrlForPlan(plan);
   panel.hidden = false;
   if (importUrl.length > 2200) {
-    linkBox.value = "Plan is too large for a reliable QR/backup link. Use Text / Share Image, Share PDF / Save, or Backup File.";
+    linkBox.value = "Plan is too large for a reliable QR/backup link. Use Text Image, PDF / Print, or Backup File.";
     image.removeAttribute("src");
     image.hidden = true;
-    help.textContent = "This plan is too large for a reliable QR backup link. Use Text / Share Image for texting, Share PDF / Save for email/AirDrop/Files, or Backup File if someone needs an editable WRSP backup.";
+    help.textContent = "This plan is too large for a reliable QR backup link. Use Text Image for texting, PDF / Print for email/AirDrop/Files, or Backup File if someone needs an editable WRSP backup.";
     return;
   }
   linkBox.value = importUrl;
   image.hidden = false;
   image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(importUrl)}`;
-  help.textContent = "Scan this code only when someone needs to open the WRSP backup link. For normal offline sharing, use Text / Share Image or Share PDF / Save.";
+  help.textContent = "Scan this code only when someone needs to open the WRSP backup link. For normal offline sharing, use Text Image or PDF / Print.";
 }
 
 function planPngRows(plan) {
@@ -2943,6 +2984,7 @@ function bindEvents() {
     toast("Pin dropped at map center.");
   });
   $("#suggestAddressFromPin").addEventListener("click", suggestAddressFromPin);
+  $("#openPinInGoogleMaps").addEventListener("click", openSitePinInGoogleMaps);
   $("#useSuggestedAddress").addEventListener("click", () => usePendingAddressSuggestion(false));
   $("#editSuggestedAddress").addEventListener("click", () => usePendingAddressSuggestion(true));
   $("#ignoreSuggestedAddress").addEventListener("click", () => {
@@ -3025,7 +3067,7 @@ function bindEvents() {
   });
   $("#previewPlan").addEventListener("click", async () => {
     await savePlan(formToPlan(), true);
-    toast("Draft saved. Keep editing when ready.");
+    toast("Saved what you have. Keep editing when ready.");
   });
   $("#loadCompleteExamplePlan")?.addEventListener("click", openCompleteExamplePlan);
   $("#savedPlansList").addEventListener("click", async (event) => {

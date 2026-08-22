@@ -135,6 +135,8 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Service worker cache moved to `wrsp-v31` so saved-home-screen users can receive the About discoverability correction.
 - Added optional Geoapify reverse-geocoding assist: after a site pin is dropped, WRSP can suggest road/address, town, county, and state inside the app, then the user chooses Use This, Edit First, or Ignore. The API key is saved only on the device under Defaults and is not embedded in the public repo.
 - Service worker cache moved to `wrsp-v32` so saved-home-screen users can receive the address-from-pin feature.
+- Ease-of-use pass: renamed the pin lookup to Suggest Road / Town from Pin, added Open Pin in Google Maps fallback, added minimum-useful-plan checklist in the Create flow, added before-you-share readiness checks on the plan/share screens, clarified Text Image vs PDF / Print, renamed example-plan buttons as a testing path, and changed the secondary save action to Just Save What I Have.
+- Service worker cache moved to `wrsp-v33` so saved-home-screen users can receive the usability pass.
 
 ## User feedback captured
 
@@ -167,6 +169,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - July 18 decision: no hosted sharing service yet; maintain the offline app model and make image/PDF file sharing limits clear.
 - August 22 feedback spec: preserve and surface the full About section; fix manual GPS entry, contact-picker fallback, emergency-services lookup clarity, nearest-ER lookup clarity, hazards wording, and field-use simplicity before adding optional advanced features.
 - Address-from-pin should remain a suggestion only; rural road and county results must be confirmed before relying on them.
+- Keep home and create flows simple: users should see the next useful action, not a complicated safety-management system. The app should continue allowing partial plans and explicit user-controlled sharing.
 
 ## Next priorities
 
@@ -197,10 +200,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v32`.
+- Service worker cache is currently `wrsp-v33`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
-- QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text / Share Image or Share PDF / Save.
+- QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text Image or PDF / Print.
 - Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
 - After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.

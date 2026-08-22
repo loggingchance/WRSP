@@ -85,11 +85,11 @@
           </button>
         </div>
 
-        <p class="more-label">More tools</p>
+        <p class="more-label">Testing and tools</p>
         <div class="quick-grid compact-tools">
           <button class="quick-action" id="openSamplePlan">
-            <span>Complete Example Plan</span>
-            <small>Use to test sharing</small>
+            <span>Test Sharing with Example</span>
+            <small>Open a complete sample plan</small>
           </button>
           <button class="quick-action emergency" data-route="safetyShare">
             <span>Safety Share</span>
@@ -124,13 +124,14 @@
           <div class="progress-card">
             <div>
               <strong id="essentialProgressText">0 of 6 plan essentials added</strong>
-              <p class="helper">Fill the open essentials section, then save and share.</p>
+              <p class="helper">A usable plan needs location, directions, one job contact, and an ER or emergency contact. Save what you have; an incomplete plan is better than none.</p>
             </div>
             <div class="progress-track"><span id="essentialProgressBar"></span></div>
+            <ul class="minimum-checklist" id="minimumPlanChecklist"></ul>
           </div>
 
           <details class="card accordion-card" open>
-            <summary>Essentials</summary>
+            <summary>Job / Site</summary>
             <label>Job or site name <span class="needed-tag">needed</span>
               <input id="title" name="title" required autocomplete="off" placeholder="North ridge thinning">
             </label>
@@ -171,13 +172,14 @@
                 <div id="mapMarker" class="map-marker" hidden></div>
                 <div class="map-crosshair" aria-hidden="true"></div>
               </div>
-              <div class="map-actions">
-                <button type="button" class="secondary-action" id="dropPinAtCenter">Drop Pin at Map Center</button>
-                <button type="button" class="secondary-action" id="suggestAddressFromPin">Suggest Address from Pin</button>
+            <div class="map-actions">
+              <button type="button" class="secondary-action" id="dropPinAtCenter">Drop Pin at Map Center</button>
+                <button type="button" class="secondary-action" id="suggestAddressFromPin">Suggest Road / Town from Pin</button>
+                <button type="button" class="secondary-action" id="openPinInGoogleMaps">Open Pin in Google Maps</button>
                 <button type="button" class="secondary-action" id="clearSitePin">Clear Pin</button>
               </div>
               <div class="address-suggestion-panel" id="addressSuggestionPanel" hidden>
-                <strong>Suggested from map pin</strong>
+                <strong>Suggested road / town from map pin</strong>
                 <p id="addressSuggestionText"></p>
                 <div class="action-row">
                   <button type="button" class="primary-action" id="useSuggestedAddress">Use This</button>
@@ -186,7 +188,7 @@
                 </div>
                 <p id="addressSuggestionStatus" class="helper"></p>
               </div>
-              <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Map tiles require service, but the selected coordinates save in the plan.</p>
+              <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Road/town suggestion requires a saved Geoapify key; Google Maps fallback and manual entry always remain available.</p>
             </div>
             <label>Nearest public road / address
               <input id="roadAddress" name="roadAddress" placeholder="Public road, landing, gate, or nearest address">
@@ -218,7 +220,7 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>Access & meeting points</summary>
+            <summary>Location & Access</summary>
             <label>Best access route / truck directions
               <textarea id="routeNotes" name="routeNotes" rows="3" placeholder="Truck-safe route, road names, turns, landmarks, turnaround notes"></textarea>
             </label>
@@ -274,7 +276,7 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>Crew & emergency contacts</summary>
+            <summary>People / Emergency Services</summary>
             <p class="helper">Add people in the order they are most likely to matter in an emergency. A partial list is still better than no plan.</p>
             <div class="split">
               <label>Logger(s)
@@ -350,7 +352,7 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>Medical & hazards</summary>
+            <summary>Medical / Hazards</summary>
             <label>Plan status
               <select id="status" name="status">
                 <option value="draft">Draft - started, still incomplete</option>
@@ -377,8 +379,8 @@
           </details>
 
           <div class="sticky-actions">
-            <button type="submit" class="primary-action">Save & View Plan</button>
-            <button type="button" class="secondary-action" id="previewPlan">Keep editing</button>
+            <button type="submit" class="primary-action">Save Plan</button>
+            <button type="button" class="secondary-action" id="previewPlan">Just Save What I Have</button>
           </div>
         </form>
       </section>
@@ -392,7 +394,7 @@
           <button class="secondary-action" data-route="create">Create</button>
         </div>
         <p class="notice">Saved plans are stored only on this device unless you choose to share or export them. Clearing browser data or replacing the phone may remove saved plans.</p>
-        <button class="secondary-action" id="loadCompleteExamplePlan">Load Complete Example Plan</button>
+          <button class="secondary-action" id="loadCompleteExamplePlan">Test Sharing with Example Plan</button>
         <div id="savedPlansList" class="list-stack"></div>
       </section>
 
@@ -409,6 +411,7 @@
           <button class="secondary-action" id="responderPlanMode">Responder View</button>
         </div>
         <div id="planOutput" class="plan-output"></div>
+        <div class="share-readiness-card" id="shareReadinessCard"></div>
         <div class="action-row secondary-plan-actions">
           <button class="primary-action" id="sharePlanOptions">Share</button>
           <button class="secondary-action" id="qrCurrentPlan">QR / Backup Link</button>
@@ -419,7 +422,7 @@
         <div id="qrPanel" class="qr-panel" hidden>
           <div>
             <h3>Plan QR code</h3>
-            <p id="qrHelp" class="helper">QR is for small backup links only. For normal offline sharing, use Text / Share Image or Share PDF / Save.</p>
+            <p id="qrHelp" class="helper">QR is for small backup links only. For normal offline sharing, use Text Image or PDF / Print.</p>
           </div>
           <img id="qrImage" alt="WRSP plan import QR code">
           <label>Plan link
@@ -435,9 +438,10 @@
       <div id="shareChoicePanel" class="share-choice-panel" hidden>
         <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
           <h3 id="shareChoiceTitle">Share this plan</h3>
-          <p class="helper">WRSP stays offline-first. Text the image, or use PDF for email, AirDrop, Files, and printing.</p>
-          <button class="primary-action" id="shareChoicePng">Text / Share Image</button>
-          <button class="primary-action" id="shareChoicePdf">Share PDF / Save</button>
+          <div class="share-readiness-card compact" id="shareChoiceReadiness"></div>
+          <p class="helper">For phones, use Text Image first. Use PDF / Print for email, AirDrop, Files, or paper copies.</p>
+          <button class="primary-action" id="shareChoicePng">Text Image</button>
+          <button class="primary-action" id="shareChoicePdf">PDF / Print</button>
           <p id="shareChoiceStatus" class="helper"></p>
           <button class="secondary-action" id="closeShareChoice">Cancel</button>
         </div>
@@ -941,7 +945,7 @@
           <button class="quick-action" data-route="medicalCard"><span>My Medical Card</span><small>Local-only personal info</small></button>
           <button class="quick-action" data-route="preparedness"><span>Preparedness</span><small>Trusted contact info</small></button>
           <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>
-          <button class="quick-action" id="openSamplePlanMore"><span>Complete Example Plan</span><small>Use to test sharing</small></button>
+          <button class="quick-action" id="openSamplePlanMore"><span>Test Sharing with Example</span><small>Open a complete sample plan</small></button>
           <button class="quick-action" data-route="import"><span>Import Plan</span><small>From shared backup</small></button>
           <button class="quick-action" data-route="install"><span>Install / Help</span><small>Home screen steps</small></button>
           <button class="quick-action" data-route="pwa"><span>PWA Status</span><small>Offline/install checks</small></button>
