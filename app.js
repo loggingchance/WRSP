@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.13 - July 18, 2026";
+const APP_VERSION = "WRSP v0.7.14 - August 22, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -2049,15 +2049,15 @@ function autofillMedicalCareFromLocation(force = false) {
   const status = $("#medicalAutofillStatus");
   const place = medicalPlaceFromPlan();
   if (!place) {
-    if (status) status.textContent = "Enter town, county, and state first so WRSP can build a nearest-ER lookup entry.";
+    if (status) status.textContent = "Enter town, county, and state first so WRSP can build a nearest-ER lookup entry. You can always type the ER manually.";
     return false;
   }
-  const erText = `Nearest ER near ${place} - confirm name, address, and phone`;
+  const erText = `Nearest ER near ${place} - NOT CONFIRMED. Replace with confirmed name, address, and phone.`;
   const erUrl = medicalLookupUrl("emergency room hospital", place);
 
   if (force || !$("#hospital").value.trim()) $("#hospital").value = erText;
   if (force || !$("#hospitalDirectionsUrl").value.trim()) $("#hospitalDirectionsUrl").value = erUrl;
-  if (status) status.textContent = `Nearest-ER lookup entry built from ${place}. Open the link and replace the placeholder with the confirmed facility details.`;
+  if (status) status.textContent = `Nearest-ER lookup entry built from ${place}. This is a search starting point, not a confirmed ER. Replace it with the actual facility after checking.`;
   scheduleAutoSave();
   return true;
 }
@@ -2339,9 +2339,13 @@ function updateContactPickerButtons() {
   const supported = contactPickerAvailable();
   $$(".contact-picker").forEach((button) => {
     button.classList.toggle("unavailable", !supported);
+    button.hidden = !supported;
     if (!supported) {
       button.textContent = "Type or paste contact";
       button.title = "This browser does not allow WRSP to read phone contacts.";
+    } else {
+      button.textContent = "Choose from contacts";
+      button.title = "Choose a contact from this device, if the browser permits it.";
     }
   });
 }
@@ -2706,7 +2710,7 @@ function bindEvents() {
     $(`#${id}`).addEventListener("input", updateWoodsContactSuggestion);
   });
   ["lat", "lng"].forEach((id) => {
-    $(`#${id}`).addEventListener("change", () => {
+    $(`#${id}`).addEventListener("input", () => {
       const lat = parseFloat($("#lat").value);
       const lng = parseFloat($("#lng").value);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
@@ -2715,6 +2719,16 @@ function bindEvents() {
         $("#planForm").dataset.capturedAt = new Date().toISOString();
         updateGpsStatus();
         centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
+        scheduleAutoSave();
+      }
+    });
+  });
+  ["landingZoneLat", "landingZoneLng"].forEach((id) => {
+    $(`#${id}`).addEventListener("input", () => {
+      const lat = parseFloat($("#landingZoneLat").value);
+      const lng = parseFloat($("#landingZoneLng").value);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 17));
         scheduleAutoSave();
       }
     });

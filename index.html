@@ -64,6 +64,14 @@
 
         <p class="privacy-note">WRSP does not collect data about you, your work, your medical condition, or anything else. Saved plans and medical card details stay on this device unless you choose to share them.</p>
 
+        <div class="about-callout">
+          <div>
+            <strong>About WRSP</strong>
+            <p>What WRSP is, who provides it, privacy/local storage, grant support, inspiration, related tools, and creator information.</p>
+          </div>
+          <button class="secondary-action" data-route="resources">Read About WRSP</button>
+        </div>
+
         <div id="continuePlanCard" class="continue-card" hidden></div>
 
         <div class="home-actions">
@@ -142,10 +150,10 @@
             <p class="helper">Address and road notes help people understand the site. Exact coordinates are captured from phone GPS or a dropped map pin.</p>
             <div class="split">
               <label>Site latitude
-                <input id="lat" name="lat" inputmode="decimal" placeholder="Automatic from map or GPS" readonly>
+                <input id="lat" name="lat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
               </label>
               <label>Site longitude
-                <input id="lng" name="lng" inputmode="decimal" placeholder="Automatic from map or GPS" readonly>
+                <input id="lng" name="lng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
               </label>
             </div>
             <p id="gpsStatus" class="helper">GPS has not been captured for this plan.</p>
@@ -181,8 +189,8 @@
                 <input id="county" name="county">
               </label>
             </div>
-            <h3>Read-aloud directions</h3>
-            <p class="helper">Start from a place responders can find without local woods knowledge, then add the site-specific gate, road, landing, and meet-responder instructions.</p>
+            <h3>Directions to read to 911 / dispatch</h3>
+            <p class="helper">Use this text when someone must explain how responders can get to the site.</p>
             <label>Responder-known starting point
               <input id="knownLandmark" name="knownLandmark" placeholder="Nearest town, village, fire station, or intersection of two state highways">
             </label>
@@ -190,7 +198,7 @@
               <button type="button" class="secondary-action" id="findStartingLandmark">Find Landmark</button>
               <button type="button" class="secondary-action" id="buildPhoneDirections">Build Directions Draft</button>
             </div>
-            <label>Site-specific read-aloud instructions
+            <label>Site-specific directions to read aloud
               <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
             <label>Phone service notes
@@ -220,10 +228,10 @@
               </label>
               <div class="split">
                 <label>Landing zone latitude
-                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" placeholder="Set from map/GPS" readonly>
+                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
                 </label>
                 <label>Landing zone longitude
-                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" placeholder="Set from map/GPS" readonly>
+                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
                 </label>
               </div>
               <div class="map-picker">
@@ -255,38 +263,39 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>Crew & contacts</summary>
+            <summary>Crew & emergency contacts</summary>
             <p class="helper">Add people in the order they are most likely to matter in an emergency. A partial list is still better than no plan.</p>
             <div class="split">
               <label>Logger(s)
-                <input id="primaryContact" name="primaryContact" placeholder="Names and mobile phones">
+                <input id="primaryContact" name="primaryContact" autocomplete="name" placeholder="Names and mobile phones">
               </label>
               <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
             </div>
             <div class="split">
               <label>Crew member(s)
-                <input id="supervisor" name="supervisor" placeholder="Names and mobile phones">
+                <input id="supervisor" name="supervisor" autocomplete="name" placeholder="Names and mobile phones">
               </label>
               <button type="button" class="secondary-action contact-picker" data-contact-target="supervisor">Choose from contacts</button>
             </div>
             <div class="split">
               <label>Forester
-                <input id="foresterContact" name="foresterContact" placeholder="Name and mobile phone">
+                <input id="foresterContact" name="foresterContact" autocomplete="name" placeholder="Name and mobile phone">
               </label>
               <button type="button" class="secondary-action contact-picker" data-contact-target="foresterContact">Choose from contacts</button>
             </div>
             <div class="split">
               <label>Landowner(s)
-                <input id="landowner" name="landowner" placeholder="Names and mobile phones">
+                <input id="landowner" name="landowner" autocomplete="name" placeholder="Names and mobile phones">
                 <button type="button" class="secondary-action contact-picker" data-contact-target="landowner">Choose from contacts</button>
               </label>
               <label>Other contact / role
-                <input id="truckingContact" name="truckingContact" placeholder="Role, name, mobile phone">
+                <input id="truckingContact" name="truckingContact" autocomplete="name" placeholder="Role, name, mobile phone">
                 <button type="button" class="secondary-action contact-picker" data-contact-target="truckingContact">Choose from contacts</button>
               </label>
             </div>
             <div class="lookup-panel">
-              <h4>Find the agency or person for this site</h4>
+              <h4>Emergency Services & Responders</h4>
+              <p class="warning compact-warning">For serious injury or uncertain severity, call 911 first. Use this area to record useful dispatch, responder, ranger/warden, or local emergency contacts for the plan.</p>
               <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely state natural resources / forestry starting point and build targeted searches.</p>
               <div id="responderLookupChecklist" class="lookup-checklist"></div>
               <div class="verification-script">
@@ -323,7 +332,7 @@
                 <input id="verifiedResponderSource" name="verifiedResponderSource" placeholder="Date, website, call, or office">
               </label>
             </div>
-            <label>Saved local woods emergency contacts
+            <label>Emergency services / responder contacts
               <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Important dispatch numbers or local emergency contacts, such as NYS Forest Ranger Dispatch, county dispatch, fire/rescue, or a local person who knows the roads/gates"></textarea>
             </label>
             <button type="button" class="secondary-action" id="appendVerifiedResponderContact">Add Verified Contact to Notes</button>
@@ -345,14 +354,14 @@
             <label>Hospital / ER directions link
               <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
             </label>
-            <button type="button" class="secondary-action" id="autofillMedicalCare">Autofill nearest ER from town and county</button>
-            <p id="medicalAutofillStatus" class="helper">Enter town, county, and state first. WRSP will build a nearest-ER lookup entry for the plan.</p>
+            <button type="button" class="secondary-action" id="autofillMedicalCare">Build nearest ER lookup entry</button>
+            <p id="medicalAutofillStatus" class="helper">Enter town, county, and state first. WRSP can build a lookup entry, but you must confirm the actual ER before relying on it.</p>
             <label>Medical notes
               <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
             </label>
             <p class="warning">For serious injury or uncertain severity, call 911 and request EMS. Confirm the nearest ER before relying on this plan.</p>
-            <label>Hazard notes
-              <textarea id="hazards" name="hazards" rows="3" placeholder="Steep ground, blocked roads, active equipment, weather, bridge limits"></textarea>
+            <label>Site hazards
+              <textarea id="hazards" name="hazards" rows="3" placeholder="Difficult access, active equipment, steep ground, utilities, water crossings, unstable ground, fire concerns, bridge limits"></textarea>
             </label>
           </details>
 
@@ -828,7 +837,7 @@
           <div class="card prose resource-card">
             <h3>Northeastern Loggers' Association</h3>
             <p>The Woods-Ready Safety Plan is a free app brought to you by the <a href="https://www.northernlogger.com/" target="_blank" rel="noopener">Northeastern Loggers' Association</a>, intended to benefit loggers and others regardless of where they are located.</p>
-            <p>NELA is a regional trade group representing the logging, sawmilling, and forest products community across the Northeast and Lake States. For over sixty years it has published <em>The Northern Logger and Timber Processor</em> magazine and produced training programs, seminars, publications, and the region's largest forest products exposition.</p>
+            <p>NELA is a regional trade group representing the logging, sawmilling, and forest products community across the Northeast and Lake States. Its support makes WRSP available as a free practical safety tool for the logging community.</p>
           </div>
 
           <div class="card prose resource-card">

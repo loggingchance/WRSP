@@ -269,6 +269,29 @@ p {
   font-weight: 700;
 }
 
+.about-callout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 18px;
+  border: 1px solid rgba(31, 90, 66, 0.22);
+  border-radius: 8px;
+  padding: 13px;
+  background: #ffffff;
+}
+
+.about-callout strong {
+  display: block;
+  color: var(--forest);
+}
+
+.about-callout p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .more-label {
   margin: 6px 0 10px;
   color: var(--muted);
@@ -710,6 +733,11 @@ textarea:focus {
   background: #fff3e8;
   color: #70310e;
   font-weight: 740;
+}
+
+.compact-warning {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
 }
 
 .lookup-panel {
@@ -1323,6 +1351,7 @@ textarea:focus {
   .split,
   .quick-grid,
   .home-actions,
+  .about-callout,
   .map-actions,
   .verified-contact-grid {
     grid-template-columns: 1fr;

@@ -1,6 +1,6 @@
 # WRSP Project Tracker
 
-Last updated: June 29, 2026
+Last updated: August 22, 2026
 
 ## Current product direction
 
@@ -80,7 +80,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Social preview support added: root `og-image.png` plus Open Graph and Twitter/X metadata pointing to the absolute GitHub Pages image URL.
 - Contact labels changed from primary/supervisor language to logger, crew member(s), forester, landowner(s), and other contact/role.
 - Forester label no longer says "plan preparer."
-- Site and helicopter landing coordinates are read-only fields populated by GPS/map actions rather than manual entry fields.
+- Site and helicopter landing coordinates can be set by GPS, map actions, or manual decimal-degree entry. GPS/map is preferred, but manual entry is required for field reliability.
 - Site map now opens/recenters at a closer zoom and uses a taller picker to make phone pin placement easier.
 - Helicopter landing zone now has its own GPS/map picker with pan, zoom, drop pin, clear pin, and use-site-point actions.
 - Site location wording now prioritizes nearest public road/address instead of manual coordinate entry.
@@ -125,6 +125,12 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - July 18 decision: keep WRSP as a simple offline-first app for this phase. Do not add hosted PDF links, Google Drive upload, Firebase, Supabase, or backend storage yet.
 - Share chooser wording now makes the offline path explicit: text/share the image; use PDF for email, AirDrop, Files, or printing. If the phone blocks PDF texting, WRSP treats that as a platform limit rather than trying to host the file.
 - Service worker cache moved to `wrsp-v29` so saved-home-screen users can receive the offline-sharing wording update.
+- August 22 feedback spec pass started: About is surfaced from Home again with a clear About WRSP card, while the full substantive About material remains in the About view.
+- About/NELA wording tightened to avoid the previously rejected magazine mention while preserving attribution, grant support, creator, inspiration, related tools, privacy, and custom app-development material.
+- Manual site and helicopter landing-zone latitude/longitude entry restored with mobile decimal keyboard hints. GPS and map pinning remain preferred conveniences, but manual entry now works when permissions, maps, or phone features fail.
+- Contact picker buttons are now progressive enhancement only: unsupported browsers hide the choose-from-contacts buttons instead of showing a prominent control that appears broken. Manual typing/pasting remains the core workflow.
+- Nearest ER language changed from "autofill" to a lookup-entry workflow that explicitly requires the user to confirm the actual facility before relying on it.
+- Service worker cache moved to `wrsp-v30` so saved-home-screen users can receive the August feedback-spec update.
 
 ## User feedback captured
 
@@ -155,6 +161,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Lookup/search should not strand the user; the app should make it obvious how to bring found dispatch/contact information back into the plan.
 - July 16 logger test: QR failed because full plans are too large for encoded backup links, and text-message sharing exposed the raw encoded JSON URL instead of a usable PDF/PNG plan. The primary sharing path must send an actual image or PDF file.
 - July 18 decision: no hosted sharing service yet; maintain the offline app model and make image/PDF file sharing limits clear.
+- August 22 feedback spec: preserve and surface the full About section; fix manual GPS entry, contact-picker fallback, emergency-services lookup clarity, nearest-ER lookup clarity, hazards wording, and field-use simplicity before adding optional advanced features.
 
 ## Next priorities
 
@@ -185,9 +192,9 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v29`.
+- Service worker cache is currently `wrsp-v30`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
-- Phone contact import depends on browser Contact Picker API support; unsupported browsers now show type/paste fallback wording.
+- Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text / Share Image or Share PDF / Save.
 - Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
