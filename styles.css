@@ -286,6 +286,10 @@ p {
   background: #eef6ec;
 }
 
+.home-bottom-about {
+  margin-top: 18px;
+}
+
 .about-callout strong {
   display: block;
   color: var(--forest);
