@@ -139,6 +139,9 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Service worker cache moved to `wrsp-v33` so saved-home-screen users can receive the usability pass.
 - Moved the prominent About WRSP card to the bottom of the Home screen so it remains easy to find without competing with the main Create/install/testing actions.
 - Service worker cache moved to `wrsp-v34` so saved-home-screen users can receive the Home layout correction.
+- SEO remediation pass: canonical URL, Open Graph URL/image, Twitter image, sitemap, robots, app share fallback, and structured data now point to `https://wrsp.lumbermen.org/` instead of the GitHub Pages path. Meta keywords removed.
+- Added richer WebApplication/Organization JSON-LD graph in the document head, updated the H1 to include "Woods-Ready Safety Plan for Logging Sites," and added `llms.txt`.
+- Service worker cache moved to `wrsp-v35` and navigation requests now use network-first with cached HTML fallback so stale head metadata is less likely to persist.
 
 ## User feedback captured
 
@@ -202,10 +205,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v34`.
+- Service worker cache is currently `wrsp-v35`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text Image or PDF / Print.
 - Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
-- After the SEO update is deployed, submit `https://loggingchance.github.io/WRSP/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.
+- After the SEO update is deployed, submit `https://wrsp.lumbermen.org/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.

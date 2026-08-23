@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.18 - August 22, 2026";
+const APP_VERSION = "WRSP v0.7.19 - August 22, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -2061,7 +2061,7 @@ async function sendSafetyPage() {
 }
 
 function appShareUrl() {
-  if (window.location.protocol === "file:") return "https://loggingchance.github.io/WRSP/";
+  if (window.location.protocol === "file:") return "https://wrsp.lumbermen.org/";
   return window.location.href.split("#")[0];
 }
 

@@ -66,6 +66,14 @@ p {
   color: var(--white);
 }
 
+.h1-sub {
+  display: block;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.45em;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
 .app-header .eyebrow {
   color: #f2c27c;
 }

@@ -1,0 +1,41 @@
+# WRSP - Woods-Ready Safety Plan
+
+> A free, offline-capable web app that helps logging crews create, save, and share
+> a one-page site safety plan before work starts on a job.
+
+WRSP is a progressive web app. It runs in a browser, installs to a phone home
+screen, and works without cell service after the first load. It stores nothing on
+a server: all plans and medical card details remain on the user's device unless
+that user chooses to share them.
+
+## What a WRSP plan contains
+- Job or site name, creator, state or province
+- GPS coordinates for the site, captured by phone or dropped map pin
+- Nearest public road, town, and county
+- Directions written to be read aloud to a 911 dispatcher
+- Phone service notes for the site
+- Access route, gate and lock notes, emergency meeting point and alternate
+- A possible helicopter landing zone, recorded as preparedness information only
+- Logger, crew, forester, and landowner contacts
+- Verified dispatch, fire, rescue, and state forestry agency contacts
+- Nearest hospital or emergency room and directions to it
+- Site hazards and medical notes
+
+## Provider and support
+Provided by the Northeastern Loggers' Association. Created by Dr. Steven Bick,
+CF ACF, through Northeast Forests LLC. Supported by a grant from the National
+Timber Harvesting and Transportation Safety Foundation (THATS Foundation),
+administered by the Forest Resources Association.
+
+## Important limitation
+WRSP does not contact 911 and does not summon emergency services. For serious
+injury or uncertain severity, call 911 and request EMS. WRSP is not a substitute
+for training, EMS, or local emergency procedures.
+
+## Related tools by the same creator
+- PATH - forest operations accounting: https://path.lumbermen.org/
+- BARK - forestry calculators: https://bicksapp.com/
+- BOLT - business plan writing for forest products firms: https://www.boltplanner.com/
+
+## Contact
+steve@northeastforests.com

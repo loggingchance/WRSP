@@ -5,32 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#123c2c">
     <meta name="description" content="WRSP helps logging crews create, share, and store a one-page site safety plan before every job. Free offline-capable PWA from Northeast Forests LLC.">
-    <meta name="keywords" content="logging safety plan, woods safety app, logging site safety, PWA for loggers, forest safety plan, logging crew safety, Northeast Forests, NELA, woods ready safety plan">
     <meta name="author" content="Northeast Forests LLC">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://loggingchance.github.io/WRSP/">
+    <link rel="canonical" href="https://wrsp.lumbermen.org/">
     <meta property="og:title" content="WRSP – Woods-Ready Safety Plan">
     <meta property="og:description" content="Create and share a one-page logging site safety plan in minutes. Free. Offline-capable.">
-    <meta property="og:image" content="https://loggingchance.github.io/WRSP/og-image.png">
+    <meta property="og:image" content="https://wrsp.lumbermen.org/og-image.png">
+    <meta property="og:image:secure_url" content="https://wrsp.lumbermen.org/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="WRSP – Woods-Ready Safety Plan app">
-    <meta property="og:url" content="https://loggingchance.github.io/WRSP/">
+    <meta property="og:url" content="https://wrsp.lumbermen.org/">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="WRSP – Woods-Ready Safety Plan">
     <meta name="twitter:description" content="Create and share a one-page logging site safety plan in minutes. Free. Offline-capable.">
-    <meta name="twitter:image" content="https://loggingchance.github.io/WRSP/og-image.png">
+    <meta name="twitter:image" content="https://wrsp.lumbermen.org/og-image.png">
     <title>WRSP – Woods-Ready Safety Plan | Free Logging Site Safety App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.svg">
     <link rel="stylesheet" href="styles.css">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://wrsp.lumbermen.org/#app",
+            "name": "WRSP – Woods-Ready Safety Plan",
+            "alternateName": ["Woods-Ready Safety Plan", "WRSP"],
+            "url": "https://wrsp.lumbermen.org/",
+            "applicationCategory": "BusinessApplication",
+            "applicationSubCategory": "Occupational Safety",
+            "operatingSystem": "Any (progressive web app)",
+            "browserRequirements": "Requires JavaScript. Works offline after first load.",
+            "description": "Free offline-capable app for creating, storing, and sharing a one-page logging site safety plan: GPS site location, read-aloud 911 directions, access and gate notes, site hazards, nearest hospital or ER, helicopter landing zone, and emergency contacts.",
+            "image": "https://wrsp.lumbermen.org/og-image.png",
+            "inLanguage": "en-US",
+            "isAccessibleForFree": true,
+            "dateModified": "2026-08-22",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            "featureList": [
+              "One-page logging site safety plan",
+              "Read-aloud directions for 911 dispatch",
+              "GPS site pin and dropped map pin",
+              "Possible helicopter landing zone record",
+              "Nearest hospital and emergency room lookup",
+              "Local-only personal medical card",
+              "Live location sharing handoff to phone",
+              "Offline use after install to home screen",
+              "Plan sharing by text image, PDF, QR code, or backup file"
+            ],
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "Loggers, foresters, logging crew leads, log truck drivers, trucking coordinators, landowners and landowner representatives"
+            },
+            "provider": { "@id": "https://www.northernlogger.com/#org" },
+            "creator": { "@id": "https://www.northeastforests.com/#org" },
+            "publisher": { "@id": "https://www.northeastforests.com/#org" },
+            "funder": {
+              "@type": "Organization",
+              "name": "National Timber Harvesting and Transportation Safety Foundation",
+              "alternateName": "THATS Foundation",
+              "url": "https://loggingsafety.com/"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://www.northeastforests.com/#org",
+            "name": "Northeast Forests LLC",
+            "url": "https://www.northeastforests.com/",
+            "email": "steve@northeastforests.com",
+            "founder": {
+              "@type": "Person",
+              "@id": "https://www.northeastforests.com/#steven-bick",
+              "name": "Steven Bick",
+              "honorificPrefix": "Dr.",
+              "honorificSuffix": "Ph.D., CF, ACF",
+              "jobTitle": "Consulting Forester and Forest Economist",
+              "sameAs": [
+                "https://www.loggingchance.com/",
+                "https://www.forestenterprise.org/"
+              ]
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://www.northernlogger.com/#org",
+            "name": "Northeastern Loggers' Association",
+            "alternateName": "NELA",
+            "url": "https://www.northernlogger.com/"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <header class="app-header">
       <div>
         <p class="eyebrow">Woods-Ready Safety Plan</p>
-        <h1>WRSP</h1>
+        <h1>WRSP <span class="h1-sub">- Woods-Ready Safety Plan for Logging Sites</span></h1>
         <p class="header-credit"><span>Provided by</span><span>Northeastern Loggers' Association</span></p>
       </div>
       <div class="header-actions">
@@ -965,32 +1044,5 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "WRSP – Woods-Ready Safety Plan",
-        "url": "https://loggingchance.github.io/WRSP/",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "iOS, Android, Web",
-        "description": "A free progressive web app that helps logging crews create and share a one-page site safety plan before every job. Includes GPS location capture, crew roster, hazard documentation, and offline capability.",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "author": {
-          "@type": "Organization",
-          "name": "Northeast Forests LLC",
-          "url": "https://northeastforests.com"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Northeastern Loggers' Association",
-          "url": "https://northernlogger.com"
-        },
-        "keywords": "logging safety, woods safety plan, logger PWA, forest safety app"
-      }
-    </script>
   </body>
 </html>
