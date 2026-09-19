@@ -52,5 +52,17 @@ The app uses IndexedDB for local plans and a service worker for offline app-shel
 - Open, edit, duplicate, delete, export, import, print, and share plans.
 - Share current static GPS location.
 - Maintain a preparedness profile for trusted contacts.
-- Launch online medical-care map searches with 911/EMS warnings.
+- Record user-entered medical and emergency numbers, with suggested search terms.
 - Include install instructions and acknowledgements.
+
+## Email and PDF sharing
+
+Email Plan + PDF passes the complete plain-text plan and an attached PDF to the device share sheet. Choose an email app there. Native share targets decide which fields they accept; Web Share does not provide an HTML-body field.
+
+Download Formatted Email Draft creates an unsent `.eml` message with both plain-text and styled HTML bodies, plus the same PDF attachment. Open it in a compatible mail client to address and send; some clients open EML as a message to forward rather than an editable draft. Unsupported file sharing falls back to this draft instead of silently omitting the email body. No email is sent by WRSP itself.
+
+PDFs use letter-size pages and include a clickable Google Maps directions link. Generation works offline; map tiles, directions, and road suggestions require a connection. Address suggestions use the [Photon public service](https://github.com/komoot/photon#demo-server) on explicit user request with a session cache, or a user's optional Geoapify key. Availability and map coverage are not guaranteed; manual address entry remains available.
+
+## Regression checks
+
+With a local server running and Playwright available, run `node tests/smoke.cjs`. The default browser is Edge; set `WRSP_BROWSER` to another installed Playwright channel when needed. `WRSP_URL` overrides the default `http://127.0.0.1:4173`, and `WRSP_TEST_OUTPUT` chooses the screenshot/export directory. Set `WRSP_LIVE_LOOKUP=1` to also exercise the public address service in the browser.

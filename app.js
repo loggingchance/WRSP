@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.19 - August 22, 2026";
+const APP_VERSION = "WRSP v0.7.20 - September 19, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -21,13 +21,16 @@ let emergencyCoords = null;
 let autoSaveTimer = null;
 let deferredInstallPrompt = null;
 let updateReloading = false;
-let activeLookupKind = "";
+let addressLookupBusy = false;
+const addressLookupCache = new Map();
+let preparedShare = null;
+let sharePreparationId = 0;
 let pendingSharePlanId = null;
 let pendingAddressSuggestion = null;
 let siteMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
-  zoom: 4,
+  zoom: 10,
   dragging: false,
   dragStart: null,
   startCenter: null,
@@ -36,7 +39,16 @@ let siteMapState = {
 let landingZoneMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
-  zoom: 4,
+  zoom: 10,
+  dragging: false,
+  dragStart: null,
+  startCenter: null,
+  moved: 0,
+};
+let landmarkMapState = {
+  centerLat: 39.5,
+  centerLng: -98.35,
+  zoom: 10,
   dragging: false,
   dragStart: null,
   startCenter: null,
@@ -225,6 +237,8 @@ const emptyPlan = () => ({
   },
   access: {
     knownLandmark: "",
+    knownLandmarkLat: "",
+    knownLandmarkLng: "",
     phoneDirections: "",
     phoneServiceNotes: "",
     routeNotes: "",
@@ -237,6 +251,7 @@ const emptyPlan = () => ({
     landingZoneNotes: "",
   },
   contacts: {
+    people: [],
     primaryContact: "",
     supervisor: "",
     foresterContact: "",
@@ -288,6 +303,8 @@ function samplePlan() {
     },
     access: {
       knownLandmark: "Four corners in Wells at NY-30 and NY-8",
+      knownLandmarkLat: "43.389670",
+      knownLandmarkLng: "-74.289090",
       phoneDirections: "From the NY-30 / NY-8 intersection in Wells, travel north on NY-30 for 4.6 miles. Turn left onto Tarbell Road. Continue 1.8 miles to the orange-flagged landing on the right. Send responders to the landing; a crew member will meet them there and guide them to the injured person.",
       phoneServiceNotes: "Cell service is reliable at the NY-30 intersection, weak at the landing, and unreliable in the lower skid trail.",
       routeNotes: "Tarbell Road is passable for pickups, ambulances, and fire apparatus in dry or frozen conditions. Large trucks should turn around at the landing only.",
@@ -300,6 +317,13 @@ function samplePlan() {
       landingZoneNotes: "Walk field before use. Watch for soft ground near ditch, overhead wires along road edge, and loose slash near landing. EMS/dispatch decides whether air medical response is appropriate.",
     },
     contacts: {
+      people: [
+        { name: "Everett Miller", role: "Logger / crew lead", phone: "518-555-0101" },
+        { name: "Jake Ross and Tyler Grant", role: "Crew members", phone: "518-555-0102" },
+        { name: "Sarah Collins", role: "Consulting forester", phone: "518-555-0105" },
+        { name: "Mark Davis", role: "Landowner representative", phone: "518-555-0103" },
+        { name: "Pete Allen", role: "North Road Trucking dispatcher", phone: "518-555-0104" },
+      ],
       primaryContact: "Everett Miller, logger / crew lead - 518-555-0101",
       supervisor: "Jake Ross and Tyler Grant, crew members - 518-555-0102",
       foresterContact: "Sarah Collins, consulting forester - 518-555-0105",
@@ -403,8 +427,10 @@ function routeTo(route) {
   if (route === "home") renderContinuePlan();
   if (route === "saved") renderSavedPlans();
   if (route === "create") {
+    centerNewSiteMap();
     window.setTimeout(() => {
       renderSiteMap();
+      renderLandmarkMap();
       renderLandingZoneMap();
     }, 50);
   }
@@ -496,9 +522,44 @@ async function updatePwaStatus() {
   `).join("");
 }
 
+function contactRowsFromForm() {
+  return [1, 2, 3, 4, 5].map((index) => ({
+    name: $(`#contactName${index}`)?.value.trim() || "",
+    role: $(`#contactRole${index}`)?.value.trim() || "",
+    phone: $(`#contactPhone${index}`)?.value.trim() || "",
+  })).filter((person) => person.name || person.role || person.phone);
+}
+
+function formatContactRow(person = {}) {
+  const nameRole = [person.name, person.role && `(${person.role})`].filter(Boolean).join(" ");
+  return [nameRole, person.phone].filter(Boolean).join(" - ");
+}
+
+function contactRowsForPlan(plan = {}) {
+  const contacts = plan.contacts || {};
+  if (Array.isArray(contacts.people) && contacts.people.length) {
+    return contacts.people.map((person) => ({
+      name: person.name || "",
+      role: person.role || "",
+      phone: person.phone || "",
+    }));
+  }
+  const legacyRows = [
+    ["", "Logger / crew lead", contacts.primaryContact],
+    ["", "Crew", contacts.supervisor],
+    ["", "Forester", contacts.foresterContact],
+    ["", "Landowner", contacts.landowner],
+    ["", "Other", contacts.truckingContact],
+  ];
+  return legacyRows
+    .filter(([, , value]) => value)
+    .map(([, role, value]) => ({ name: value, role, phone: "" }));
+}
+
 function formToPlan() {
   const id = $("#planId").value || crypto.randomUUID();
   const now = new Date().toISOString();
+  const people = contactRowsFromForm();
   return {
     ...emptyPlan(),
     id,
@@ -521,6 +582,8 @@ function formToPlan() {
     },
     access: {
       knownLandmark: $("#knownLandmark").value.trim(),
+      knownLandmarkLat: $("#knownLandmarkLat").value.trim(),
+      knownLandmarkLng: $("#knownLandmarkLng").value.trim(),
       phoneDirections: $("#phoneDirections").value.trim(),
       phoneServiceNotes: $("#phoneServiceNotes").value.trim(),
       routeNotes: $("#routeNotes").value.trim(),
@@ -533,11 +596,12 @@ function formToPlan() {
       landingZoneNotes: $("#landingZoneNotes").value.trim(),
     },
     contacts: {
-      primaryContact: $("#primaryContact").value.trim(),
-      supervisor: $("#supervisor").value.trim(),
-      foresterContact: $("#foresterContact").value.trim(),
-      landowner: $("#landowner").value.trim(),
-      truckingContact: $("#truckingContact").value.trim(),
+      people,
+      primaryContact: formatContactRow(people[0]),
+      supervisor: formatContactRow(people[1]),
+      foresterContact: formatContactRow(people[2]),
+      landowner: formatContactRow(people[3]),
+      truckingContact: formatContactRow(people[4]),
     },
     medical: {
       hospital: $("#hospital").value.trim(),
@@ -550,10 +614,10 @@ function formToPlan() {
     },
     sar: {
       contacts: $("#sarContacts").value.trim(),
-      verifiedAgency: $("#verifiedResponderAgency").value.trim(),
-      verifiedPhone: $("#verifiedResponderPhone").value.trim(),
-      verifiedPerson: $("#verifiedResponderPerson").value.trim(),
-      verifiedSource: $("#verifiedResponderSource").value.trim(),
+      verifiedAgency: "",
+      verifiedPhone: "",
+      verifiedPerson: "",
+      verifiedSource: "",
     },
     hazards: $("#hazards").value.trim(),
   };
@@ -562,26 +626,19 @@ function formToPlan() {
 function planReadiness(plan = formToPlan()) {
   const loc = plan.location || {};
   const access = plan.access || {};
-  const contacts = plan.contacts || {};
-  const sar = plan.sar || {};
-  const medical = plan.medical || {};
   const hasLocation = Boolean((loc.lat && loc.lng) || loc.roadAddress || loc.town || loc.county);
-  const hasDirections = Boolean(access.phoneDirections || access.knownLandmark);
-  const hasJobContact = Boolean(contacts.primaryContact || contacts.supervisor || contacts.foresterContact || contacts.landowner || contacts.truckingContact);
-  const hasEmergencyOrMedical = Boolean(medical.hospital || sar.contacts || sar.verifiedAgency || sar.verifiedPhone);
+  const hasDirections = Boolean(access.phoneDirections || access.knownLandmark || (access.knownLandmarkLat && access.knownLandmarkLng));
+  const hasJobContact = contactRowsForPlan(plan).some((person) => person.name || person.phone);
   const usableChecks = [
     { label: "site name", done: Boolean(plan.title) },
     { label: "site location", done: hasLocation },
     { label: "read-aloud directions or known starting point", done: hasDirections },
     { label: "job contact", done: hasJobContact },
-    { label: "ER or dispatch/emergency contact", done: hasEmergencyOrMedical },
   ];
   const completeChecks = [
     { label: "exact GPS/map pin", done: Boolean(loc.lat && loc.lng) },
     { label: "read-aloud 911 directions", done: Boolean(access.phoneDirections) },
-    { label: "logger or crew contact", done: Boolean(contacts.primaryContact || contacts.supervisor) },
-    { label: "verified dispatch/emergency number", done: Boolean(sar.contacts || sar.verifiedAgency || sar.verifiedPhone) },
-    { label: "nearest ER", done: Boolean(medical.hospital) },
+    { label: "job contact", done: hasJobContact },
     { label: "meeting/access notes", done: Boolean(access.meetingPoint || access.routeNotes || access.gateNotes) },
   ];
   const usableDone = usableChecks.filter((check) => check.done).length;
@@ -631,6 +688,8 @@ function planToForm(plan) {
   $("#county").value = plan.location?.county || "";
   $("#state").value = plan.location?.state || "";
   $("#knownLandmark").value = plan.access?.knownLandmark || "";
+  $("#knownLandmarkLat").value = plan.access?.knownLandmarkLat || "";
+  $("#knownLandmarkLng").value = plan.access?.knownLandmarkLng || "";
   $("#phoneDirections").value = plan.access?.phoneDirections || "";
   $("#phoneServiceNotes").value = plan.access?.phoneServiceNotes || "";
   $("#routeNotes").value = plan.access?.routeNotes || "";
@@ -641,11 +700,13 @@ function planToForm(plan) {
   $("#landingZoneLat").value = plan.access?.landingZoneLat || "";
   $("#landingZoneLng").value = plan.access?.landingZoneLng || "";
   $("#landingZoneNotes").value = plan.access?.landingZoneNotes || "";
-  $("#primaryContact").value = plan.contacts?.primaryContact || "";
-  $("#supervisor").value = plan.contacts?.supervisor || "";
-  $("#foresterContact").value = plan.contacts?.foresterContact || "";
-  $("#landowner").value = plan.contacts?.landowner || "";
-  $("#truckingContact").value = plan.contacts?.truckingContact || "";
+  const people = contactRowsForPlan(plan);
+  [1, 2, 3, 4, 5].forEach((index) => {
+    const person = people[index - 1] || {};
+    $(`#contactName${index}`).value = person.name || "";
+    $(`#contactRole${index}`).value = person.role || "";
+    $(`#contactPhone${index}`).value = person.phone || "";
+  });
   $("#hospital").value = plan.medical?.hospital || "";
   $("#hospitalDirectionsUrl").value = plan.medical?.hospitalDirectionsUrl || "";
   if ($("#urgentCare")) $("#urgentCare").value = plan.medical?.urgentCare || "";
@@ -653,25 +714,29 @@ function planToForm(plan) {
   if ($("#traumaCenter")) $("#traumaCenter").value = plan.medical?.traumaCenter || "";
   if ($("#traumaDirectionsUrl")) $("#traumaDirectionsUrl").value = plan.medical?.traumaDirectionsUrl || "";
   $("#medicalNotes").value = plan.medical?.notes || "";
-  $("#sarContacts").value = plan.sar?.contacts || "";
-  $("#verifiedResponderAgency").value = plan.sar?.verifiedAgency || "";
-  $("#verifiedResponderPhone").value = plan.sar?.verifiedPhone || "";
-  $("#verifiedResponderPerson").value = plan.sar?.verifiedPerson || "";
-  $("#verifiedResponderSource").value = plan.sar?.verifiedSource || "";
+  $("#sarContacts").value = emergencyNotes(plan);
   $("#hazards").value = plan.hazards || "";
   syncReadinessStatus(plan);
   updateGpsStatus(plan);
-  updateWoodsContactSuggestion();
   updateEssentialProgress();
   const lat = parseFloat(plan.location?.lat);
   const lng = parseFloat(plan.location?.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
+  const landmarkLat = parseFloat(plan.access?.knownLandmarkLat);
+  const landmarkLng = parseFloat(plan.access?.knownLandmarkLng);
+  if (Number.isFinite(landmarkLat) && Number.isFinite(landmarkLng)) {
+    centerLandmarkMap(landmarkLat, landmarkLng, Math.max(landmarkMapState.zoom, 15));
+  } else if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 14));
+  } else {
+    renderLandmarkMap();
+  }
   const lzLat = parseFloat(plan.access?.landingZoneLat);
   const lzLng = parseFloat(plan.access?.landingZoneLng);
   if (Number.isFinite(lzLat) && Number.isFinite(lzLng)) {
     centerLandingZoneMap(lzLat, lzLng, Math.max(landingZoneMapState.zoom, 17));
   } else if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 15));
+    centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 17));
   } else {
     renderLandingZoneMap();
   }
@@ -742,6 +807,24 @@ function updateGpsStatus(plan = formToPlan()) {
     status.textContent = `Exact coordinates set from ${source}: ${loc.lat}, ${loc.lng}${loc.accuracy ? `, accuracy about ${Math.round(loc.accuracy)} meters` : ""}`;
   } else {
     status.textContent = "Exact coordinates have not been set. Use phone GPS or drop a map pin.";
+  }
+}
+
+async function centerNewSiteMap() {
+  if ($("#lat").value || $("#lng").value || siteMapState.locating) return;
+  const original = [siteMapState.centerLat, siteMapState.centerLng, siteMapState.zoom].join(",");
+  const planId = $("#planId").value;
+  siteMapState.locating = true;
+  try {
+    const position = await getCurrentPosition();
+    if (planId !== $("#planId").value || $("#lat").value || $("#lng").value ||
+      original !== [siteMapState.centerLat, siteMapState.centerLng, siteMapState.zoom].join(",")) return;
+    centerSiteMap(position.coords.latitude, position.coords.longitude, 17);
+    centerNearbyMaps(position.coords.latitude, position.coords.longitude);
+  } catch {
+    // Location is optional; the map and manual fields remain available.
+  } finally {
+    siteMapState.locating = false;
   }
 }
 
@@ -829,6 +912,17 @@ function renderLandingZoneMap() {
   });
 }
 
+function renderLandmarkMap() {
+  renderCoordinateMap({
+    state: landmarkMapState,
+    mapSelector: "#landmarkMap",
+    tilesSelector: "#landmarkMapTiles",
+    markerSelector: "#landmarkMapMarker",
+    latSelector: "#knownLandmarkLat",
+    lngSelector: "#knownLandmarkLng",
+  });
+}
+
 function centerSiteMap(lat, lng, zoom = siteMapState.zoom) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
   siteMapState.centerLat = clamp(lat, -85, 85);
@@ -845,6 +939,14 @@ function centerLandingZoneMap(lat, lng, zoom = landingZoneMapState.zoom) {
   renderLandingZoneMap();
 }
 
+function centerLandmarkMap(lat, lng, zoom = landmarkMapState.zoom) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  landmarkMapState.centerLat = clamp(lat, -85, 85);
+  landmarkMapState.centerLng = lng;
+  landmarkMapState.zoom = clamp(zoom, 3, 19);
+  renderLandmarkMap();
+}
+
 function setSiteCoordinates(lat, lng, center = true) {
   const safeLat = clamp(lat, -85, 85);
   const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
@@ -857,8 +959,14 @@ function setSiteCoordinates(lat, lng, center = true) {
   $("#planForm").dataset.locationSource = "map pin";
   updateGpsStatus();
   updateEssentialProgress();
-  if (center) centerSiteMap(safeLat, safeLng);
+  if (center) centerSiteMap(safeLat, safeLng, Math.max(siteMapState.zoom, 17));
+  centerNearbyMaps(safeLat, safeLng);
   scheduleAutoSave();
+}
+
+function centerNearbyMaps(lat, lng) {
+  if (!$("#knownLandmarkLat").value && !$("#knownLandmarkLng").value) centerLandmarkMap(lat, lng, 14);
+  if (!$("#landingZoneLat").value && !$("#landingZoneLng").value) centerLandingZoneMap(lat, lng, 17);
 }
 
 function setLandingZoneCoordinates(lat, lng, center = true) {
@@ -868,6 +976,16 @@ function setLandingZoneCoordinates(lat, lng, center = true) {
   $("#landingZoneLng").value = safeLng.toFixed(6);
   if (center) centerLandingZoneMap(safeLat, safeLng, Math.max(landingZoneMapState.zoom, 17));
   renderLandingZoneMap();
+  scheduleAutoSave();
+}
+
+function setLandmarkCoordinates(lat, lng, center = true) {
+  const safeLat = clamp(lat, -85, 85);
+  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
+  $("#knownLandmarkLat").value = safeLat.toFixed(6);
+  $("#knownLandmarkLng").value = safeLng.toFixed(6);
+  if (center) centerLandmarkMap(safeLat, safeLng, Math.max(landmarkMapState.zoom, 15));
+  renderLandmarkMap();
   scheduleAutoSave();
 }
 
@@ -892,6 +1010,13 @@ function clearLandingZoneCoordinates() {
   scheduleAutoSave();
 }
 
+function clearLandmarkCoordinates() {
+  $("#knownLandmarkLat").value = "";
+  $("#knownLandmarkLng").value = "";
+  renderLandmarkMap();
+  scheduleAutoSave();
+}
+
 function cleanCountyName(value = "") {
   return value.replace(/\s+County$/i, "").trim();
 }
@@ -906,6 +1031,7 @@ function addressFromGeoapifyProperties(properties = {}) {
     || properties.town
     || properties.village
     || properties.hamlet
+    || properties.district
     || properties.municipality
     || properties.suburb
     || "";
@@ -923,41 +1049,50 @@ function setAddressSuggestionStatus(message) {
 }
 
 async function suggestAddressFromPin() {
+  if (addressLookupBusy) return;
   const lat = parseFloat($("#lat").value);
   const lng = parseFloat($("#lng").value);
   const text = $("#addressSuggestionText");
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    pendingAddressSuggestion = null;
-    setAddressSuggestionStatus("Drop a site pin or enter coordinates first.");
-    if (text) text.textContent = "";
+  pendingAddressSuggestion = null;
+  text.textContent = "";
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    setAddressSuggestionStatus("Drop a site pin or enter valid coordinates first.");
     return;
   }
-  const defaults = await loadDefaults();
-  const apiKey = defaults.geoapifyKey || "";
-  if (!apiKey) {
-    pendingAddressSuggestion = null;
-    setAddressSuggestionStatus("Add a free Geoapify API key under More > Set Defaults before using in-app address suggestions. Manual address entry still works.");
-    if (text) text.textContent = "";
-    return;
-  }
-  setAddressSuggestionStatus("Looking up the nearest road and place from the map pin...");
-  if (text) text.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+  addressLookupBusy = true;
+  $("#suggestAddressFromPin").disabled = true;
+  setAddressSuggestionStatus("Looking up the nearest road and town...");
   try {
-    const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=geojson&apiKey=${encodeURIComponent(apiKey)}`;
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(`Geoapify returned ${response.status}`);
-    const data = await response.json();
-    const properties = data.features?.[0]?.properties;
-    if (!properties) throw new Error("No reverse-geocoding result");
-    const suggestion = addressFromGeoapifyProperties(properties);
-    if (!suggestion.display) throw new Error("No usable address fields");
+    let suggestion = addressLookupCache.get(key);
+    if (!suggestion) {
+      const defaults = await loadDefaults();
+      const apiKey = defaults.geoapifyKey || "";
+      const nearbyRoad = new URLSearchParams({ lat, lon: lng, lang: "en", limit: "1", layer: "street", radius: "10" });
+      ["path", "footway", "cycleway", "steps", "bridleway", "track", "pedestrian"].forEach((kind) => nearbyRoad.append("osm_tag", `!highway:${kind}`));
+      const url = apiKey
+        ? `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=geojson&apiKey=${encodeURIComponent(apiKey)}`
+        : `https://photon.komoot.io/reverse?${nearbyRoad}`;
+      const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(12000) });
+      if (!response.ok) throw new Error("Address lookup unavailable");
+      const data = await response.json();
+      const properties = data.features?.[0]?.properties;
+      if (!properties) throw new Error("No nearby address found");
+      suggestion = addressFromGeoapifyProperties(properties);
+      if (!suggestion.display) throw new Error("No usable address fields");
+      addressLookupCache.set(key, suggestion);
+    }
+    if (parseFloat($("#lat").value) !== lat || parseFloat($("#lng").value) !== lng) return;
     pendingAddressSuggestion = suggestion;
     text.textContent = suggestion.display;
-    setAddressSuggestionStatus("Check this suggestion before relying on it. Rural road names and county lines can be imperfect.");
-  } catch (error) {
-    pendingAddressSuggestion = null;
-    if (text) text.textContent = "";
-    setAddressSuggestionStatus("Could not suggest a road/town from this pin. Open the pin in Google Maps or type the nearest road, town, county, and state manually.");
+    setAddressSuggestionStatus("Nearby road / place, not a street address assigned to this pin. Check before using.");
+  } catch {
+    if (parseFloat($("#lat").value) === lat && parseFloat($("#lng").value) === lng) {
+      setAddressSuggestionStatus("Address lookup unavailable. Check your connection, open the pin in Google Maps, or enter the road and town below.");
+    }
+  } finally {
+    addressLookupBusy = false;
+    $("#suggestAddressFromPin").disabled = false;
   }
 }
 
@@ -968,7 +1103,7 @@ function openSitePinInGoogleMaps() {
     toast("Drop a site pin or enter coordinates first.");
     return;
   }
-  window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat.toFixed(6)},${lng.toFixed(6)}`)}`;
+  openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat.toFixed(6)},${lng.toFixed(6)}`)}`);
 }
 
 function usePendingAddressSuggestion(editAfterUse = false) {
@@ -981,8 +1116,6 @@ function usePendingAddressSuggestion(editAfterUse = false) {
   if (suggestion.town) $("#town").value = suggestion.town;
   if (suggestion.county) $("#county").value = suggestion.county;
   if (suggestion.state) $("#state").value = suggestion.state;
-  updateWoodsContactSuggestion();
-  autofillMedicalCareFromLocation(false);
   syncReadinessStatus();
   updateEssentialProgress();
   scheduleAutoSave();
@@ -1039,7 +1172,6 @@ function essentialStatus(plan = formToPlan()) {
     { label: "site location", done: readiness.checks.find((check) => check.label === "site location")?.done || readiness.value === "complete" },
     { label: "directions or starting point", done: readiness.checks.find((check) => check.label === "read-aloud directions or known starting point")?.done || readiness.value === "complete" },
     { label: "job contact", done: readiness.checks.find((check) => check.label === "job contact")?.done || readiness.value === "complete" },
-    { label: "ER or dispatch/emergency contact", done: readiness.checks.find((check) => check.label === "ER or dispatch/emergency contact")?.done || readiness.value === "complete" },
   ];
   return { checks, done: checks.filter((check) => check.done).length, total: checks.length };
 }
@@ -1172,29 +1304,48 @@ async function planForSharing() {
   return activePlan();
 }
 
-function openShareChoice(planId = null) {
+async function openShareChoice(planId = null) {
   pendingSharePlanId = planId;
-  setShareChoiceStatus("");
+  preparedShare = null;
+  const requestId = ++sharePreparationId;
+  setShareChoiceStatus("Preparing plan...");
   $("#shareChoicePanel").hidden = false;
-  planForSharing().then((plan) => {
-    const panel = $("#shareChoiceReadiness");
-    if (panel && plan) panel.innerHTML = shareReadinessHtml(plan);
-  });
+  ["shareChoicePng", "shareChoicePdf", "shareChoiceEmailDraft"].forEach((id) => { $(`#${id}`).disabled = true; });
+  try {
+    const plan = await planForSharing();
+    if (!plan) throw new Error("Open a saved plan first.");
+    $("#shareChoiceReadiness").innerHTML = shareReadinessHtml(plan);
+    const pdf = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
+    const imageBlob = await new Promise((resolve) => planCanvas(plan).toBlob(resolve, "image/jpeg", 0.82));
+    if (!imageBlob) throw new Error("Could not prepare the plan image.");
+    const image = new File([imageBlob], `${safeFileName(plan.title)}.jpg`, { type: "image/jpeg" });
+    const email = await planEmailFile(plan, pdf);
+    if (requestId !== sharePreparationId) return;
+    preparedShare = { plan, pdf, image, email };
+    ["shareChoicePng", "shareChoicePdf", "shareChoiceEmailDraft"].forEach((id) => { $(`#${id}`).disabled = false; });
+    setShareChoiceStatus("");
+  } catch (error) {
+    if (requestId === sharePreparationId) setShareChoiceStatus(`Could not prepare sharing: ${error.message}`);
+  }
 }
 
 function closeShareChoice() {
+  sharePreparationId += 1;
   $("#shareChoicePanel").hidden = true;
 }
 
 async function shareChosenPlan(format) {
-  const plan = await planForSharing();
-  if (!plan) return;
-  closeShareChoice();
-  if (format === "pdf") {
-    await sharePlanPdf(plan);
+  if (!preparedShare) return;
+  const { plan, pdf, image, email } = preparedShare;
+  if (format === "email-draft") {
+    await fallbackDownloadFile(email, "Email draft saved with the formatted plan and PDF attached. Open it in your email app to address and send.");
     return;
   }
-  await sharePlanPng(plan);
+  if (format === "pdf") {
+    await shareFileAttachment(pdf, `WRSP: ${plan.title}`, "", planShareText(plan), email);
+    return;
+  }
+  await shareFileAttachment(image, `WRSP: ${plan.title}`, "Image saved. Attach it from Files/Downloads when texting.");
 }
 
 function renderCurrentPlan(plan) {
@@ -1230,7 +1381,8 @@ function renderPlanHtml(plan) {
     ["Access", [
       ["Known starting landmark", plan.access?.knownLandmark],
       ["Read-aloud directions", plan.access?.phoneDirections],
-      ["Best access route", plan.access?.routeNotes],
+      ["Access limits / truck notes", plan.access?.routeNotes],
+      ["Directions from starting point", planDirectionsUrl(plan) ? `<a href="${escapeHtml(planDirectionsUrl(plan))}" target="_blank" rel="noopener">Open Google Maps directions</a>` : ""],
       ["Gate / lock / key notes", plan.access?.gateNotes],
       ["Emergency meeting point", plan.access?.meetingPoint],
       ["Alternate meeting point", plan.access?.alternateMeetingPoint],
@@ -1238,18 +1390,7 @@ function renderPlanHtml(plan) {
       ["Landing zone GPS", plan.access?.landingZoneLat && plan.access?.landingZoneLng ? `${plan.access.landingZoneLat}, ${plan.access.landingZoneLng}` : ""],
       ["Landing zone hazards / notes", plan.access?.landingZoneNotes],
     ]],
-    ["Contacts", [
-      ["Logger(s)", plan.contacts?.primaryContact],
-      ["Crew member(s)", plan.contacts?.supervisor],
-      ["Forester", plan.contacts?.foresterContact],
-      ["Landowner(s)", plan.contacts?.landowner],
-      ["Other contact / role", plan.contacts?.truckingContact],
-      ["Verified agency / dispatch", plan.sar?.verifiedAgency],
-      ["Verified agency phone", plan.sar?.verifiedPhone],
-      ["Verified person / role", plan.sar?.verifiedPerson],
-      ["Verified source / date", plan.sar?.verifiedSource],
-      ["Local woods emergency contacts", plan.sar?.contacts],
-    ]],
+    ["Emergency numbers", [["Local numbers / notes", emergencyNotes(plan)]]],
     ["Medical and hazards", [
       ["Nearest hospital / ER", plan.medical?.hospital],
       ["Hospital / ER directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital / ER directions</a>` : ""],
@@ -1266,6 +1407,7 @@ function renderPlanHtml(plan) {
       <p>${escapeHtml(emergencyDirections)}</p>
     </div>
     <p><strong>Readiness:</strong> <span class="status-pill ${escapeHtml(readiness.value)}">${escapeHtml(readiness.label)}</span> &middot; <strong>Updated:</strong> ${formatDate(plan.updatedAt)}</p>
+    <h3>People</h3>${peopleTableHtml(plan)}
     ${sections.map(([title, rows]) => `
       <h3>${title}</h3>
       <dl>${rows.map(([label, value]) => `
@@ -1308,37 +1450,28 @@ function renderResponderPlanHtml(plan) {
         ${mapsLink ? responderLine("Map link", `<a href="${mapsLink}" target="_blank" rel="noopener">${mapsLink}</a>`) : responderLine("Map link", "Not entered")}
       </section>
       <section class="sheet-section">
-        <h3>State & Emergency Numbers</h3>
+        <h3>Emergency Numbers</h3>
         ${responderList([
-          ["Verified agency / dispatch", plan.sar?.verifiedAgency],
-          ["Verified agency phone", plan.sar?.verifiedPhone],
-          ["Verified person / role", plan.sar?.verifiedPerson],
-          ["Verified source / date", plan.sar?.verifiedSource],
-          ["Local woods emergency contacts", plan.sar?.contacts],
+          ["Local numbers / notes", emergencyNotes(plan)],
           ["Hospital / ER", plan.medical?.hospital],
           ["Hospital directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital directions</a>` : ""],
         ])}
       </section>
       <section class="sheet-section">
         <h3>People</h3>
-        ${responderList([
-          ["Logger(s)", plan.contacts?.primaryContact],
-          ["Crew member(s)", plan.contacts?.supervisor],
-          ["Forester", plan.contacts?.foresterContact],
-          ["Landowner(s)", plan.contacts?.landowner],
-          ["Other contact / role", plan.contacts?.truckingContact],
-        ])}
+        ${peopleTableHtml(plan)}
       </section>
       <section class="sheet-section directions-section">
         <h3>Directions to Job Site for Emergency Vehicles</h3>
         <p>${escapeHtml(buildEmergencyDirections(plan))}</p>
+        ${planDirectionsUrl(plan) ? `<p><a href="${escapeHtml(planDirectionsUrl(plan))}" target="_blank" rel="noopener">Google Maps directions from starting point</a></p>` : ""}
       </section>
       <section class="sheet-section">
         <h3>Access and Hazards</h3>
         ${responderList([
           ["Emergency meeting point", access.meetingPoint],
           ["Gate / lock / key notes", access.gateNotes],
-          ["Best access / truck route", access.routeNotes],
+          ["Access limits / truck notes", access.routeNotes],
           ["Alternate meeting point", access.alternateMeetingPoint],
           ["Hazards at or near site", plan.hazards],
           ["Medical notes", plan.medical?.notes],
@@ -1362,7 +1495,9 @@ function buildEmergencyDirections(plan) {
   parts.push(`The emergency is at ${plan.title || "a logging site"}.`);
   if (loc.lat && loc.lng) parts.push(`GPS coordinates are ${loc.lat}, ${loc.lng}.`);
   if (access.phoneServiceNotes) parts.push(`Phone service notes: ${access.phoneServiceNotes}.`);
-  if (access.knownLandmark) parts.push(`Start from ${access.knownLandmark}.`);
+  if (access.knownLandmark || (access.knownLandmarkLat && access.knownLandmarkLng)) {
+    parts.push(`Start from ${access.knownLandmark || "the landmark pin"}${access.knownLandmarkLat && access.knownLandmarkLng ? ` (${access.knownLandmarkLat}, ${access.knownLandmarkLng})` : ""}.`);
+  }
   if (access.phoneDirections) parts.push(access.phoneDirections);
   if (access.meetingPoint) parts.push(`The emergency meeting point is ${access.meetingPoint}.`);
   if (access.gateNotes) parts.push(`Gate, lock, or access notes: ${access.gateNotes}.`);
@@ -1371,42 +1506,57 @@ function buildEmergencyDirections(plan) {
     parts.push(`Possible helicopter landing zone: ${access.landingZoneDescription || "description not entered"}${access.landingZoneLat && access.landingZoneLng ? `; GPS ${access.landingZoneLat}, ${access.landingZoneLng}` : ""}.`);
   }
   if (access.landingZoneNotes) parts.push(`Landing zone hazards or notes: ${access.landingZoneNotes}.`);
-  if (plan.sar?.verifiedAgency || plan.sar?.verifiedPhone || plan.sar?.verifiedPerson) {
-    parts.push(`Verified emergency contact: ${[plan.sar?.verifiedAgency, plan.sar?.verifiedPerson, plan.sar?.verifiedPhone].filter(Boolean).join(", ")}.`);
-  }
-  if (plan.sar?.contacts) parts.push(`Local woods emergency contacts or agency notes: ${plan.sar.contacts}.`);
-  if (!access.knownLandmark && !access.phoneDirections) {
+  if (!access.knownLandmark && !access.phoneDirections && !(access.knownLandmarkLat && access.knownLandmarkLng)) {
     parts.push("Directions from a known town, village, highway intersection, or other responder-friendly landmark have not been entered yet.");
   }
   return parts.join(" ");
 }
 
-function planShareText(plan) {
+function emergencyNotes(plan) {
+  const sar = plan.sar || {};
+  const oldContact = [sar.verifiedAgency, sar.verifiedPhone, sar.verifiedPerson, sar.verifiedSource].filter(Boolean).join(" - ");
+  return [sar.contacts, oldContact && !sar.contacts?.includes(oldContact) ? oldContact : ""].filter(Boolean).join("\n");
+}
+
+function planDirectionsUrl(plan) {
   const loc = plan.location || {};
-  const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "No GPS set";
-  const hospital = plan.medical?.hospital || "Not entered";
-  const agency = [plan.sar?.verifiedAgency, plan.sar?.verifiedPerson, plan.sar?.verifiedPhone].filter(Boolean).join(", ") || plan.sar?.contacts || "Not entered";
-  const lz = plan.access?.landingZoneLat && plan.access?.landingZoneLng
-    ? `${plan.access.landingZoneLat}, ${plan.access.landingZoneLng}`
-    : (plan.access?.landingZoneDescription || "Not entered");
+  if (!loc.lat || !loc.lng) return "";
+  const access = plan.access || {};
+  const params = new URLSearchParams({ api: "1", destination: `${loc.lat},${loc.lng}`, travelmode: "driving" });
+  const origin = access.knownLandmarkLat && access.knownLandmarkLng
+    ? `${access.knownLandmarkLat},${access.knownLandmarkLng}`
+    : access.knownLandmark;
+  if (origin) params.set("origin", origin);
+  return `https://www.google.com/maps/dir/?${params}`;
+}
+
+function peopleTableHtml(plan) {
+  const people = contactRowsForPlan(plan);
+  if (!people.length) return "<p>Not entered</p>";
+  return `<table class="people-table" style="border-collapse:collapse;width:100%;text-align:left">
+    <thead><tr>${["Name", "Role", "Contact number"].map((label) => `<th scope="col" style="padding:8px;border-bottom:2px solid #38564a">${label}</th>`).join("")}</tr></thead>
+    <tbody>${people.map((person) => `<tr>${[person.name, person.role, person.phone].map((value) => `<td style="padding:8px;border-bottom:1px solid #d8ded5;overflow-wrap:anywhere">${escapeHtml(value || "")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function planShareText(plan) {
   return [
     `WRSP Safety Plan: ${plan.title || "Untitled"}`,
-    `GPS: ${loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not set"}`,
-    `Map: ${mapsLink}`,
-    `Read to 911: ${buildEmergencyDirections(plan)}`,
-    `Phone service: ${plan.access?.phoneServiceNotes || "Not entered"}`,
-    `Logger(s): ${plan.contacts?.primaryContact || "Not entered"}`,
-    `Crew: ${plan.contacts?.supervisor || "Not entered"}`,
-    `Forester: ${plan.contacts?.foresterContact || "Not entered"}`,
-    `Landowner(s): ${plan.contacts?.landowner || "Not entered"}`,
-    `Other contact/role: ${plan.contacts?.truckingContact || "Not entered"}`,
-    `Meeting point: ${plan.access?.meetingPoint || "Not entered"}`,
-    `Hospital/medical: ${hospital}`,
-    `Woods emergency contact: ${agency}`,
-    `Possible helicopter LZ: ${lz}`,
-    `Hazards: ${plan.hazards || "Not entered"}`,
-    "For serious injury or uncertain severity, call 911 and request EMS.",
-  ].join("\n");
+    `Updated ${formatDate(plan.updatedAt)}`,
+    ...planPngRows(plan).map(([label, value]) => `${label}\n${value}`),
+  ].join("\n\n");
+}
+
+function planEmailHtml(plan) {
+  return `<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><title>${escapeHtml(plan.title || "WRSP Safety Plan")}</title></head>
+  <body style="margin:0;background:#fff;color:#202923;font:16px/1.5 Arial,sans-serif">
+    <main lang="en" dir="ltr" style="max-width:680px;margin:auto;padding:24px">
+      <h1 style="font-size:24px;color:#123c2c;margin:0 0 8px">${escapeHtml(plan.title || "WRSP Safety Plan")}</h1>
+      <p style="margin:0 0 20px">Safety Plan &amp; Important Information<br>Updated ${escapeHtml(formatDate(plan.updatedAt))}</p>
+      ${planPngRows(plan).map(([label, value]) => `<section>
+        <h2 style="font-size:17px;color:#123c2c;border-bottom:1px solid #b9c9c0;padding-bottom:5px;margin:20px 0 8px">${escapeHtml(label)}</h2>
+        ${label === "PEOPLE" ? peopleTableHtml(plan) : `<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value)}</p>`}
+      </section>`).join("")}
+    </main></body></html>`;
 }
 
 async function shareText(title, text) {
@@ -1476,20 +1626,9 @@ function planPngRows(plan) {
       mapsLink ? `Map: ${mapsLink}` : "",
       [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", "),
     ].filter(Boolean).join("\n")],
-    ["PEOPLE", [
-      plan.contacts?.primaryContact && `Logger(s): ${plan.contacts.primaryContact}`,
-      plan.contacts?.supervisor && `Crew: ${plan.contacts.supervisor}`,
-      plan.contacts?.foresterContact && `Forester: ${plan.contacts.foresterContact}`,
-      plan.contacts?.landowner && `Landowner(s): ${plan.contacts.landowner}`,
-      plan.contacts?.truckingContact && `Other: ${plan.contacts.truckingContact}`,
-    ].filter(Boolean).join("\n") || "Not entered"],
-    ["DIRECTIONS TO JOB SITE", buildEmergencyDirections(plan)],
-    ["STATE & EMERGENCY NUMBERS", [
-      plan.sar?.verifiedAgency,
-      plan.sar?.verifiedPhone,
-      plan.sar?.verifiedPerson,
-      plan.sar?.contacts,
-    ].filter(Boolean).join("\n") || "Not entered"],
+    ["PEOPLE", contactRowsForPlan(plan).map(formatContactRow).join("\n") || "Not entered"],
+    ["DIRECTIONS TO JOB SITE", [buildEmergencyDirections(plan), planDirectionsUrl(plan) && `Google Maps directions: ${planDirectionsUrl(plan)}`].filter(Boolean).join("\n")],
+    ["EMERGENCY NUMBERS", emergencyNotes(plan) || "Dial 911"],
     ["MEDICAL", [
       plan.medical?.hospital && `Hospital / ER: ${plan.medical.hospital}`,
       plan.medical?.hospitalDirectionsUrl && `Hospital map: ${plan.medical.hospitalDirectionsUrl}`,
@@ -1498,6 +1637,8 @@ function planPngRows(plan) {
     ["ACCESS / HAZARDS", [
       access.gateNotes && `Gate: ${access.gateNotes}`,
       access.meetingPoint && `Meeting point: ${access.meetingPoint}`,
+      access.alternateMeetingPoint && `Alternate meeting point: ${access.alternateMeetingPoint}`,
+      access.routeNotes && `Access limits / truck notes: ${access.routeNotes}`,
       plan.hazards && `Hazards: ${plan.hazards}`,
     ].filter(Boolean).join("\n") || "Not entered"],
     ["POTENTIAL HELICOPTER LANDING SITE", [
@@ -1508,20 +1649,30 @@ function planPngRows(plan) {
   ];
 }
 
-function wrappedLineCount(ctx, text, maxWidth) {
-  const words = String(text || "Not entered").split(/\s+/);
-  let line = "";
-  let count = 0;
-  words.forEach((word) => {
-    const testLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(testLine).width > maxWidth && line) {
-      count += 1;
-      line = word;
-    } else {
-      line = testLine;
+function canvasTextLines(ctx, text, maxWidth) {
+  const lines = [];
+  for (const paragraph of String(text || " ").split("\n")) {
+    let line = "";
+    for (const word of paragraph.split(/\s+/)) {
+      if (line && ctx.measureText(`${line} ${word}`).width > maxWidth) {
+        lines.push(line);
+        line = "";
+      }
+      for (const char of (line ? " " : "") + word) {
+        if (line && ctx.measureText(line + char).width > maxWidth) {
+          lines.push(line);
+          line = "";
+        }
+        line += char;
+      }
     }
-  });
-  return count + (line ? 1 : 0);
+    lines.push(line);
+  }
+  return lines;
+}
+
+function wrappedLineCount(ctx, text, maxWidth) {
+  return canvasTextLines(ctx, text, maxWidth).length;
 }
 
 function canvasSectionHeight(ctx, value, width) {
@@ -1574,7 +1725,9 @@ function planCanvas(plan) {
   measureCanvas.width = width;
   const measureCtx = measureCanvas.getContext("2d");
   const rows = planPngRows(plan);
-  let height = 230 + rows.reduce((total, [, value]) => total + canvasSectionHeight(measureCtx, value, contentWidth) + 18, 0) + 120;
+  measureCtx.font = "900 46px Arial";
+  const titleExtra = Math.max(0, wrappedLineCount(measureCtx, plan.title || "WRSP Safety Plan", contentWidth) - 1) * 50;
+  let height = 230 + titleExtra + rows.reduce((total, [, value]) => total + canvasSectionHeight(measureCtx, value, contentWidth - 48) + 18, 0) + 120;
   height = Math.max(height, 1600);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -1583,17 +1736,17 @@ function planCanvas(plan) {
   ctx.fillStyle = "#f7f5ee";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#123c2c";
-  ctx.fillRect(0, 0, canvas.width, 198);
+  ctx.fillRect(0, 0, canvas.width, 198 + titleExtra);
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 46px Arial";
   wrapCanvasText(ctx, plan.title || "WRSP Safety Plan", margin, 64, contentWidth, 50);
   ctx.font = "800 27px Arial";
-  ctx.fillText("Safety Plan & Important Information", margin, 136);
+  ctx.fillText("Safety Plan & Important Information", margin, 136 + titleExtra);
   ctx.font = "24px Arial";
-  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, margin, 170);
+  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, margin, 170 + titleExtra);
   ctx.fillStyle = "#d4631f";
-  ctx.fillRect(0, 198, canvas.width, 8);
-  let y = 236;
+  ctx.fillRect(0, 198 + titleExtra, canvas.width, 8);
+  let y = 236 + titleExtra;
   rows.forEach(([label, value]) => {
     y = drawCanvasBlock(ctx, label, value, margin, y, contentWidth);
   });
@@ -1617,12 +1770,12 @@ async function fallbackDownloadFile(file, message) {
   toast(message);
 }
 
-async function shareFileAttachment(file, title, fallbackMessage) {
+async function shareFileAttachment(file, title, fallbackMessage, text = "", emailFallback = null) {
   if (navigator.share) {
     const canShareFile = !navigator.canShare || navigator.canShare({ files: [file] });
     if (canShareFile) {
       try {
-        await navigator.share({ title, files: [file] });
+        await navigator.share({ title, ...(text ? { text } : {}), files: [file] });
         setShareChoiceStatus("File sent to the phone share sheet. Choose Messages, Mail, AirDrop, or another app.");
         return true;
       } catch (error) {
@@ -1638,7 +1791,9 @@ async function shareFileAttachment(file, title, fallbackMessage) {
   } else {
     setShareChoiceStatus("This browser does not support file sharing from WRSP.");
   }
-  await fallbackDownloadFile(file, fallbackMessage);
+  await fallbackDownloadFile(emailFallback || file, emailFallback
+    ? "Email draft saved with the complete plan and PDF attached. Open it in your email app to address and send."
+    : fallbackMessage);
   return false;
 }
 
@@ -1662,65 +1817,176 @@ async function canvasJpegBytes(canvas) {
   return new Uint8Array(await blob.arrayBuffer());
 }
 
+function planPdfPages(plan) {
+  const pages = [];
+  const width = 1224;
+  const height = 1584;
+  const margin = 64;
+  const contentWidth = width - margin * 2;
+  let ctx;
+  let y;
+  const newPage = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    pages.push(canvas);
+    ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#123c2c";
+    ctx.font = "bold 30px Arial";
+    y = wrapCanvasText(ctx, plan.title || "WRSP Safety Plan", margin, 74, contentWidth, 36);
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "#46524a";
+    y = wrapCanvasText(ctx, `Safety Plan & Important Information | Updated ${formatDate(plan.updatedAt)}`, margin, y + 4, contentWidth, 24) + 16;
+    ctx.fillText(`WRSP | ${pages.length}`, margin, height - 32);
+    canvas.links = [];
+    const url = planDirectionsUrl(plan);
+    if (url) {
+      const label = "Open Google Maps directions";
+      const linkWidth = ctx.measureText(label).width;
+      const x = width - margin - linkWidth;
+      ctx.fillStyle = "#123c2c";
+      ctx.fillText(label, x, height - 32);
+      canvas.links.push({ url, rect: [x / 2, 13, (x + linkWidth) / 2, 26] });
+    }
+  };
+  const ensureSpace = (space) => { if (y + space > height - margin) newPage(); };
+  newPage();
+  for (const [label, value] of planPngRows(plan)) {
+    ensureSpace(88);
+    ctx.fillStyle = "#123c2c";
+    ctx.font = "bold 22px Arial";
+    ctx.fillText(label, margin, y);
+    y += 9;
+    ctx.fillStyle = "#becdc5";
+    ctx.fillRect(margin, y, contentWidth, 1);
+    y += 29;
+    if (label === "PEOPLE" && contactRowsForPlan(plan).length) {
+      const columnWidths = [contentWidth * 0.38, contentWidth * 0.28, contentWidth * 0.34];
+      const rows = [["Name", "Role", "Contact number"], ...contactRowsForPlan(plan).map((p) => [p.name, p.role, p.phone])];
+      for (let index = 0; index < rows.length; index += 1) {
+        ctx.font = `${index === 0 ? "bold " : ""}20px Arial`;
+        const columns = rows[index].map((cell, col) => canvasTextLines(ctx, cell, columnWidths[col] - 16));
+        for (let line = 0; line < Math.max(...columns.map((col) => col.length)); line += 1) {
+          ensureSpace(26);
+          ctx.font = `${index === 0 ? "bold " : ""}20px Arial`;
+          ctx.fillStyle = "#202923";
+          let x = margin;
+          columns.forEach((col, colIndex) => { ctx.fillText(col[line] || "", x, y); x += columnWidths[colIndex]; });
+          y += 26;
+        }
+        y += 6;
+      }
+    } else {
+      ctx.font = "20px Arial";
+      const lines = canvasTextLines(ctx, value, contentWidth);
+      for (const line of lines) {
+        ensureSpace(26);
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "#202923";
+        ctx.fillText(line, margin, y);
+        y += 26;
+      }
+    }
+    y += 18;
+  }
+  return pages;
+}
+
 async function planPdfBlob(plan) {
-  const canvas = planCanvas(plan);
-  const jpeg = await canvasJpegBytes(canvas);
-  const pageW = 612;
-  const scale = pageW / canvas.width;
-  const pageH = canvas.height * scale;
-  const drawW = canvas.width * scale;
-  const drawH = canvas.height * scale;
-  const x = 0;
-  const y = 0;
-  const content = `q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im0 Do\nQ\n`;
+  const pages = planPdfPages(plan);
   const encoder = new TextEncoder();
   const chunks = [];
   const offsets = [0];
   let length = 0;
-  const appendText = (text) => {
-    const bytes = encoder.encode(text);
+  const append = (value) => {
+    const bytes = typeof value === "string" ? encoder.encode(value) : value;
     chunks.push(bytes);
     length += bytes.length;
   };
-  const appendBytes = (bytes) => {
-    chunks.push(bytes);
-    length += bytes.length;
-  };
-  const startObject = (id) => {
+  const object = (id, body) => {
     offsets[id] = length;
-    appendText(`${id} 0 obj\n`);
+    append(`${id} 0 obj\n${body}\nendobj\n`);
   };
-
-  appendText("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-  startObject(1);
-  appendText("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-  startObject(2);
-  appendText("<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-  startObject(3);
-  appendText(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n`);
-  startObject(4);
-  appendText(`<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream\nendobj\n`);
-  startObject(5);
-  appendText(`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
-  appendBytes(jpeg);
-  appendText("\nendstream\nendobj\n");
-  const xrefAt = length;
-  appendText("xref\n0 6\n0000000000 65535 f \n");
-  for (let id = 1; id <= 5; id += 1) {
-    appendText(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+  append("%PDF-1.4\n");
+  object(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  object(2, `<< /Type /Pages /Kids [${pages.map((_, index) => `${3 + index * 3} 0 R`).join(" ")}] /Count ${pages.length} >>`);
+  for (let index = 0; index < pages.length; index += 1) {
+    const canvas = pages[index];
+    const id = 3 + index * 3;
+    const jpeg = await canvasJpegBytes(canvas);
+    const content = "q\n612 0 0 792 0 0 cm\n/Im0 Do\nQ\n";
+    const links = canvas.links.map(({ url, rect }) => `<< /Type /Annot /Subtype /Link /Rect [${rect.join(" ")}] /Border [0 0 0] /A << /S /URI /URI (${pdfEscape(url)}) >> >>`).join(" ");
+    object(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 ${id + 2} 0 R >> >> /Contents ${id + 1} 0 R /Annots [${links}] >>`);
+    object(id + 1, `<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`);
+    offsets[id + 2] = length;
+    append(`${id + 2} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+    append(jpeg);
+    append("\nendstream\nendobj\n");
   }
-  appendText(`trailer\n<< /Size 6 /Root 1 0 R /Title (${pdfEscape(plan.title || "WRSP Safety Plan")}) >>\nstartxref\n${xrefAt}\n%%EOF`);
+  const xrefAt = length;
+  const size = 3 + pages.length * 3;
+  append(`xref\n0 ${size}\n0000000000 65535 f \n`);
+  for (let id = 1; id < size; id += 1) append(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+  append(`trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF`);
   return new Blob(chunks, { type: "application/pdf" });
 }
 
+function mimeBase64(bytes) {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+  }
+  return btoa(binary).match(/.{1,76}/g)?.join("\r\n") || "";
+}
+
+async function planEmailFile(plan, pdf) {
+  const mixed = `wrsp-mixed-${crypto.randomUUID()}`;
+  const alternative = `wrsp-alt-${crypto.randomUUID()}`;
+  const encode = (value) => mimeBase64(new TextEncoder().encode(value));
+  // RFC 2047 encoded words are limited to 75 characters, including their wrapper.
+  const subject = Array.from(`WRSP: ${plan.title || "Safety Plan"}`).reduce((parts, char) => {
+    if (!parts.length || new TextEncoder().encode(parts[parts.length - 1] + char).length > 42) parts.push(char);
+    else parts[parts.length - 1] += char;
+    return parts;
+  }, []).map((part) => `=?UTF-8?B?${encode(part)}?=`).join("\r\n ");
+  const message = [
+    `Subject: ${subject}`,
+    `Date: ${new Date().toUTCString()}`,
+    "MIME-Version: 1.0",
+    "X-Unsent: 1",
+    `Content-Type: multipart/mixed; boundary="${mixed}"`,
+    "",
+    `--${mixed}`,
+    `Content-Type: multipart/alternative; boundary="${alternative}"`,
+    "",
+    `--${alternative}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    encode(planShareText(plan)),
+    `--${alternative}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    encode(planEmailHtml(plan)),
+    `--${alternative}--`,
+    `--${mixed}`,
+    `Content-Type: application/pdf; name="${pdf.name}"`,
+    `Content-Disposition: attachment; filename="${pdf.name}"`,
+    "Content-Transfer-Encoding: base64",
+    "",
+    mimeBase64(new Uint8Array(await pdf.arrayBuffer())),
+    `--${mixed}--`,
+    "",
+  ].join("\r\n");
+  return new File([message], `${safeFileName(plan.title)}.eml`, { type: "message/rfc822" });
+}
+
 async function sharePlanPdf(plan) {
-  const blob = await planPdfBlob(plan);
-  const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.pdf`, { type: "application/pdf" });
-  await shareFileAttachment(
-    file,
-    `WRSP: ${plan.title}`,
-    "PDF saved. In offline mode, use PDF for email, AirDrop, Files, or printing. Texting a PDF may be blocked by the phone."
-  );
+  const file = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
+  await shareFileAttachment(file, `WRSP: ${plan.title}`, "", planShareText(plan), await planEmailFile(plan, file));
 }
 
 function safeFileName(value = "wrsp-plan") {
@@ -1847,6 +2113,8 @@ async function capturePlanGps() {
     updateGpsStatus();
     updateEssentialProgress();
     centerSiteMap(position.coords.latitude, position.coords.longitude, 17);
+    centerLandmarkMap(position.coords.latitude, position.coords.longitude, Math.max(landmarkMapState.zoom, 14));
+    centerLandingZoneMap(position.coords.latitude, position.coords.longitude, Math.max(landingZoneMapState.zoom, 17));
     scheduleAutoSave();
   } catch (error) {
     $("#gpsStatus").textContent = `GPS unavailable: ${error.message}`;
@@ -2042,7 +2310,8 @@ async function launchLiveLocationOption(optionId, message) {
   await storePut(SETTINGS_STORE, { key: SAFETY_SHARE_KEY, value: record });
   renderSafetyShareStatus(record);
   const href = buildLauncherHref(option, message || await buildSafetyShareMessage());
-  window.location.href = href;
+  if (/^https?:/i.test(href)) openExternalUrl(href);
+  else window.location.href = href;
 }
 
 async function textTrustedContact() {
@@ -2181,23 +2450,6 @@ function medicalLookupUrl(query, place) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${query} near ${place}`)}`;
 }
 
-function autofillMedicalCareFromLocation(force = false) {
-  const status = $("#medicalAutofillStatus");
-  const place = medicalPlaceFromPlan();
-  if (!place) {
-    if (status) status.textContent = "Enter town, county, and state first so WRSP can build a nearest-ER lookup entry. You can always type the ER manually.";
-    return false;
-  }
-  const erText = `Nearest ER near ${place} - NOT CONFIRMED. Replace with confirmed name, address, and phone.`;
-  const erUrl = medicalLookupUrl("emergency room hospital", place);
-
-  if (force || !$("#hospital").value.trim()) $("#hospital").value = erText;
-  if (force || !$("#hospitalDirectionsUrl").value.trim()) $("#hospitalDirectionsUrl").value = erUrl;
-  if (status) status.textContent = `Nearest-ER lookup entry built from ${place}. This is a search starting point, not a confirmed ER. Replace it with the actual facility after checking.`;
-  scheduleAutoSave();
-  return true;
-}
-
 function medicalSearchQueryForType(type) {
   const origin = $("#medicalSearchOrigin").value.trim();
   const config = MEDICAL_FACILITY_CONFIG[type] || MEDICAL_FACILITY_CONFIG.hospital;
@@ -2255,12 +2507,22 @@ async function prefillMedicalOrigin() {
   input.value = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
 }
 
+function openExternalUrl(url) {
+  try {
+    const target = new URL(url);
+    if (!["https:", "http:"].includes(target.protocol)) throw new Error("Unsupported link");
+    window.open(target.href, "_blank", "noopener,noreferrer");
+  } catch {
+    toast("Enter a complete web link beginning with https://.");
+  }
+}
+
 function openMapsSearch(query) {
-  window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
 }
 
 function openWebSearch(query) {
-  window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
 }
 
 function stateCodeFromInput(value = "") {
@@ -2295,10 +2557,32 @@ function startingLandmarkSearchText() {
   const plan = formToPlan();
   const loc = plan.location || {};
   if (loc.lat && loc.lng) {
-    return `nearest town village fire station or state highway intersection near ${loc.lat}, ${loc.lng}`;
+    return `fire station near ${loc.lat}, ${loc.lng}`;
   }
   const place = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
-  return place ? `nearest town village fire station or state highway intersection near ${place}` : "";
+  return place ? `fire station near ${place}` : "";
+}
+
+function openDirectionsToSitePin() {
+  const siteLat = parseFloat($("#lat").value);
+  const siteLng = parseFloat($("#lng").value);
+  if (!Number.isFinite(siteLat) || !Number.isFinite(siteLng)) {
+    toast("Drop the site pin first.");
+    return;
+  }
+  const landmarkLat = parseFloat($("#knownLandmarkLat").value);
+  const landmarkLng = parseFloat($("#knownLandmarkLng").value);
+  const startText = $("#knownLandmark").value.trim();
+  const origin = Number.isFinite(landmarkLat) && Number.isFinite(landmarkLng)
+    ? `${landmarkLat.toFixed(6)},${landmarkLng.toFixed(6)}`
+    : startText;
+  const params = new URLSearchParams({
+    api: "1",
+    destination: `${siteLat.toFixed(6)},${siteLng.toFixed(6)}`,
+    travelmode: "driving",
+  });
+  if (origin) params.set("origin", origin);
+  openExternalUrl(`https://www.google.com/maps/dir/?${params.toString()}`);
 }
 
 function buildPhoneDirectionsDraft() {
@@ -2306,7 +2590,10 @@ function buildPhoneDirectionsDraft() {
   const access = plan.access || {};
   const loc = plan.location || {};
   const parts = [];
-  const start = access.knownLandmark || [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
+  const landmarkCoords = access.knownLandmarkLat && access.knownLandmarkLng ? ` (${access.knownLandmarkLat}, ${access.knownLandmarkLng})` : "";
+  const start = access.knownLandmark
+    ? `${access.knownLandmark}${landmarkCoords}`
+    : landmarkCoords.trim() || [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
   if (start) parts.push(`From ${start}, proceed to the job site.`);
   if (access.routeNotes) parts.push(access.routeNotes);
   if (access.gateNotes) parts.push(`Gate, lock, or access notes: ${access.gateNotes}`);
@@ -2315,141 +2602,6 @@ function buildPhoneDirectionsDraft() {
   if (loc.lat && loc.lng) parts.push(`Exact site coordinates: ${loc.lat}, ${loc.lng}.`);
   parts.push("Have someone meet responders at the access point and flag a visible route to the injured person.");
   return parts.join(" ");
-}
-
-function updateWoodsContactSuggestion() {
-  const plan = formToPlan();
-  const origin = planSearchOrigin();
-  const { agency } = stateAgencyForPlan(plan);
-  const suggestion = $("#woodsContactSuggestion");
-  if (!origin && !agency) {
-    suggestion.textContent = "Enter the site state plus county or town first. WRSP will suggest the likely state natural resources / forestry starting point and build targeted searches.";
-    renderResponderLookupChecklist(plan, agency, origin);
-    renderResponderVerificationScript(plan, agency, origin);
-    return;
-  }
-  if (agency) {
-    suggestion.textContent = `Likely state natural resources starting point: ${agency}. Use the buttons to look for the correct district, county contact, dispatch number, ranger, warden, or local responder for ${origin || "this site"}.`;
-    renderResponderLookupChecklist(plan, agency, origin);
-    renderResponderVerificationScript(plan, agency, origin);
-    return;
-  }
-  suggestion.textContent = `Use the buttons to search for local responder contacts for ${origin}. Add the state for a better state natural resources suggestion.`;
-  renderResponderLookupChecklist(plan, agency, origin);
-  renderResponderVerificationScript(plan, agency, origin);
-}
-
-function renderResponderLookupChecklist(plan = formToPlan(), agency = "", origin = "") {
-  const checklist = $("#responderLookupChecklist");
-  if (!checklist) return;
-  const loc = plan.location || {};
-  const county = loc.county ? `${loc.county} County` : "the county";
-  const state = loc.state || "the state";
-  const items = [
-    agency ? `Start with ${agency}; look for the district office, ranger, warden, forestry/fire dispatch, or duty officer covering ${origin || state}.` : `Add the state so WRSP can suggest the state natural resources / forestry agency.`,
-    `Verify the 24-hour dispatch path for ${county}, not only an office number.`,
-    `Confirm which local fire/rescue department covers the landing, gate, or woods road access point.`,
-    `Record a person or role, phone number, and source/date after calling or checking the official page.`,
-  ];
-  checklist.innerHTML = `
-    <strong>What to verify</strong>
-    <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
-  `;
-}
-
-function responderVerificationText(plan = formToPlan(), agency = stateAgencyForPlan(plan).agency, origin = planSearchOrigin()) {
-  const loc = plan.location || {};
-  const site = plan.title || "this logging site";
-  const place = origin || [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ") || "the site location";
-  const coords = loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "coordinates not set yet";
-  return [
-    `I am preparing a Woods-Ready Safety Plan for ${site}.`,
-    `Location: ${place}. Coordinates: ${coords}.`,
-    agency ? `Likely state natural resources / forestry starting point: ${agency}.` : "I still need to identify the state natural resources / forestry / ranger starting point.",
-    "Can you confirm the correct 24-hour dispatch path or emergency contact for a logging/woods emergency at this site?",
-    "Can you confirm the local fire/rescue coverage for the access road, gate, landing, or meeting point?",
-    "What agency, role/person, phone number, and source/date should I record in the plan?",
-  ].join("\n");
-}
-
-function renderResponderVerificationScript(plan = formToPlan(), agency = "", origin = "") {
-  const script = $("#responderVerificationScript");
-  if (!script) return;
-  script.textContent = responderVerificationText(plan, agency, origin);
-}
-
-function verifiedResponderSummary() {
-  return [
-    $("#verifiedResponderAgency").value.trim(),
-    $("#verifiedResponderPhone").value.trim(),
-    $("#verifiedResponderPerson").value.trim(),
-    $("#verifiedResponderSource").value.trim(),
-  ].filter(Boolean).join(" - ");
-}
-
-function lookupKindLabel(kind) {
-  const labels = {
-    stateWoods: "state natural resources / forestry dispatch",
-    sheriffSar: "county dispatch / search and rescue",
-    fireRescue: "local fire / rescue",
-    emergencyManagement: "emergency management",
-  };
-  return labels[kind] || "lookup result";
-}
-
-function localResponderSearch(kind) {
-  const plan = formToPlan();
-  const origin = planSearchOrigin();
-  const { agency } = stateAgencyForPlan(plan);
-  if (!origin && !agency) {
-    toast("Add state plus county or town first.");
-    return;
-  }
-  const loc = plan.location || {};
-  const county = loc.county ? `${loc.county} County` : "";
-  const state = loc.state || "";
-  const place = [county, loc.town, state].filter(Boolean).join(" ");
-  const queries = {
-    stateWoods: `${agency || `${state} state forestry forest ranger game warden`} ${place} district duty officer dispatch phone`,
-    sheriffSar: `${place} county sheriff dispatch search rescue 24 hour non emergency phone`,
-    fireRescue: `${place} fire rescue department district dispatch woods road emergency access`,
-    emergencyManagement: `${place} emergency management office dispatch contact phone`,
-  };
-  activeLookupKind = kind;
-  const prompt = $("#lookupReturnPrompt");
-  if (prompt) {
-    prompt.textContent = `After the ${lookupKindLabel(kind)} lookup, come back with the browser Back button. Enter the agency/dispatch name, phone, role/person, and source below, then tap Use This Information in Plan.`;
-  }
-  if (!$("#verifiedResponderAgency").value.trim() && agency && kind === "stateWoods") {
-    $("#verifiedResponderAgency").value = agency;
-  }
-  if (!$("#verifiedResponderSource").value.trim()) {
-    $("#verifiedResponderSource").value = `Lookup started ${new Date().toLocaleDateString()}`;
-  }
-  scheduleAutoSave();
-  openWebSearch(queries[kind]);
-}
-
-function useLookupInfoInPlan() {
-  const summary = verifiedResponderSummary();
-  const prompt = $("#lookupReturnPrompt");
-  if (!summary) {
-    if (prompt) prompt.textContent = "Enter at least an agency/dispatch name, phone number, person/role, or source before saving the lookup result into the plan.";
-    toast("Add lookup information first.");
-    return;
-  }
-  const label = lookupKindLabel(activeLookupKind);
-  const notes = $("#sarContacts");
-  const entry = `${label}: ${summary}`;
-  const existing = notes.value.trim();
-  if (!existing.includes(summary)) {
-    notes.value = [existing, entry].filter(Boolean).join("\n");
-  }
-  syncReadinessStatus();
-  scheduleAutoSave();
-  updateEssentialProgress();
-  if (prompt) prompt.textContent = "Lookup information saved into the plan. Keep editing or share the plan when ready.";
-  toast("Lookup information added to the plan.");
 }
 
 function formatPickedContact(contact) {
@@ -2683,24 +2835,11 @@ function showMedicalCardQr() {
 }
 
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = String(text || "Not entered").split(/\s+/);
-  let line = "";
-  let currentY = y;
-  words.forEach((word) => {
-    const testLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(testLine).width > maxWidth && line) {
-      ctx.fillText(line, x, currentY);
-      line = word;
-      currentY += lineHeight;
-    } else {
-      line = testLine;
-    }
-  });
-  if (line) {
-    ctx.fillText(line, x, currentY);
-    currentY += lineHeight;
+  for (const line of canvasTextLines(ctx, text, maxWidth)) {
+    ctx.fillText(line, x, y);
+    y += lineHeight;
   }
-  return currentY;
+  return y;
 }
 
 function medicalCardCanvas(card = medicalCardFromForm()) {
@@ -2842,9 +2981,6 @@ function bindEvents() {
     scheduleAutoSave();
     updateEssentialProgress();
   });
-  ["state", "county", "town", "roadAddress"].forEach((id) => {
-    $(`#${id}`).addEventListener("input", updateWoodsContactSuggestion);
-  });
   ["lat", "lng"].forEach((id) => {
     $(`#${id}`).addEventListener("input", () => {
       const lat = parseFloat($("#lat").value);
@@ -2855,6 +2991,7 @@ function bindEvents() {
         $("#planForm").dataset.capturedAt = new Date().toISOString();
         updateGpsStatus();
         centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
+        centerNearbyMaps(lat, lng);
         scheduleAutoSave();
       }
     });
@@ -2865,6 +3002,16 @@ function bindEvents() {
       const lng = parseFloat($("#landingZoneLng").value);
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
         centerLandingZoneMap(lat, lng, Math.max(landingZoneMapState.zoom, 17));
+        scheduleAutoSave();
+      }
+    });
+  });
+  ["knownLandmarkLat", "knownLandmarkLng"].forEach((id) => {
+    $(`#${id}`).addEventListener("input", () => {
+      const lat = parseFloat($("#knownLandmarkLat").value);
+      const lng = parseFloat($("#knownLandmarkLng").value);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 15));
         scheduleAutoSave();
       }
     });
@@ -2928,6 +3075,40 @@ function bindEvents() {
     toast("Landing zone coordinates copied from site point.");
   });
   $("#captureLandingZoneGps").addEventListener("click", captureLandingZoneGps);
+  $("#landmarkMapZoomIn").addEventListener("click", () => {
+    landmarkMapState.zoom = clamp(landmarkMapState.zoom + 1, 3, 19);
+    renderLandmarkMap();
+  });
+  $("#landmarkMapZoomOut").addEventListener("click", () => {
+    landmarkMapState.zoom = clamp(landmarkMapState.zoom - 1, 3, 19);
+    renderLandmarkMap();
+  });
+  $("#landmarkMapRecenter").addEventListener("click", () => {
+    const lat = parseFloat($("#knownLandmarkLat").value);
+    const lng = parseFloat($("#knownLandmarkLng").value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      const siteLat = parseFloat($("#lat").value);
+      const siteLng = parseFloat($("#lng").value);
+      if (Number.isFinite(siteLat) && Number.isFinite(siteLng)) {
+        centerLandmarkMap(siteLat, siteLng, Math.max(landmarkMapState.zoom, 14));
+        toast("Landmark map centered near the site. Move it to the known starting point.");
+        return;
+      }
+      toast("Set the site point or landmark point first, then center the map.");
+      return;
+    }
+    centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 15));
+  });
+  $("#dropLandmarkPinAtCenter").addEventListener("click", () => {
+    setLandmarkCoordinates(landmarkMapState.centerLat, landmarkMapState.centerLng, false);
+    renderLandmarkMap();
+    toast("Landmark pin dropped at map center.");
+  });
+  $("#clearLandmarkPin").addEventListener("click", () => {
+    clearLandmarkCoordinates();
+    toast("Landmark pin cleared.");
+  });
+  $("#openDirectionsToSitePin").addEventListener("click", openDirectionsToSitePin);
   $("#landingZoneMapZoomIn").addEventListener("click", () => {
     landingZoneMapState.zoom = clamp(landingZoneMapState.zoom + 1, 3, 19);
     renderLandingZoneMap();
@@ -2943,7 +3124,7 @@ function bindEvents() {
       const siteLat = parseFloat($("#lat").value);
       const siteLng = parseFloat($("#lng").value);
       if (Number.isFinite(siteLat) && Number.isFinite(siteLng)) {
-        centerLandingZoneMap(siteLat, siteLng, Math.max(landingZoneMapState.zoom, 15));
+        centerLandingZoneMap(siteLat, siteLng, Math.max(landingZoneMapState.zoom, 17));
         toast("LZ map centered on site point. Drop the LZ pin where the helicopter could land.");
         return;
       }
@@ -3028,6 +3209,39 @@ function bindEvents() {
       renderSiteMap();
     }
   });
+  $("#landmarkMap").addEventListener("pointerdown", (event) => {
+    const map = $("#landmarkMap");
+    map.setPointerCapture(event.pointerId);
+    landmarkMapState.dragging = true;
+    landmarkMapState.moved = 0;
+    landmarkMapState.dragStart = { x: event.clientX, y: event.clientY };
+    landmarkMapState.startCenter = {
+      x: lngToTileX(landmarkMapState.centerLng, landmarkMapState.zoom),
+      y: latToTileY(landmarkMapState.centerLat, landmarkMapState.zoom),
+    };
+  });
+  $("#landmarkMap").addEventListener("pointermove", (event) => {
+    if (!landmarkMapState.dragging) return;
+    const dx = event.clientX - landmarkMapState.dragStart.x;
+    const dy = event.clientY - landmarkMapState.dragStart.y;
+    landmarkMapState.moved = Math.max(landmarkMapState.moved, Math.abs(dx), Math.abs(dy));
+    const centerX = landmarkMapState.startCenter.x - dx;
+    const centerY = landmarkMapState.startCenter.y - dy;
+    landmarkMapState.centerLng = tileXToLng(centerX, landmarkMapState.zoom);
+    landmarkMapState.centerLat = clamp(tileYToLat(centerY, landmarkMapState.zoom), -85, 85);
+    renderLandmarkMap();
+  });
+  $("#landmarkMap").addEventListener("pointerup", (event) => {
+    const map = $("#landmarkMap");
+    if (map.hasPointerCapture(event.pointerId)) map.releasePointerCapture(event.pointerId);
+    const wasTap = landmarkMapState.moved < 8;
+    landmarkMapState.dragging = false;
+    if (wasTap) {
+      const picked = pointToLatLngFromMap("#landmarkMap", landmarkMapState, event.clientX, event.clientY);
+      setLandmarkCoordinates(picked.lat, picked.lng, false);
+      renderLandmarkMap();
+    }
+  });
   $("#landingZoneMap").addEventListener("pointerdown", (event) => {
     const map = $("#landingZoneMap");
     map.setPointerCapture(event.pointerId);
@@ -3063,6 +3277,7 @@ function bindEvents() {
   });
   window.addEventListener("resize", () => {
     renderSiteMap();
+    renderLandmarkMap();
     renderLandingZoneMap();
   });
   $("#previewPlan").addEventListener("click", async () => {
@@ -3145,6 +3360,7 @@ function bindEvents() {
   });
   $("#shareChoicePng").addEventListener("click", () => shareChosenPlan("png"));
   $("#shareChoicePdf").addEventListener("click", () => shareChosenPlan("pdf"));
+  $("#shareChoiceEmailDraft").addEventListener("click", () => shareChosenPlan("email-draft"));
   $("#closeShareChoice").addEventListener("click", closeShareChoice);
   $("#shareChoicePanel").addEventListener("click", (event) => {
     if (event.target.id === "shareChoicePanel") closeShareChoice();
@@ -3241,53 +3457,15 @@ function bindEvents() {
     const position = await getCurrentPosition();
     $("#medicalSearchOrigin").value = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
   });
-  $("#autofillMedicalCare")?.addEventListener("click", () => {
-    if (autofillMedicalCareFromLocation(true)) toast("Medical lookup entries added to the plan.");
-  });
-  ["town", "county", "state"].forEach((id) => {
-    $(`#${id}`)?.addEventListener("change", () => autofillMedicalCareFromLocation(false));
-  });
   $("#refreshPwaStatus").addEventListener("click", updatePwaStatus);
   $("#saveMedicalFacilityToPlan").addEventListener("click", saveMedicalFacilityToCurrentPlan);
-  $("#findEr").addEventListener("click", () => prepareMedicalFacility("hospital"));
-  $("#medicalFacilityType").addEventListener("change", () => prepareMedicalFacility($("#medicalFacilityType").value, false));
   $("#openFacilityDirectionsSearch").addEventListener("click", () => {
-    const type = $("#medicalFacilityType").value;
     const url = $("#medicalFacilityDirectionsUrl").value.trim();
     if (url) {
-      window.location.href = url;
+      openExternalUrl(url);
       return;
     }
-    openMapsSearch(medicalSearchQueryForType(type));
-  });
-  $("#findStateWoodsAgency").addEventListener("click", () => localResponderSearch("stateWoods"));
-  $("#findFireRescue").addEventListener("click", () => localResponderSearch("fireRescue"));
-  $("#findSheriffSar").addEventListener("click", () => localResponderSearch("sheriffSar"));
-  $("#findEmergencyManagement").addEventListener("click", () => localResponderSearch("emergencyManagement"));
-  $("#useLookupInfoInPlan")?.addEventListener("click", useLookupInfoInPlan);
-  $("#copyResponderVerificationScript").addEventListener("click", async () => {
-    await navigator.clipboard.writeText(responderVerificationText());
-    toast("Responder verification script copied.");
-  });
-  $("#stampResponderVerificationDate").addEventListener("click", () => {
-    const today = new Date().toLocaleDateString();
-    const current = $("#verifiedResponderSource").value.trim();
-    $("#verifiedResponderSource").value = current ? `${current}; verified ${today}` : `Verified ${today}`;
-    scheduleAutoSave();
-    toast("Verification date added.");
-  });
-  $("#appendVerifiedResponderContact").addEventListener("click", () => {
-    const summary = verifiedResponderSummary();
-    if (!summary) {
-      toast("Add verified agency, phone, person, or source first.");
-      return;
-    }
-    const notes = $("#sarContacts");
-    notes.value = [notes.value.trim(), summary].filter(Boolean).join("\n");
-    syncReadinessStatus();
-    scheduleAutoSave();
-    updateEssentialProgress();
-    toast("Verified contact added to saved notes.");
+    toast("Paste a directions link first.");
   });
   $("#preparednessForm").addEventListener("submit", async (event) => {
     event.preventDefault();

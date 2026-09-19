@@ -202,8 +202,8 @@
           <input type="hidden" id="planId">
           <div class="progress-card">
             <div>
-              <strong id="essentialProgressText">0 of 6 plan essentials added</strong>
-              <p class="helper">A usable plan needs location, directions, one job contact, and an ER or emergency contact. Save what you have; an incomplete plan is better than none.</p>
+              <strong id="essentialProgressText">0 of 4 plan essentials added</strong>
+              <p class="helper">Add the site name, location, directions, and a job contact. Save what you have; an incomplete plan is better than none.</p>
             </div>
             <div class="progress-track"><span id="essentialProgressBar"></span></div>
             <ul class="minimum-checklist" id="minimumPlanChecklist"></ul>
@@ -228,14 +228,6 @@
               <button type="button" class="small-action" id="captureGps">Use Phone GPS</button>
             </div>
             <p class="helper">Address and road notes help people understand the site. Exact coordinates are captured from phone GPS or a dropped map pin.</p>
-            <div class="split">
-              <label>Site latitude
-                <input id="lat" name="lat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
-              </label>
-              <label>Site longitude
-                <input id="lng" name="lng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
-              </label>
-            </div>
             <p id="gpsStatus" class="helper">GPS has not been captured for this plan.</p>
             <div class="map-picker">
               <div class="map-toolbar">
@@ -266,8 +258,17 @@
                   <button type="button" class="quiet-action" id="ignoreSuggestedAddress">Ignore</button>
                 </div>
                 <p id="addressSuggestionStatus" class="helper"></p>
+                <p class="helper">Address data: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>
               </div>
-              <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Road/town suggestion requires a saved Geoapify key; Google Maps fallback and manual entry always remain available.</p>
+              <p id="mapPinHelp" class="helper">Use phone GPS to get close, or pan/zoom the map and tap the exact landing, gate, or meeting point. Address suggestions need an internet connection.</p>
+              <div class="split coordinate-fields">
+                <label>Site latitude
+                  <input id="lat" name="lat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
+                </label>
+                <label>Site longitude
+                  <input id="lng" name="lng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="GPS, map, or type manually">
+                </label>
+              </div>
             </div>
             <label>Nearest public road / address
               <input id="roadAddress" name="roadAddress" placeholder="Public road, landing, gate, or nearest address">
@@ -286,6 +287,35 @@
             <label>Responder-known starting point
               <input id="knownLandmark" name="knownLandmark" placeholder="Nearest town, village, fire station, or intersection of two state highways">
             </label>
+            <div class="map-picker compact-map-picker">
+              <div class="map-toolbar">
+                <strong>Pin starting landmark</strong>
+                <div>
+                  <button type="button" class="small-action" id="landmarkMapRecenter">Center</button>
+                  <button type="button" class="small-action" id="landmarkMapZoomOut">-</button>
+                  <button type="button" class="small-action" id="landmarkMapZoomIn">+</button>
+                </div>
+              </div>
+              <div id="landmarkMap" class="site-map" role="button" aria-label="Tap map to select responder-known starting point">
+                <div id="landmarkMapTiles" class="map-tiles"></div>
+                <div id="landmarkMapMarker" class="map-marker" hidden></div>
+                <div class="map-crosshair" aria-hidden="true"></div>
+              </div>
+              <div class="map-actions">
+                <button type="button" class="secondary-action" id="dropLandmarkPinAtCenter">Drop Landmark Pin</button>
+                <button type="button" class="secondary-action" id="clearLandmarkPin">Clear Landmark Pin</button>
+                <button type="button" class="secondary-action" id="openDirectionsToSitePin">Open Directions to Site Pin</button>
+              </div>
+              <div class="split coordinate-fields">
+                <label>Landmark latitude
+                  <input id="knownLandmarkLat" name="knownLandmarkLat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map pin or type manually">
+                </label>
+                <label>Landmark longitude
+                  <input id="knownLandmarkLng" name="knownLandmarkLng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map pin or type manually">
+                </label>
+              </div>
+              <p class="helper">Optional: pin the public starting point a dispatcher or responder would know, then open Google Maps directions from that point to the site pin in a new tab.</p>
+            </div>
             <div class="action-row">
               <button type="button" class="secondary-action" id="findStartingLandmark">Find Landmark</button>
               <button type="button" class="secondary-action" id="buildPhoneDirections">Build Directions Draft</button>
@@ -300,8 +330,8 @@
 
           <details class="card accordion-card">
             <summary>Location & Access</summary>
-            <label>Best access route / truck directions
-              <textarea id="routeNotes" name="routeNotes" rows="3" placeholder="Truck-safe route, road names, turns, landmarks, turnaround notes"></textarea>
+            <label>Access limits / truck notes
+              <textarea id="routeNotes" name="routeNotes" rows="3" placeholder="Road limits, bridge/weight concerns, turnaround notes, seasonal condition, roads to avoid, or equipment access notes."></textarea>
             </label>
             <label>Gate / lock / key notes
               <textarea id="gateNotes" name="gateNotes" rows="2"></textarea>
@@ -318,14 +348,6 @@
               <label>Landing zone description
                 <textarea id="landingZoneDescription" name="landingZoneDescription" rows="3" placeholder="Open landing, field, road junction, landing deck, distance from job site, access notes"></textarea>
               </label>
-              <div class="split">
-                <label>Landing zone latitude
-                  <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
-                </label>
-                <label>Landing zone longitude
-                  <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
-                </label>
-              </div>
               <div class="map-picker">
                 <div class="map-toolbar">
                   <strong>Select landing zone point</strong>
@@ -347,6 +369,14 @@
                   <button type="button" class="secondary-action" id="useSiteForLandingZone">Use Site Point for LZ</button>
                 </div>
                 <p class="helper">Pick the possible helicopter landing zone separately from the job site. Dispatch/EMS decides whether air medical response is appropriate.</p>
+                <div class="split coordinate-fields">
+                  <label>Landing zone latitude
+                    <input id="landingZoneLat" name="landingZoneLat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
+                  </label>
+                  <label>Landing zone longitude
+                    <input id="landingZoneLng" name="landingZoneLng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map, GPS, or type manually">
+                  </label>
+                </div>
               </div>
               <label>Landing zone hazards / notes
                 <textarea id="landingZoneNotes" name="landingZoneNotes" rows="3" placeholder="Wires, slope, stumps, soft ground, trees, smoke, wind exposure, locked gates, ground contact"></textarea>
@@ -355,79 +385,36 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>People / Emergency Services</summary>
-            <p class="helper">Add people in the order they are most likely to matter in an emergency. A partial list is still better than no plan.</p>
-            <div class="split">
-              <label>Logger(s)
-                <input id="primaryContact" name="primaryContact" autocomplete="name" placeholder="Names and mobile phones">
-              </label>
-              <button type="button" class="secondary-action contact-picker" data-contact-target="primaryContact">Choose from contacts</button>
+            <summary>People / Emergency Numbers</summary>
+            <p class="helper">Add the people who should appear on the one-page safety sheet. A partial list is still better than no plan.</p>
+            <div class="people-grid" aria-label="People to include on the safety plan">
+              <strong>Name</strong>
+              <strong>Role</strong>
+              <strong>Contact number</strong>
+              <input aria-label="Name" id="contactName1" autocomplete="name" placeholder="Name">
+              <input aria-label="Role" id="contactRole1" placeholder="Logger, forester, landowner...">
+              <input aria-label="Contact number" id="contactPhone1" inputmode="tel" autocomplete="tel" placeholder="Phone">
+              <input aria-label="Name" id="contactName2" autocomplete="name" placeholder="Name">
+              <input aria-label="Role" id="contactRole2" placeholder="Role">
+              <input aria-label="Contact number" id="contactPhone2" inputmode="tel" autocomplete="tel" placeholder="Phone">
+              <input aria-label="Name" id="contactName3" autocomplete="name" placeholder="Name">
+              <input aria-label="Role" id="contactRole3" placeholder="Role">
+              <input aria-label="Contact number" id="contactPhone3" inputmode="tel" autocomplete="tel" placeholder="Phone">
+              <input aria-label="Name" id="contactName4" autocomplete="name" placeholder="Name">
+              <input aria-label="Role" id="contactRole4" placeholder="Role">
+              <input aria-label="Contact number" id="contactPhone4" inputmode="tel" autocomplete="tel" placeholder="Phone">
+              <input aria-label="Name" id="contactName5" autocomplete="name" placeholder="Name">
+              <input aria-label="Role" id="contactRole5" placeholder="Role">
+              <input aria-label="Contact number" id="contactPhone5" inputmode="tel" autocomplete="tel" placeholder="Phone">
             </div>
-            <div class="split">
-              <label>Crew member(s)
-                <input id="supervisor" name="supervisor" autocomplete="name" placeholder="Names and mobile phones">
-              </label>
-              <button type="button" class="secondary-action contact-picker" data-contact-target="supervisor">Choose from contacts</button>
+            <div class="lookup-panel simple-emergency-panel">
+              <h4>Emergency numbers</h4>
+              <p class="warning compact-warning">Dial 911 for emergencies. Add optional local numbers only when they are useful on the safety sheet.</p>
+              <p class="helper">Useful search terms may include: "[county] dispatch non-emergency", "[town] fire department", "[state] forest ranger dispatch", or "[property/organization] security". Outside lookups should be done in a separate browser tab.</p>
             </div>
-            <div class="split">
-              <label>Forester
-                <input id="foresterContact" name="foresterContact" autocomplete="name" placeholder="Name and mobile phone">
-              </label>
-              <button type="button" class="secondary-action contact-picker" data-contact-target="foresterContact">Choose from contacts</button>
-            </div>
-            <div class="split">
-              <label>Landowner(s)
-                <input id="landowner" name="landowner" autocomplete="name" placeholder="Names and mobile phones">
-                <button type="button" class="secondary-action contact-picker" data-contact-target="landowner">Choose from contacts</button>
-              </label>
-              <label>Other contact / role
-                <input id="truckingContact" name="truckingContact" autocomplete="name" placeholder="Role, name, mobile phone">
-                <button type="button" class="secondary-action contact-picker" data-contact-target="truckingContact">Choose from contacts</button>
-              </label>
-            </div>
-            <div class="lookup-panel">
-              <h4>Emergency Services & Responders</h4>
-              <p class="warning compact-warning">For serious injury or uncertain severity, call 911 first. Use this area to record useful dispatch, responder, ranger/warden, or local emergency contacts for the plan.</p>
-              <p id="woodsContactSuggestion" class="helper">Enter the site state plus county or town first. WRSP will suggest the likely state natural resources / forestry starting point and build targeted searches.</p>
-              <div id="responderLookupChecklist" class="lookup-checklist"></div>
-              <div class="verification-script">
-                <strong>Verification script</strong>
-                <p id="responderVerificationScript">Enter the site state plus county or town to build a call/search script.</p>
-                <div class="action-row">
-                  <button type="button" class="secondary-action" id="copyResponderVerificationScript">Copy Script</button>
-                  <button type="button" class="secondary-action" id="stampResponderVerificationDate">Stamp Verified Today</button>
-                </div>
-              </div>
-              <div class="action-row">
-                <button type="button" class="secondary-action" id="findStateWoodsAgency">State Natural Resources Department</button>
-                <button type="button" class="secondary-action" id="findSheriffSar">County dispatch / SAR</button>
-                <button type="button" class="secondary-action" id="findFireRescue">Local fire / rescue</button>
-                <button type="button" class="secondary-action" id="findEmergencyManagement">Emergency management</button>
-              </div>
-              <div class="lookup-capture">
-                <strong>After lookup</strong>
-                <p id="lookupReturnPrompt" class="helper">Use the search result, call, or official page to fill the fields below, then save it into the plan.</p>
-                <button type="button" class="primary-action" id="useLookupInfoInPlan">Use This Information in Plan</button>
-              </div>
-            </div>
-            <div class="verified-contact-grid">
-              <label>Verified agency / dispatch
-                <input id="verifiedResponderAgency" name="verifiedResponderAgency" placeholder="Agency, dispatch center, or department">
-              </label>
-              <label>Verified phone
-                <input id="verifiedResponderPhone" name="verifiedResponderPhone" inputmode="tel" placeholder="Phone number">
-              </label>
-              <label>Verified person / role
-                <input id="verifiedResponderPerson" name="verifiedResponderPerson" placeholder="Ranger, warden, dispatcher, officer, chief">
-              </label>
-              <label>Verified date / source
-                <input id="verifiedResponderSource" name="verifiedResponderSource" placeholder="Date, website, call, or office">
-              </label>
-            </div>
-            <label>Emergency services / responder contacts
-              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Important dispatch numbers or local emergency contacts, such as NYS Forest Ranger Dispatch, county dispatch, fire/rescue, or a local person who knows the roads/gates"></textarea>
+            <label>Emergency numbers / notes
+              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Campus/security, company office, landowner, fire department, ranger/warden dispatch, or other useful non-911 numbers"></textarea>
             </label>
-            <button type="button" class="secondary-action" id="appendVerifiedResponderContact">Add Verified Contact to Notes</button>
           </details>
 
           <details class="card accordion-card">
@@ -436,7 +423,7 @@
               <select id="status" name="status">
                 <option value="draft">Draft - started, still incomplete</option>
                 <option value="usable">Usable - better than no plan</option>
-                <option value="complete">Complete - key items verified</option>
+                <option value="complete">Complete - key details entered</option>
               </select>
             </label>
             <p id="readinessGuidance" class="helper">WRSP never blocks saving. A usable incomplete plan is better than no plan.</p>
@@ -446,8 +433,7 @@
             <label>Hospital / ER directions link
               <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
             </label>
-            <button type="button" class="secondary-action" id="autofillMedicalCare">Build nearest ER lookup entry</button>
-            <p id="medicalAutofillStatus" class="helper">Enter town, county, and state first. WRSP can build a lookup entry, but you must confirm the actual ER before relying on it.</p>
+            <p class="helper">Suggested search: hospital emergency room near [town, state]. Enter the facility name and number above.</p>
             <label>Medical notes
               <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
             </label>
@@ -518,9 +504,10 @@
         <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
           <h3 id="shareChoiceTitle">Share this plan</h3>
           <div class="share-readiness-card compact" id="shareChoiceReadiness"></div>
-          <p class="helper">For phones, use Text Image first. Use PDF / Print for email, AirDrop, Files, or paper copies.</p>
+          <p class="helper">Email Plan + PDF includes the full plan text and attachment. The formatted email draft includes an HTML body and the same PDF; email app support varies.</p>
           <button class="primary-action" id="shareChoicePng">Text Image</button>
-          <button class="primary-action" id="shareChoicePdf">PDF / Print</button>
+          <button class="primary-action" id="shareChoicePdf">Email Plan + PDF</button>
+          <button class="secondary-action" id="shareChoiceEmailDraft">Download Formatted Email Draft</button>
           <p id="shareChoiceStatus" class="helper"></p>
           <button class="secondary-action" id="closeShareChoice">Cancel</button>
         </div>
@@ -615,8 +602,8 @@
       <section id="medicalView" class="view" aria-labelledby="medicalTitle">
         <div class="section-head">
           <div>
-            <p class="eyebrow">Online lookup</p>
-            <h2 id="medicalTitle">Find medical care</h2>
+            <p class="eyebrow">Plan details</p>
+            <h2 id="medicalTitle">Medical facility</h2>
           </div>
           <button class="secondary-action" id="medicalUseGps">Use current GPS</button>
         </div>
@@ -625,12 +612,10 @@
           <label>Search from coordinates or place
             <input id="medicalSearchOrigin" placeholder="Current GPS, plan location, town, or address">
           </label>
-          <div class="action-row">
-            <button class="primary-action" id="findEr">Find ER</button>
-          </div>
+          <p class="helper">Suggested search: hospital emergency room near [town, state].</p>
           <div class="subsection-block">
             <h3>Confirm and save to current plan</h3>
-            <p class="helper">WRSP opens map search, but you must confirm the correct facility. Enter or paste the facility details, then save it into the current safety plan.</p>
+            <p class="helper">Enter or paste the facility details, then save them into the current safety plan.</p>
             <label>Facility type
               <select id="medicalFacilityType">
                 <option value="hospital">Hospital / ER</option>
@@ -643,7 +628,7 @@
               <input id="medicalFacilityDirectionsUrl" placeholder="Paste map/directions link">
             </label>
             <div class="action-row">
-              <button class="secondary-action" id="openFacilityDirectionsSearch">Open Directions Search</button>
+              <button class="secondary-action" id="openFacilityDirectionsSearch">Open Saved Directions</button>
               <button class="primary-action" id="saveMedicalFacilityToPlan">Save to Current Plan</button>
             </div>
             <p id="medicalSaveStatus" class="helper"></p>
@@ -743,7 +728,7 @@
             <label>Geoapify API key for address suggestions
               <input id="defaultGeoapifyKey" autocomplete="off" placeholder="Optional; saved only on this device">
             </label>
-            <p class="helper">Optional: lets WRSP suggest road, town, county, and state from a dropped pin without sending the user to another map page.</p>
+            <p class="helper">Optional alternative address provider. Address suggestions also work without a key.</p>
             <button class="primary-action" type="submit">Save Defaults</button>
             <button class="secondary-action" type="button" id="applyDefaultsToPlan">Apply to Current Plan</button>
             <p id="defaultsStatus" class="helper"></p>
@@ -797,6 +782,7 @@
             <li>Scroll to Add to Home Screen.</li>
             <li>Tap Add.</li>
           </ol>
+          <p class="helper">(You can also do this in Chrome on iPhone: open WRSP in Chrome, tap Share, choose Add to Home Screen, then tap Add.)</p>
           <h3>Android / Chrome</h3>
           <ol>
             <li>Open WRSP in Chrome.</li>

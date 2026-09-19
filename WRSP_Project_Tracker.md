@@ -1,6 +1,18 @@
 # WRSP Project Tracker
 
-Last updated: August 22, 2026
+Last updated: September 19, 2026
+
+## September phone-testing changes
+
+- Simplified the plan around calling 911 and helping responders reach the site. Removed the verification script, verification checklist, agency searches, and automatic hospital-search placeholders. Local emergency and medical numbers are optional manual entries with suggested search terms.
+- People now use a name, role, and phone grid in the form, saved sheet, HTML email, and PDF. Existing contact and agency notes survive editing older plans.
+- Site map centers close to phone GPS without setting an unconfirmed pin. LZ and landmark maps start near the site; coordinates sit below each map.
+- Added landmark pins and Google Maps driving directions from a selected landmark or typed starting place to the site. External web links open a new tab. Truck notes now focus on access restrictions.
+- Address suggestions work without a user API key via Photon/OpenStreetMap, on explicit request only, with caching, road filtering, attribution, and a manual fallback. Saved Geoapify keys remain supported.
+- Email sharing passes the complete plan text and PDF together. A downloadable EML draft includes HTML and plain-text bodies plus the identical attached PDF. Native share targets control which fields they accept; HTML and EML draft support must be checked in the user's phone email app.
+- PDF exports use letter-size pages, modest headings and rules, a people table, and a clickable directions link. Longer plans paginate instead of clipping.
+- Added the iPhone Chrome installation note. App version is v0.7.20; offline cache is wrsp-v36.
+- Browser regression coverage: map pins/centering, route endpoints, address lookup/cache, legacy data, save/reopen, mobile layout, PDF pagination, native email payload, and email-draft fallback. Email MIME and PDF structure also checked independently.
 
 ## Current product direction
 
@@ -205,10 +217,10 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v35`.
+- Service worker cache is currently `wrsp-v36`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text Image or PDF / Print.
-- Medical lookup now builds a nearest-ER search entry from town/county/state; automatic verified facility selection would require a places/search API.
+- Medical facility details are entered by the user; WRSP does not insert search results or determine emergency-service coverage.
 - Feedback is sent through a user-reviewed `mailto:` draft to steve@northeastforests.com; no feedback is collected silently.
 - After the SEO update is deployed, submit `https://wrsp.lumbermen.org/` manually in Google Search Console using URL Inspection. Google may require site ownership verification through a DNS TXT record or Google-provided meta tag.
