@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.7.20 - September 19, 2026";
+const APP_VERSION = "WRSP v0.8.0 - September 20, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -217,7 +217,12 @@ const liveLocationLauncherOptions = {
 
 const emptyPlan = () => ({
   id: crypto.randomUUID(),
-  schemaVersion: 1,
+  schemaVersion: 2,
+  company: "",
+  hazardChecks: [],
+  equipment: { items: [], other: "", location: "" },
+  emergencyProcedure: DEFAULT_EMERGENCY_PROCEDURE,
+  copiedFrom: "",
   title: "",
   status: "draft",
   createdAt: new Date().toISOString(),
@@ -279,80 +284,40 @@ const emptyPlan = () => ({
 });
 
 function samplePlan() {
-  const now = new Date().toISOString();
-  return {
-    ...emptyPlan(),
-    id: crypto.randomUUID(),
-    title: "Complete Example WRSP Plan - Tarbell Hawkins Job",
-    status: "complete",
-    createdAt: now,
-    updatedAt: now,
-    creator: "Everett Miller, crew lead",
-    importedFrom: "built-in-complete-example",
-    location: {
-      lat: "43.466470",
-      lng: "-74.517820",
-      accuracy: "",
-      capturedAt: now,
-      source: "map pin",
-      manualOverride: true,
-      roadAddress: "Tarbell Road landing, 1.8 miles west of NY-30",
-      town: "Wells",
-      county: "Hamilton",
-      state: "NY",
-    },
-    access: {
-      knownLandmark: "Four corners in Wells at NY-30 and NY-8",
-      knownLandmarkLat: "43.389670",
-      knownLandmarkLng: "-74.289090",
-      phoneDirections: "From the NY-30 / NY-8 intersection in Wells, travel north on NY-30 for 4.6 miles. Turn left onto Tarbell Road. Continue 1.8 miles to the orange-flagged landing on the right. Send responders to the landing; a crew member will meet them there and guide them to the injured person.",
-      phoneServiceNotes: "Cell service is reliable at the NY-30 intersection, weak at the landing, and unreliable in the lower skid trail.",
-      routeNotes: "Tarbell Road is passable for pickups, ambulances, and fire apparatus in dry or frozen conditions. Large trucks should turn around at the landing only.",
-      gateNotes: "No locked gate at NY-30. Orange flagging marks the landing entrance. Keep the landing clear for emergency vehicles.",
-      meetingPoint: "Orange-flagged log landing on Tarbell Road, 1.8 miles west of NY-30.",
-      alternateMeetingPoint: "NY-30 pull-off at Tarbell Road entrance if road conditions prevent access.",
-      landingZoneDescription: "Open hay field on north side of Tarbell Road near the landing, approximately 600 feet east of the deck.",
-      landingZoneLat: "43.468120",
-      landingZoneLng: "-74.512440",
-      landingZoneNotes: "Walk field before use. Watch for soft ground near ditch, overhead wires along road edge, and loose slash near landing. EMS/dispatch decides whether air medical response is appropriate.",
-    },
-    contacts: {
-      people: [
-        { name: "Everett Miller", role: "Logger / crew lead", phone: "518-555-0101" },
-        { name: "Jake Ross and Tyler Grant", role: "Crew members", phone: "518-555-0102" },
-        { name: "Sarah Collins", role: "Consulting forester", phone: "518-555-0105" },
-        { name: "Mark Davis", role: "Landowner representative", phone: "518-555-0103" },
-        { name: "Pete Allen", role: "North Road Trucking dispatcher", phone: "518-555-0104" },
-      ],
-      primaryContact: "Everett Miller, logger / crew lead - 518-555-0101",
-      supervisor: "Jake Ross and Tyler Grant, crew members - 518-555-0102",
-      foresterContact: "Sarah Collins, consulting forester - 518-555-0105",
-      landowner: "Tarbell Hawkins LLC, landowner representative Mark Davis - 518-555-0103",
-      truckingContact: "North Road Trucking, dispatcher Pete Allen - 518-555-0104",
-    },
-    medical: {
-      hospital: "Nathan Littauer Hospital Emergency Department, 99 E State St, Gloversville, NY - 518-725-8621",
-      hospitalDirectionsUrl: "https://www.google.com/maps/search/?api=1&query=Nathan%20Littauer%20Hospital%20Emergency%20Department%20Gloversville%20NY",
-      urgentCare: "",
-      urgentCareDirectionsUrl: "",
-      traumaCenter: "",
-      traumaDirectionsUrl: "",
-      notes: "For serious injury or uncertain severity, call 911 and request EMS. Confirm destination with EMS/dispatch.",
-    },
-    sar: {
-      contacts: "Hamilton County 911 / Sheriff's dispatch: 518-548-3113. NYS Forest Ranger Dispatch / DEC emergency dispatch: 1-833-NYS-RANGERS (1-833-697-7264).",
-      verifiedAgency: "Hamilton County Sheriff's Office dispatch / NYS Forest Ranger Dispatch",
-      verifiedPhone: "518-548-3113; 1-833-697-7264",
-      verifiedPerson: "Dispatcher / Forest Ranger dispatch contact",
-      verifiedSource: "Complete example plan for WRSP sharing test - verify before field use",
-    },
-    hazards: "Steep skid trail below landing, active feller-buncher and skidder, narrow single-lane road, slash piles near deck, limited cell service away from landing, possible icy grade after rain/freeze.",
+  const plan = emptyPlan();
+  plan.title = "EXAMPLE - Maple Hollow Timber Harvest";
+  plan.creator = "Example only; replace before field use";
+  plan.company = "Example Forestry";
+  plan.importedFrom = "built-in-field-example";
+  plan.location = { ...plan.location, lat: "44.033800", lng: "-72.318600", roadAddress: "742 Maple Hollow Road", town: "West Topsham", county: "Orange", state: "VT", source: "example" };
+  plan.access = {
+    ...plan.access,
+    knownLandmark: "VT Routes 12 and 25, West Topsham",
+    phoneDirections: "From Routes 12 and 25, travel east on Route 25 for 3.4 miles. Turn left onto Maple Hill Road. Continue 1.2 miles to the yellow gate on the right.",
+    meetingPoint: "Yellow gate; a crew member will meet responders.",
+    gateNotes: "Key in supervisor's pickup.",
+    constraints: ["Narrow bridge", "Limited turnaround"],
+    phoneServiceNotes: "Radio channel 3; cell service at gate.",
+    landingZoneDescription: "Main landing",
+    landingZoneSize: "200 x 180 ft",
+    landingZoneNotes: "Wires along west edge.",
   };
+  plan.contacts.people = [
+    { name: "Alex Morgan", role: "Site lead", phone: "802-555-0101" },
+    { name: "Jordan Lee", role: "Forester", phone: "802-555-0102" },
+    { name: "Casey Reed", role: "Crew", phone: "802-555-0103" },
+    { name: "Taylor Smith", role: "Landowner", phone: "802-555-0104" },
+    { name: "Robin Davis", role: "Dispatcher", phone: "802-555-0105" },
+  ];
+  plan.hazardChecks = ["Active tree felling", "Log truck traffic", "Steep terrain"];
+  plan.equipment = { items: ["First aid kit", "Fire extinguisher", "Radio"], other: "", location: "Supervisor's pickup" };
+  plan.medical.notes = "Enter the checked hospital / ER for the actual job.";
+  return plan;
 }
 
 async function ensureCompleteExamplePlan() {
   const plans = await storeAll(PLAN_STORE);
-  const exists = plans.some((plan) => plan.importedFrom === "built-in-complete-example" || plan.title === "Complete Example WRSP Plan - Tarbell Hawkins Job");
+  const exists = plans.some((plan) => plan.importedFrom === "built-in-field-example");
   if (exists) return;
   await storePut(PLAN_STORE, samplePlan());
 }
@@ -360,7 +325,7 @@ async function ensureCompleteExamplePlan() {
 async function openCompleteExamplePlan() {
   await ensureCompleteExamplePlan();
   const plans = await storeAll(PLAN_STORE);
-  const plan = plans.find((item) => item.importedFrom === "built-in-complete-example" || item.title === "Complete Example WRSP Plan - Tarbell Hawkins Job");
+  const plan = plans.find((item) => item.importedFrom === "built-in-field-example");
   if (!plan) return;
   await openPlan(plan.id);
 }
@@ -523,7 +488,7 @@ async function updatePwaStatus() {
 }
 
 function contactRowsFromForm() {
-  return [1, 2, 3, 4, 5].map((index) => ({
+  return $$("#planPeopleGrid [id^=\"contactName\"]").map((input) => Number(input.id.replace("contactName", ""))).map((index) => ({
     name: $(`#contactName${index}`)?.value.trim() || "",
     role: $(`#contactRole${index}`)?.value.trim() || "",
     phone: $(`#contactPhone${index}`)?.value.trim() || "",
@@ -564,6 +529,12 @@ function formToPlan() {
     ...emptyPlan(),
     id,
     title: $("#title").value.trim(),
+    company: $("#planCompany").value.trim(),
+    importedFrom: $("#planForm").dataset.importedFrom || "",
+    copiedFrom: $("#planForm").dataset.copiedFrom || "",
+    hazardChecks: selectedFields("hazardChecks"),
+    equipment: { items: selectedFields("equipmentChecks"), other: $("#equipmentOther").value.trim(), location: $("#equipmentLocation").value.trim() },
+    emergencyProcedure: $("#emergencyProcedure").value.trim() || DEFAULT_EMERGENCY_PROCEDURE,
     status: $("#status").value,
     createdAt: $("#planForm").dataset.createdAt || now,
     updatedAt: now,
@@ -581,6 +552,8 @@ function formToPlan() {
       state: $("#state").value.trim(),
     },
     access: {
+      constraints: selectedFields("accessChecks"),
+      landingZoneSize: $("#landingZoneSize").value.trim(),
       knownLandmark: $("#knownLandmark").value.trim(),
       knownLandmarkLat: $("#knownLandmarkLat").value.trim(),
       knownLandmarkLng: $("#knownLandmarkLng").value.trim(),
@@ -605,6 +578,10 @@ function formToPlan() {
     },
     medical: {
       hospital: $("#hospital").value.trim(),
+      hospitalTown: $("#hospitalTown").value.trim(),
+      hospitalAddress: $("#hospitalAddress").value.trim(),
+      hospitalDriveTime: $("#hospitalDriveTime").value.trim(),
+      hospitalVerified: $("#hospitalVerified").checked,
       hospitalDirectionsUrl: $("#hospitalDirectionsUrl").value.trim(),
       urgentCare: $("#urgentCare")?.value.trim() || "",
       urgentCareDirectionsUrl: $("#urgentCareDirectionsUrl")?.value.trim() || "",
@@ -627,12 +604,12 @@ function planReadiness(plan = formToPlan()) {
   const loc = plan.location || {};
   const access = plan.access || {};
   const hasLocation = Boolean((loc.lat && loc.lng) || loc.roadAddress || loc.town || loc.county);
-  const hasDirections = Boolean(access.phoneDirections || access.knownLandmark || (access.knownLandmarkLat && access.knownLandmarkLng));
+  const hasDirections = Boolean(access.phoneDirections);
   const hasJobContact = contactRowsForPlan(plan).some((person) => person.name || person.phone);
   const usableChecks = [
     { label: "site name", done: Boolean(plan.title) },
     { label: "site location", done: hasLocation },
-    { label: "read-aloud directions or known starting point", done: hasDirections },
+    { label: "written responder directions", done: hasDirections },
     { label: "job contact", done: hasJobContact },
   ];
   const completeChecks = [
@@ -672,13 +649,31 @@ function syncReadinessStatus(plan = formToPlan()) {
 }
 
 function planToForm(plan) {
+  window.clearTimeout(autoSaveTimer);
   currentPlanId = plan.id;
+  $("#planForm").dataset.importedFrom = plan.importedFrom || "";
   $("#planId").value = plan.id;
   $("#planForm").dataset.createdAt = plan.createdAt;
   $("#planForm").dataset.accuracy = plan.location?.accuracy || "";
   $("#planForm").dataset.capturedAt = plan.location?.capturedAt || "";
   $("#planForm").dataset.locationSource = plan.location?.source || "";
   $("#title").value = plan.title || "";
+  $("#planCompany").value = plan.company || "";
+  $("#planForm").dataset.copiedFrom = plan.copiedFrom || "";
+  $("#copiedPlanNotice").hidden = !plan.copiedFrom;
+  fieldCheckboxes("hazardChecks", plan.hazardChecks || []);
+  fieldCheckboxes("accessChecks", plan.access?.constraints || []);
+  fieldCheckboxes("equipmentChecks", plan.equipment?.items || []);
+  $("#equipmentOther").value = plan.equipment?.other || "";
+  $("#equipmentLocation").value = plan.equipment?.location || "";
+  $("#emergencyProcedure").value = plan.emergencyProcedure || DEFAULT_EMERGENCY_PROCEDURE;
+  $("#landingZoneSize").value = plan.access?.landingZoneSize || "";
+  $("#hospitalTown").value = plan.medical?.hospitalTown || "";
+  $("#hospitalAddress").value = plan.medical?.hospitalAddress || "";
+  $("#hospitalDriveTime").value = plan.medical?.hospitalDriveTime || "";
+  $("#hospitalVerified").checked = Boolean(plan.medical?.hospitalVerified);
+  refreshRecentPeople();
+
   $("#status").value = plan.status || "draft";
   $("#creator").value = plan.creator || "";
   $("#lat").value = plan.location?.lat || "";
@@ -700,13 +695,7 @@ function planToForm(plan) {
   $("#landingZoneLat").value = plan.access?.landingZoneLat || "";
   $("#landingZoneLng").value = plan.access?.landingZoneLng || "";
   $("#landingZoneNotes").value = plan.access?.landingZoneNotes || "";
-  const people = contactRowsForPlan(plan);
-  [1, 2, 3, 4, 5].forEach((index) => {
-    const person = people[index - 1] || {};
-    $(`#contactName${index}`).value = person.name || "";
-    $(`#contactRole${index}`).value = person.role || "";
-    $(`#contactPhone${index}`).value = person.phone || "";
-  });
+  renderPeopleFields(contactRowsForPlan(plan));
   $("#hospital").value = plan.medical?.hospital || "";
   $("#hospitalDirectionsUrl").value = plan.medical?.hospitalDirectionsUrl || "";
   if ($("#urgentCare")) $("#urgentCare").value = plan.medical?.urgentCare || "";
@@ -780,6 +769,7 @@ async function loadDefaultsForm() {
 
 function applyDefaultsToPlanObject(plan, defaults) {
   plan.creator ||= defaults.creator || "";
+  plan.company ||= defaults.company || "";
   plan.location = plan.location || {};
   plan.location.state ||= defaults.state || "";
   plan.contacts = plan.contacts || {};
@@ -796,7 +786,17 @@ function applyDefaultsToPlanObject(plan, defaults) {
 }
 
 async function newPlanWithDefaults() {
-  return applyDefaultsToPlanObject(emptyPlan(), await loadDefaults());
+  const plan = applyDefaultsToPlanObject(emptyPlan(), await loadDefaults());
+  const profile = (await storeGet(SETTINGS_STORE, RECURRING_PROFILE_KEY))?.value;
+  if (profile) {
+    plan.contacts.people = structuredClone(profile.people || []);
+    plan.creator = profile.creator || plan.creator;
+    plan.company = profile.company || plan.company;
+    plan.emergencyProcedure = profile.emergencyProcedure || DEFAULT_EMERGENCY_PROCEDURE;
+    plan.equipment = structuredClone(profile.equipment || plan.equipment);
+    plan.sar.contacts = profile.sarContacts || plan.sar.contacts;
+  }
+  return plan;
 }
 
 function updateGpsStatus(plan = formToPlan()) {
@@ -1142,6 +1142,7 @@ function pointToLatLng(clientX, clientY) {
 }
 
 async function savePlan(plan = formToPlan(), quiet = false) {
+  window.clearTimeout(autoSaveTimer);
   if (!plan.title) plan.title = "Untitled WRSP Plan";
   plan.status = planReadiness(plan).value;
   await storePut(PLAN_STORE, plan);
@@ -1170,7 +1171,7 @@ function essentialStatus(plan = formToPlan()) {
   const checks = [
     { label: "site name", done: readiness.checks.find((check) => check.label === "site name")?.done || readiness.value === "complete" },
     { label: "site location", done: readiness.checks.find((check) => check.label === "site location")?.done || readiness.value === "complete" },
-    { label: "directions or starting point", done: readiness.checks.find((check) => check.label === "read-aloud directions or known starting point")?.done || readiness.value === "complete" },
+    { label: "written responder directions", done: readiness.checks.find((check) => check.label === "written responder directions")?.done || readiness.value === "complete" },
     { label: "job contact", done: readiness.checks.find((check) => check.label === "job contact")?.done || readiness.value === "complete" },
   ];
   return { checks, done: checks.filter((check) => check.done).length, total: checks.length };
@@ -1310,11 +1311,16 @@ async function openShareChoice(planId = null) {
   const requestId = ++sharePreparationId;
   setShareChoiceStatus("Preparing plan...");
   $("#shareChoicePanel").hidden = false;
+  $$("#shareReview input").forEach(input => { input.checked = false; });
+  $("#shareChoiceReadiness").textContent = "";
   ["shareChoicePng", "shareChoicePdf", "shareChoiceEmailDraft"].forEach((id) => { $(`#${id}`).disabled = true; });
   try {
     const plan = await planForSharing();
     if (!plan) throw new Error("Open a saved plan first.");
-    $("#shareChoiceReadiness").innerHTML = shareReadinessHtml(plan);
+    $("#shareChoiceReadiness").textContent = "One-page safety plan with full email body and PDF.";
+    if (!validFieldCoordinates(plan.location?.lat, plan.location?.lng)) throw new Error("Enter and check the site coordinates.");
+    if (!plan.access?.phoneDirections?.trim()) throw new Error("Add written directions from a known starting point. A map link alone is not enough.");
+    if (plan.medical?.hospital && !plan.medical?.hospitalVerified) throw new Error("Check the hospital / ER details in Medical / evacuation.");
     const pdf = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
     const imageBlob = await new Promise((resolve) => planCanvas(plan).toBlob(resolve, "image/jpeg", 0.82));
     if (!imageBlob) throw new Error("Could not prepare the plan image.");
@@ -1322,7 +1328,7 @@ async function openShareChoice(planId = null) {
     const email = await planEmailFile(plan, pdf);
     if (requestId !== sharePreparationId) return;
     preparedShare = { plan, pdf, image, email };
-    ["shareChoicePng", "shareChoicePdf", "shareChoiceEmailDraft"].forEach((id) => { $(`#${id}`).disabled = false; });
+    syncShareReview();
     setShareChoiceStatus("");
   } catch (error) {
     if (requestId === sharePreparationId) setShareChoiceStatus(`Could not prepare sharing: ${error.message}`);
@@ -1335,7 +1341,7 @@ function closeShareChoice() {
 }
 
 async function shareChosenPlan(format) {
-  if (!preparedShare) return;
+  if (!preparedShare || !$$("#shareReview input").every(input => input.checked)) return;
   const { plan, pdf, image, email } = preparedShare;
   if (format === "email-draft") {
     await fallbackDownloadFile(email, "Email draft saved with the formatted plan and PDF attached. Open it in your email app to address and send.");
@@ -1350,7 +1356,12 @@ async function shareChosenPlan(format) {
 
 function renderCurrentPlan(plan) {
   $("#planOutput").innerHTML = currentPlanMode === "responder" ? renderResponderPlanHtml(plan) : renderPlanHtml(plan);
-  $("#shareReadinessCard").innerHTML = shareReadinessHtml(plan);
+  try {
+    planPdfPages(plan);
+    $("#shareReadinessCard").textContent = "One-page plan ready for review.";
+  } catch (error) {
+    $("#shareReadinessCard").textContent = error.message;
+  }
   $("#fullPlanMode")?.classList.toggle("active", currentPlanMode === "full");
   $("#responderPlanMode")?.classList.toggle("active", currentPlanMode === "responder");
 }
@@ -1366,150 +1377,15 @@ function responderList(items) {
 }
 
 function renderPlanHtml(plan) {
-  const loc = plan.location || {};
-  const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "";
-  const emergencyDirections = buildEmergencyDirections(plan);
-  const readiness = planReadiness(plan);
-  const sections = [
-    ["Location", [
-      ["GPS", loc.lat && loc.lng ? `${loc.lat}, ${loc.lng}` : "Not set"],
-      ["Maps link", mapsLink ? `<a href="${mapsLink}" target="_blank" rel="noopener">Open coordinates in maps</a>` : "Not set"],
-      ["Nearest public road / address", loc.roadAddress],
-      ["Town / county / state", [loc.town, loc.county, loc.state].filter(Boolean).join(", ")],
-      ["Phone service", plan.access?.phoneServiceNotes],
-    ]],
-    ["Access", [
-      ["Known starting landmark", plan.access?.knownLandmark],
-      ["Read-aloud directions", plan.access?.phoneDirections],
-      ["Access limits / truck notes", plan.access?.routeNotes],
-      ["Directions from starting point", planDirectionsUrl(plan) ? `<a href="${escapeHtml(planDirectionsUrl(plan))}" target="_blank" rel="noopener">Open Google Maps directions</a>` : ""],
-      ["Gate / lock / key notes", plan.access?.gateNotes],
-      ["Emergency meeting point", plan.access?.meetingPoint],
-      ["Alternate meeting point", plan.access?.alternateMeetingPoint],
-      ["Possible helicopter landing zone", plan.access?.landingZoneDescription],
-      ["Landing zone GPS", plan.access?.landingZoneLat && plan.access?.landingZoneLng ? `${plan.access.landingZoneLat}, ${plan.access.landingZoneLng}` : ""],
-      ["Landing zone hazards / notes", plan.access?.landingZoneNotes],
-    ]],
-    ["Emergency numbers", [["Local numbers / notes", emergencyNotes(plan)]]],
-    ["Medical and hazards", [
-      ["Nearest hospital / ER", plan.medical?.hospital],
-      ["Hospital / ER directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital / ER directions</a>` : ""],
-      ["Medical notes", plan.medical?.notes],
-      ["Hazard notes", plan.hazards],
-    ]],
-  ];
-  return `
-    <h2>${escapeHtml(plan.title || "WRSP Plan")}</h2>
-    ${completenessHint(plan)}
-    <p class="warning">WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.</p>
-    <div class="read-aloud">
-      <h3>Read to 911 / dispatch</h3>
-      <p>${escapeHtml(emergencyDirections)}</p>
-    </div>
-    <p><strong>Readiness:</strong> <span class="status-pill ${escapeHtml(readiness.value)}">${escapeHtml(readiness.label)}</span> &middot; <strong>Updated:</strong> ${formatDate(plan.updatedAt)}</p>
-    <h3>People</h3>${peopleTableHtml(plan)}
-    ${sections.map(([title, rows]) => `
-      <h3>${title}</h3>
-      <dl>${rows.map(([label, value]) => `
-        <div>
-          <dt>${escapeHtml(label)}</dt>
-          <dd>${value ? allowMapLink(value) : "Not entered"}</dd>
-        </div>`).join("")}</dl>
-    `).join("")}`;
+  return renderFieldPlanHtml(plan);
 }
 
 function renderResponderPlanHtml(plan) {
-  const loc = plan.location || {};
-  const access = plan.access || {};
-  const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "";
-  const siteAddress = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
-  const lzGps = access.landingZoneLat && access.landingZoneLng ? `${access.landingZoneLat}, ${access.landingZoneLng}` : "";
-  const readiness = planReadiness(plan);
-  return `
-    <div class="safety-sheet">
-      <header class="safety-sheet-head">
-        <div>
-          <h2>${escapeHtml(plan.title || "WRSP Safety Plan")}</h2>
-          <p>${escapeHtml(siteAddress || "Site address/location not entered")}</p>
-          <strong>Safety Plan & Important Information</strong>
-          <p><span class="status-pill ${escapeHtml(readiness.value)}">${escapeHtml(readiness.label)}</span></p>
-          <p>Updated ${formatDate(plan.updatedAt)}</p>
-        </div>
-        <a class="primary-action link-action emergency-dial" href="tel:911">Dial 911</a>
-      </header>
-    ${completenessHint(plan)}
-      <section class="sheet-section phones-section">
-        <h3>Phones</h3>
-        <p class="warning strong">WRSP does not contact 911. Dial 911 for emergencies.</p>
-        ${responderLine("Phone service", access.phoneServiceNotes || "Not entered")}
-        <p>Keep this plan on your phone and text or email it to responders after you have spoken with them.</p>
-      </section>
-      <section class="sheet-section">
-        <h3>Site Location</h3>
-        ${responderLine("GPS", loc.lat && loc.lng ? `<a href="${mapsLink}" target="_blank" rel="noopener">${loc.lat}, ${loc.lng}</a>` : "Not entered")}
-        ${mapsLink ? responderLine("Map link", `<a href="${mapsLink}" target="_blank" rel="noopener">${mapsLink}</a>`) : responderLine("Map link", "Not entered")}
-      </section>
-      <section class="sheet-section">
-        <h3>Emergency Numbers</h3>
-        ${responderList([
-          ["Local numbers / notes", emergencyNotes(plan)],
-          ["Hospital / ER", plan.medical?.hospital],
-          ["Hospital directions", plan.medical?.hospitalDirectionsUrl ? `<a href="${escapeHtml(plan.medical.hospitalDirectionsUrl)}" target="_blank" rel="noopener">Open hospital directions</a>` : ""],
-        ])}
-      </section>
-      <section class="sheet-section">
-        <h3>People</h3>
-        ${peopleTableHtml(plan)}
-      </section>
-      <section class="sheet-section directions-section">
-        <h3>Directions to Job Site for Emergency Vehicles</h3>
-        <p>${escapeHtml(buildEmergencyDirections(plan))}</p>
-        ${planDirectionsUrl(plan) ? `<p><a href="${escapeHtml(planDirectionsUrl(plan))}" target="_blank" rel="noopener">Google Maps directions from starting point</a></p>` : ""}
-      </section>
-      <section class="sheet-section">
-        <h3>Access and Hazards</h3>
-        ${responderList([
-          ["Emergency meeting point", access.meetingPoint],
-          ["Gate / lock / key notes", access.gateNotes],
-          ["Access limits / truck notes", access.routeNotes],
-          ["Alternate meeting point", access.alternateMeetingPoint],
-          ["Hazards at or near site", plan.hazards],
-          ["Medical notes", plan.medical?.notes],
-        ])}
-      </section>
-      <section class="sheet-section">
-        <h3>Potential Helicopter Landing Site</h3>
-        ${responderList([
-          ["Landing zone", access.landingZoneDescription],
-          ["Lat/Long", lzGps],
-          ["Hazards / notes", access.landingZoneNotes],
-        ])}
-      </section>
-    </div>`;
+  return renderFieldPlanHtml(plan);
 }
 
 function buildEmergencyDirections(plan) {
-  const loc = plan.location || {};
-  const access = plan.access || {};
-  const parts = [];
-  parts.push(`The emergency is at ${plan.title || "a logging site"}.`);
-  if (loc.lat && loc.lng) parts.push(`GPS coordinates are ${loc.lat}, ${loc.lng}.`);
-  if (access.phoneServiceNotes) parts.push(`Phone service notes: ${access.phoneServiceNotes}.`);
-  if (access.knownLandmark || (access.knownLandmarkLat && access.knownLandmarkLng)) {
-    parts.push(`Start from ${access.knownLandmark || "the landmark pin"}${access.knownLandmarkLat && access.knownLandmarkLng ? ` (${access.knownLandmarkLat}, ${access.knownLandmarkLng})` : ""}.`);
-  }
-  if (access.phoneDirections) parts.push(access.phoneDirections);
-  if (access.meetingPoint) parts.push(`The emergency meeting point is ${access.meetingPoint}.`);
-  if (access.gateNotes) parts.push(`Gate, lock, or access notes: ${access.gateNotes}.`);
-  if (access.routeNotes) parts.push(`Additional access notes: ${access.routeNotes}.`);
-  if (access.landingZoneDescription || (access.landingZoneLat && access.landingZoneLng)) {
-    parts.push(`Possible helicopter landing zone: ${access.landingZoneDescription || "description not entered"}${access.landingZoneLat && access.landingZoneLng ? `; GPS ${access.landingZoneLat}, ${access.landingZoneLng}` : ""}.`);
-  }
-  if (access.landingZoneNotes) parts.push(`Landing zone hazards or notes: ${access.landingZoneNotes}.`);
-  if (!access.knownLandmark && !access.phoneDirections && !(access.knownLandmarkLat && access.knownLandmarkLng)) {
-    parts.push("Directions from a known town, village, highway intersection, or other responder-friendly landmark have not been entered yet.");
-  }
-  return parts.join(" ");
+  return fieldPlanData(plan).emergency.rows.map(row => `${row.label}: ${row.text}`).join("\n");
 }
 
 function emergencyNotes(plan) {
@@ -1538,26 +1414,9 @@ function peopleTableHtml(plan) {
     <tbody>${people.map((person) => `<tr>${[person.name, person.role, person.phone].map((value) => `<td style="padding:8px;border-bottom:1px solid #d8ded5;overflow-wrap:anywhere">${escapeHtml(value || "")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
-function planShareText(plan) {
-  return [
-    `WRSP Safety Plan: ${plan.title || "Untitled"}`,
-    `Updated ${formatDate(plan.updatedAt)}`,
-    ...planPngRows(plan).map(([label, value]) => `${label}\n${value}`),
-  ].join("\n\n");
-}
+function planShareText(plan) { return fieldPlanText(plan); }
 
-function planEmailHtml(plan) {
-  return `<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><title>${escapeHtml(plan.title || "WRSP Safety Plan")}</title></head>
-  <body style="margin:0;background:#fff;color:#202923;font:16px/1.5 Arial,sans-serif">
-    <main lang="en" dir="ltr" style="max-width:680px;margin:auto;padding:24px">
-      <h1 style="font-size:24px;color:#123c2c;margin:0 0 8px">${escapeHtml(plan.title || "WRSP Safety Plan")}</h1>
-      <p style="margin:0 0 20px">Safety Plan &amp; Important Information<br>Updated ${escapeHtml(formatDate(plan.updatedAt))}</p>
-      ${planPngRows(plan).map(([label, value]) => `<section>
-        <h2 style="font-size:17px;color:#123c2c;border-bottom:1px solid #b9c9c0;padding-bottom:5px;margin:20px 0 8px">${escapeHtml(label)}</h2>
-        ${label === "PEOPLE" ? peopleTableHtml(plan) : `<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value)}</p>`}
-      </section>`).join("")}
-    </main></body></html>`;
-}
+function planEmailHtml(plan) { return fieldPlanEmailHtml(plan); }
 
 async function shareText(title, text) {
   if (navigator.share) {
@@ -1615,38 +1474,8 @@ function showPlanQr(plan) {
 }
 
 function planPngRows(plan) {
-  const loc = plan.location || {};
-  const access = plan.access || {};
-  const mapsLink = loc.lat && loc.lng ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : "";
-  const lzGps = access.landingZoneLat && access.landingZoneLng ? `${access.landingZoneLat}, ${access.landingZoneLng}` : "";
-  return [
-    ["PHONE / 911", `Dial 911 for emergencies. Phone service: ${access.phoneServiceNotes || "Not entered"}`],
-    ["SITE LOCATION", [
-      loc.lat && loc.lng ? `GPS: ${loc.lat}, ${loc.lng}` : "GPS: Not entered",
-      mapsLink ? `Map: ${mapsLink}` : "",
-      [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", "),
-    ].filter(Boolean).join("\n")],
-    ["PEOPLE", contactRowsForPlan(plan).map(formatContactRow).join("\n") || "Not entered"],
-    ["DIRECTIONS TO JOB SITE", [buildEmergencyDirections(plan), planDirectionsUrl(plan) && `Google Maps directions: ${planDirectionsUrl(plan)}`].filter(Boolean).join("\n")],
-    ["EMERGENCY NUMBERS", emergencyNotes(plan) || "Dial 911"],
-    ["MEDICAL", [
-      plan.medical?.hospital && `Hospital / ER: ${plan.medical.hospital}`,
-      plan.medical?.hospitalDirectionsUrl && `Hospital map: ${plan.medical.hospitalDirectionsUrl}`,
-      plan.medical?.notes,
-    ].filter(Boolean).join("\n") || "Not entered"],
-    ["ACCESS / HAZARDS", [
-      access.gateNotes && `Gate: ${access.gateNotes}`,
-      access.meetingPoint && `Meeting point: ${access.meetingPoint}`,
-      access.alternateMeetingPoint && `Alternate meeting point: ${access.alternateMeetingPoint}`,
-      access.routeNotes && `Access limits / truck notes: ${access.routeNotes}`,
-      plan.hazards && `Hazards: ${plan.hazards}`,
-    ].filter(Boolean).join("\n") || "Not entered"],
-    ["POTENTIAL HELICOPTER LANDING SITE", [
-      access.landingZoneDescription,
-      lzGps && `GPS: ${lzGps}`,
-      access.landingZoneNotes && `Hazards/notes: ${access.landingZoneNotes}`,
-    ].filter(Boolean).join("\n") || "Not entered"],
-  ];
+  const data = fieldPlanData(plan);
+  return [data.emergency, ...data.left, ...data.right, data.actions].map(section => [section.title, section.rows.map(row => `${row.label ? row.label + ": " : ""}${row.text}${row.url ? "\n" + row.url : ""}`).join("\n")]);
 }
 
 function canvasTextLines(ctx, text, maxWidth) {
@@ -1717,44 +1546,7 @@ function drawCanvasBlock(ctx, label, value, x, y, width) {
   return y + height + 18;
 }
 
-function planCanvas(plan) {
-  const width = 1080;
-  const margin = 44;
-  const contentWidth = width - margin * 2;
-  const measureCanvas = document.createElement("canvas");
-  measureCanvas.width = width;
-  const measureCtx = measureCanvas.getContext("2d");
-  const rows = planPngRows(plan);
-  measureCtx.font = "900 46px Arial";
-  const titleExtra = Math.max(0, wrappedLineCount(measureCtx, plan.title || "WRSP Safety Plan", contentWidth) - 1) * 50;
-  let height = 230 + titleExtra + rows.reduce((total, [, value]) => total + canvasSectionHeight(measureCtx, value, contentWidth - 48) + 18, 0) + 120;
-  height = Math.max(height, 1600);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#f7f5ee";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#123c2c";
-  ctx.fillRect(0, 0, canvas.width, 198 + titleExtra);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 46px Arial";
-  wrapCanvasText(ctx, plan.title || "WRSP Safety Plan", margin, 64, contentWidth, 50);
-  ctx.font = "800 27px Arial";
-  ctx.fillText("Safety Plan & Important Information", margin, 136 + titleExtra);
-  ctx.font = "24px Arial";
-  ctx.fillText(`Updated ${formatDate(plan.updatedAt)}`, margin, 170 + titleExtra);
-  ctx.fillStyle = "#d4631f";
-  ctx.fillRect(0, 198 + titleExtra, canvas.width, 8);
-  let y = 236 + titleExtra;
-  rows.forEach(([label, value]) => {
-    y = drawCanvasBlock(ctx, label, value, margin, y, contentWidth);
-  });
-  ctx.fillStyle = "#70310e";
-  ctx.font = "800 27px Arial";
-  wrapCanvasText(ctx, "WRSP does not contact 911. For serious injury or uncertain severity, call 911 and request EMS.", margin, y + 30, contentWidth, 34);
-  return canvas;
-}
+function planCanvas(plan) { return fieldPlanPdfPages(plan)[0]; }
 
 async function fallbackDownloadFile(file, message) {
   const blob = file instanceof Blob ? file : new Blob([file]);
@@ -1817,82 +1609,7 @@ async function canvasJpegBytes(canvas) {
   return new Uint8Array(await blob.arrayBuffer());
 }
 
-function planPdfPages(plan) {
-  const pages = [];
-  const width = 1224;
-  const height = 1584;
-  const margin = 64;
-  const contentWidth = width - margin * 2;
-  let ctx;
-  let y;
-  const newPage = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    pages.push(canvas);
-    ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#123c2c";
-    ctx.font = "bold 30px Arial";
-    y = wrapCanvasText(ctx, plan.title || "WRSP Safety Plan", margin, 74, contentWidth, 36);
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "#46524a";
-    y = wrapCanvasText(ctx, `Safety Plan & Important Information | Updated ${formatDate(plan.updatedAt)}`, margin, y + 4, contentWidth, 24) + 16;
-    ctx.fillText(`WRSP | ${pages.length}`, margin, height - 32);
-    canvas.links = [];
-    const url = planDirectionsUrl(plan);
-    if (url) {
-      const label = "Open Google Maps directions";
-      const linkWidth = ctx.measureText(label).width;
-      const x = width - margin - linkWidth;
-      ctx.fillStyle = "#123c2c";
-      ctx.fillText(label, x, height - 32);
-      canvas.links.push({ url, rect: [x / 2, 13, (x + linkWidth) / 2, 26] });
-    }
-  };
-  const ensureSpace = (space) => { if (y + space > height - margin) newPage(); };
-  newPage();
-  for (const [label, value] of planPngRows(plan)) {
-    ensureSpace(88);
-    ctx.fillStyle = "#123c2c";
-    ctx.font = "bold 22px Arial";
-    ctx.fillText(label, margin, y);
-    y += 9;
-    ctx.fillStyle = "#becdc5";
-    ctx.fillRect(margin, y, contentWidth, 1);
-    y += 29;
-    if (label === "PEOPLE" && contactRowsForPlan(plan).length) {
-      const columnWidths = [contentWidth * 0.38, contentWidth * 0.28, contentWidth * 0.34];
-      const rows = [["Name", "Role", "Contact number"], ...contactRowsForPlan(plan).map((p) => [p.name, p.role, p.phone])];
-      for (let index = 0; index < rows.length; index += 1) {
-        ctx.font = `${index === 0 ? "bold " : ""}20px Arial`;
-        const columns = rows[index].map((cell, col) => canvasTextLines(ctx, cell, columnWidths[col] - 16));
-        for (let line = 0; line < Math.max(...columns.map((col) => col.length)); line += 1) {
-          ensureSpace(26);
-          ctx.font = `${index === 0 ? "bold " : ""}20px Arial`;
-          ctx.fillStyle = "#202923";
-          let x = margin;
-          columns.forEach((col, colIndex) => { ctx.fillText(col[line] || "", x, y); x += columnWidths[colIndex]; });
-          y += 26;
-        }
-        y += 6;
-      }
-    } else {
-      ctx.font = "20px Arial";
-      const lines = canvasTextLines(ctx, value, contentWidth);
-      for (const line of lines) {
-        ensureSpace(26);
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "#202923";
-        ctx.fillText(line, margin, y);
-        y += 26;
-      }
-    }
-    y += 18;
-  }
-  return pages;
-}
+function planPdfPages(plan) { return fieldPlanPdfPages(plan); }
 
 async function planPdfBlob(plan) {
   const pages = planPdfPages(plan);
@@ -2487,6 +2204,7 @@ async function saveMedicalFacilityToCurrentPlan() {
   if (type === "hospital") {
     plan.medical.hospital = details;
     plan.medical.hospitalDirectionsUrl = directionsUrl;
+    plan.medical.hospitalVerified = false;
   }
   plan.updatedAt = new Date().toISOString();
   await storePut(PLAN_STORE, plan);
@@ -3051,13 +2769,7 @@ function bindEvents() {
     }
     openMapsSearch(query);
   });
-  $("#buildPhoneDirections").addEventListener("click", () => {
-    const draft = buildPhoneDirectionsDraft();
-    $("#phoneDirections").value = draft;
-    scheduleAutoSave();
-    updateEssentialProgress();
-    toast("Read-aloud directions draft built.");
-  });
+
   $$(".contact-picker").forEach((button) => {
     button.addEventListener("click", () => chooseContactForField(button.dataset.contactTarget));
   });
@@ -3390,20 +3102,26 @@ function bindEvents() {
       ...structuredClone(plan),
       id: crypto.randomUUID(),
       title: `${plan.title || "WRSP Plan"} copy`,
+      copiedFrom: plan.id,
+      medical: { ...plan.medical, hospitalVerified: false },
       status: "draft",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     await savePlan(copy);
-    await openPlan(copy.id);
+    planToForm(copy);
+    routeTo("create");
   });
   $("#printCurrentPlan").addEventListener("click", async () => {
     const plan = await activePlan();
-    if (plan) {
-      currentPlanMode = "responder";
-      renderCurrentPlan(plan);
+    if (!plan) return;
+    try {
+      const file = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
+      await fallbackDownloadFile(file, "One-page PDF saved. Open it to print.");
+    } catch (error) {
+      await openShareChoice();
+      setShareChoiceStatus(error.message);
     }
-    window.print();
   });
   $("#refreshEmergencyGps").addEventListener("click", refreshEmergencyGps);
   $("#shareLocation").addEventListener("click", async () => {
@@ -3592,6 +3310,7 @@ async function initServiceWorker() {
 async function init() {
   db = await openDb();
   bindEvents();
+  bindFieldEvents();
   updateContactPickerButtons();
   updateConnectionBadge();
   await ensureCompleteExamplePlan();

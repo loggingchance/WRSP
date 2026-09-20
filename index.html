@@ -24,7 +24,7 @@
     <title>WRSP – Woods-Ready Safety Plan | Free Logging Site Safety App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.svg">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=0.8.0">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -210,7 +210,11 @@
           </div>
 
           <details class="card accordion-card" open>
-            <summary>Job / Site</summary>
+            <summary>Where is the job?</summary>
+            <p id="copiedPlanNotice" class="notice" hidden>Copied plan: check the location, written directions, meeting point, hospital, and access for this job.</p>
+            <label>Company / organization
+              <input id="planCompany" autocomplete="organization">
+            </label>
             <label>Job or site name <span class="needed-tag">needed</span>
               <input id="title" name="title" required autocomplete="off" placeholder="North ridge thinning">
             </label>
@@ -225,7 +229,7 @@
 
             <div class="card-head">
               <h3>Location</h3>
-              <button type="button" class="small-action" id="captureGps">Use Phone GPS</button>
+              <button type="button" class="small-action" id="captureGps">Use My Current Location</button>
             </div>
             <p class="helper">Address and road notes help people understand the site. Exact coordinates are captured from phone GPS or a dropped map pin.</p>
             <p id="gpsStatus" class="helper">GPS has not been captured for this plan.</p>
@@ -318,30 +322,90 @@
             </div>
             <div class="action-row">
               <button type="button" class="secondary-action" id="findStartingLandmark">Find Landmark</button>
-              <button type="button" class="secondary-action" id="buildPhoneDirections">Build Directions Draft</button>
             </div>
             <label>Site-specific directions to read aloud
               <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
-            <label>Phone service notes
-              <textarea id="phoneServiceNotes" name="phoneServiceNotes" rows="2" placeholder="Where mobile service works, dead zones, radio channel, or satellite device notes"></textarea>
+            <label>Meet Responders Here
+              <textarea id="meetingPoint" rows="2" placeholder="Yellow gate, main landing, marked intersection, or driveway entrance"></textarea>
+            </label>
+            <label>Gate / access instructions
+              <textarea id="gateNotes" rows="2" placeholder="Gate combination, key location, entrance markings"></textarea>
+            </label>
+            <label>Alternate meeting point
+              <input id="alternateMeetingPoint" placeholder="Optional">
             </label>
           </details>
 
           <details class="card accordion-card">
-            <summary>Location & Access</summary>
-            <label>Access limits / truck notes
-              <textarea id="routeNotes" name="routeNotes" rows="3" placeholder="Road limits, bridge/weight concerns, turnaround notes, seasonal condition, roads to avoid, or equipment access notes."></textarea>
+            <summary>Who is there?</summary>
+            <p class="helper">Add the people who should appear on the one-page safety sheet. A partial list is still better than no plan.</p>
+            <label>Saved / recent people
+              <select id="recentPeople"><option value="">Add a saved / recent person</option></select>
             </label>
-            <label>Gate / lock / key notes
-              <textarea id="gateNotes" name="gateNotes" rows="2"></textarea>
+            <div id="planPeopleGrid" class="people-grid" aria-label="People to include on the safety plan"></div>
+            <button type="button" class="secondary-action" id="addPersonRow">Add person</button>
+            <div class="lookup-panel simple-emergency-panel">
+              <h4>Emergency numbers</h4>
+              <p class="warning compact-warning">Dial 911 for emergencies. Add optional local numbers only when they are useful on the safety sheet.</p>
+              <p class="helper">Useful search terms may include: "[county] dispatch non-emergency", "[town] fire department", "[state] forest ranger dispatch", or "[property/organization] security". Outside lookups should be done in a separate browser tab.</p>
+            </div>
+            <label>Emergency numbers / notes
+              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Campus/security, company office, landowner, fire department, ranger/warden dispatch, or other useful non-911 numbers"></textarea>
             </label>
-            <label>Emergency meeting point
-              <textarea id="meetingPoint" name="meetingPoint" rows="2" placeholder="Landing, gate, road junction, or staging spot"></textarea>
+          </details>
+
+          <details class="card accordion-card">
+            <summary>What could responders encounter?</summary>
+            <fieldset class="field-options"><legend>Access constraints</legend><div id="accessChecks" class="check-grid"></div></fieldset>
+            <label>Other access limits / truck notes
+              <textarea id="routeNotes" rows="2" placeholder="Bridge limits, seasonal conditions, turnaround notes"></textarea>
             </label>
-            <label>Alternate meeting point
-              <textarea id="alternateMeetingPoint" name="alternateMeetingPoint" rows="2"></textarea>
+            <fieldset class="field-options"><legend>Site hazards</legend><div id="hazardChecks" class="check-grid"></div></fieldset>
+            <label>Other hazards / details
+              <textarea id="hazards" rows="2" placeholder="Unusual conditions"></textarea>
             </label>
+            <fieldset class="field-options"><legend>Emergency equipment</legend><div id="equipmentChecks" class="check-grid"></div></fieldset>
+            <label>Other equipment<input id="equipmentOther"></label>
+            <label>Equipment locations
+              <input id="equipmentLocation" placeholder="Trauma kit in supervisor's pickup; extinguisher at landing">
+            </label>
+            <label>Phone / radio coverage
+              <textarea id="phoneServiceNotes" rows="2" placeholder="Where service works, radio channel, satellite device"></textarea>
+            </label>
+            <label>Emergency procedure
+              <textarea id="emergencyProcedure" rows="4"></textarea>
+            </label>
+            <button type="button" class="secondary-action" id="rememberPlanSetup">Remember people and routine details</button>
+          </details>
+
+          <details class="card accordion-card">
+            <summary>Medical / evacuation</summary>
+            <label hidden>Plan status
+              <select id="status" name="status">
+                <option value="draft">Draft - started, still incomplete</option>
+                <option value="usable">Usable - better than no plan</option>
+                <option value="complete">Complete - key details entered</option>
+              </select>
+            </label>
+            <p id="readinessGuidance" class="helper" hidden>WRSP never blocks saving. A usable incomplete plan is better than no plan.</p>
+            <label>Nearest hospital / ER
+              <input id="hospital" name="hospital" placeholder="Name, address, phone">
+            </label>
+            <div class="split">
+              <label>Hospital town<input id="hospitalTown"></label>
+              <label>Approximate drive time<input id="hospitalDriveTime" placeholder="Optional"></label>
+            </div>
+            <label>Hospital address<input id="hospitalAddress"></label>
+            <label>Hospital / ER directions link
+              <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
+            </label>
+            <p class="helper">Suggested search: hospital emergency room near [town, state].</p>
+            <label class="check-label"><input type="checkbox" id="hospitalVerified"><span>I checked this hospital / ER and its directions.</span></label>
+            <label>Medical notes
+              <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
+            </label>
+            <p class="warning">For serious injury or uncertain severity, call 911 and request EMS. Confirm the nearest ER before relying on this plan.</p>
             <div class="subsection-block">
               <h3>Possible helicopter landing zone</h3>
               <p class="helper">Record a possible landing zone only as preparedness information. Dispatch/EMS decides whether air medical response is appropriate.</p>
@@ -378,69 +442,13 @@
                   </label>
                 </div>
               </div>
+              <label>Approximate size
+                <input id="landingZoneSize" placeholder="For example, 200 x 180 ft">
+              </label>
               <label>Landing zone hazards / notes
                 <textarea id="landingZoneNotes" name="landingZoneNotes" rows="3" placeholder="Wires, slope, stumps, soft ground, trees, smoke, wind exposure, locked gates, ground contact"></textarea>
               </label>
             </div>
-          </details>
-
-          <details class="card accordion-card">
-            <summary>People / Emergency Numbers</summary>
-            <p class="helper">Add the people who should appear on the one-page safety sheet. A partial list is still better than no plan.</p>
-            <div class="people-grid" aria-label="People to include on the safety plan">
-              <strong>Name</strong>
-              <strong>Role</strong>
-              <strong>Contact number</strong>
-              <input aria-label="Name" id="contactName1" autocomplete="name" placeholder="Name">
-              <input aria-label="Role" id="contactRole1" placeholder="Logger, forester, landowner...">
-              <input aria-label="Contact number" id="contactPhone1" inputmode="tel" autocomplete="tel" placeholder="Phone">
-              <input aria-label="Name" id="contactName2" autocomplete="name" placeholder="Name">
-              <input aria-label="Role" id="contactRole2" placeholder="Role">
-              <input aria-label="Contact number" id="contactPhone2" inputmode="tel" autocomplete="tel" placeholder="Phone">
-              <input aria-label="Name" id="contactName3" autocomplete="name" placeholder="Name">
-              <input aria-label="Role" id="contactRole3" placeholder="Role">
-              <input aria-label="Contact number" id="contactPhone3" inputmode="tel" autocomplete="tel" placeholder="Phone">
-              <input aria-label="Name" id="contactName4" autocomplete="name" placeholder="Name">
-              <input aria-label="Role" id="contactRole4" placeholder="Role">
-              <input aria-label="Contact number" id="contactPhone4" inputmode="tel" autocomplete="tel" placeholder="Phone">
-              <input aria-label="Name" id="contactName5" autocomplete="name" placeholder="Name">
-              <input aria-label="Role" id="contactRole5" placeholder="Role">
-              <input aria-label="Contact number" id="contactPhone5" inputmode="tel" autocomplete="tel" placeholder="Phone">
-            </div>
-            <div class="lookup-panel simple-emergency-panel">
-              <h4>Emergency numbers</h4>
-              <p class="warning compact-warning">Dial 911 for emergencies. Add optional local numbers only when they are useful on the safety sheet.</p>
-              <p class="helper">Useful search terms may include: "[county] dispatch non-emergency", "[town] fire department", "[state] forest ranger dispatch", or "[property/organization] security". Outside lookups should be done in a separate browser tab.</p>
-            </div>
-            <label>Emergency numbers / notes
-              <textarea id="sarContacts" name="sarContacts" rows="3" placeholder="Campus/security, company office, landowner, fire department, ranger/warden dispatch, or other useful non-911 numbers"></textarea>
-            </label>
-          </details>
-
-          <details class="card accordion-card">
-            <summary>Medical / Hazards</summary>
-            <label>Plan status
-              <select id="status" name="status">
-                <option value="draft">Draft - started, still incomplete</option>
-                <option value="usable">Usable - better than no plan</option>
-                <option value="complete">Complete - key details entered</option>
-              </select>
-            </label>
-            <p id="readinessGuidance" class="helper">WRSP never blocks saving. A usable incomplete plan is better than no plan.</p>
-            <label>Nearest hospital / ER
-              <input id="hospital" name="hospital" placeholder="Name, address, phone">
-            </label>
-            <label>Hospital / ER directions link
-              <input id="hospitalDirectionsUrl" name="hospitalDirectionsUrl" placeholder="Paste map/directions link">
-            </label>
-            <p class="helper">Suggested search: hospital emergency room near [town, state]. Enter the facility name and number above.</p>
-            <label>Medical notes
-              <textarea id="medicalNotes" name="medicalNotes" rows="2" placeholder="EMS notes, local hospital limitations, preferred route, known phone numbers"></textarea>
-            </label>
-            <p class="warning">For serious injury or uncertain severity, call 911 and request EMS. Confirm the nearest ER before relying on this plan.</p>
-            <label>Site hazards
-              <textarea id="hazards" name="hazards" rows="3" placeholder="Difficult access, active equipment, steep ground, utilities, water crossings, unstable ground, fire concerns, bridge limits"></textarea>
-            </label>
           </details>
 
           <div class="sticky-actions">
@@ -471,7 +479,7 @@
           </div>
           <button class="secondary-action" id="editCurrentPlan">Edit</button>
         </div>
-        <div class="view-switch" role="group" aria-label="Plan view mode">
+        <div class="view-switch" role="group" aria-label="Plan view mode" hidden>
           <button class="secondary-action active" id="fullPlanMode">Full Plan</button>
           <button class="secondary-action" id="responderPlanMode">Responder View</button>
         </div>
@@ -481,9 +489,11 @@
           <button class="primary-action" id="sharePlanOptions">Share</button>
           <button class="secondary-action" id="qrCurrentPlan">QR / Backup Link</button>
           <button class="secondary-action" id="exportCurrentPlan">Backup File</button>
-          <button class="secondary-action" id="duplicateCurrentPlan">Duplicate</button>
-          <button class="secondary-action" id="printCurrentPlan">Print / Save PDF</button>
+          <button class="secondary-action" id="copyEmergencyText">Copy Emergency Text</button>
+          <button class="secondary-action" id="duplicateCurrentPlan">Copy This Plan</button>
+          <button class="secondary-action" id="printCurrentPlan">Save / Print PDF</button>
         </div>
+        <textarea id="emergencyTextOutput" rows="5" readonly hidden aria-label="Emergency text"></textarea>
         <div id="qrPanel" class="qr-panel" hidden>
           <div>
             <h3>Plan QR code</h3>
@@ -502,13 +512,21 @@
 
       <div id="shareChoicePanel" class="share-choice-panel" hidden>
         <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
-          <h3 id="shareChoiceTitle">Share this plan</h3>
-          <div class="share-readiness-card compact" id="shareChoiceReadiness"></div>
+          <h3 id="shareChoiceTitle">Review and send</h3>
+          <div id="shareChoiceReadiness"></div>
+          <fieldset id="shareReview" class="field-options">
+            <legend>Checked for this job</legend>
+            <label class="check-label"><input type="checkbox"><span>Coordinates</span></label>
+            <label class="check-label"><input type="checkbox"><span>Written responder directions</span></label>
+            <label class="check-label"><input type="checkbox"><span>Emergency contacts</span></label>
+            <label class="check-label"><input type="checkbox"><span>Access instructions</span></label>
+          </fieldset>
           <p class="helper">Email Plan + PDF includes the full plan text and attachment. The formatted email draft includes an HTML body and the same PDF; email app support varies.</p>
           <button class="primary-action" id="shareChoicePng">Text Image</button>
           <button class="primary-action" id="shareChoicePdf">Email Plan + PDF</button>
           <button class="secondary-action" id="shareChoiceEmailDraft">Download Formatted Email Draft</button>
           <p id="shareChoiceStatus" class="helper"></p>
+          <button class="secondary-action" id="editSharePlan">Edit Plan</button>
           <button class="secondary-action" id="closeShareChoice">Cancel</button>
         </div>
       </div>
@@ -1029,6 +1047,7 @@
     </nav>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="app.js"></script>
+    <script src="field-plan.js?v=0.8.0"></script>
+    <script src="app.js?v=0.8.0"></script>
   </body>
 </html>

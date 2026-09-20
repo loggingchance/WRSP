@@ -1,6 +1,19 @@
 # WRSP Project Tracker
 
-Last updated: September 19, 2026
+Last updated: September 20, 2026
+
+## Improvement specification release: v0.8.0
+
+- Implemented the September improvement specification around a single-page field sheet: 12pt body, 16pt headings, prominent CALL 911, coordinates, written directions, meeting point and gate instructions, followed by two columns and emergency actions.
+- Email, completed screen, image and PDF share one content model. Email phone/coordinate/map/hospital links and PDF annotations are clickable. Full text and PDF remain bundled through native sharing; HTML is included in the complete EML draft. Native mail-client support still needs on-device testing.
+- Long plans produce an actionable one-page fit error instead of clipping, reducing type, or adding pages. All original text stays saved. Save / Print PDF follows the same rule.
+- Form order: Where is the job; Who is there; What could responders encounter; Medical / evacuation; Review and send. Added access, hazard, and equipment checkboxes with custom details, equipment location, company, emergency procedure, and LZ size.
+- Added saved/recent people, expandable contact rows, and an explicit reusable profile for people/company/equipment/emergency numbers/procedure. Copy This Plan opens the editable copy with a location-review notice and clears hospital confirmation.
+- Added four brief send confirmations and hospital confirmation that resets when details change. Removed generic direction-draft generation; sharing requires actual written directions and valid site coordinates.
+- Added Copy Emergency Text. Kept optional PDF QR codes and hosted live-plan links out of this release.
+- Updated the built-in example without replacing users' saved plans. Versioned script/style URLs prevent old cached code from mixing with the updated form; cache is wrsp-v37.
+- Verification includes phone/desktop layout, legacy migration, contact reuse, duplication, checkbox persistence, hospital recheck, review reset, overflow retention, email/PDF parity, and one-page 12pt export layout.
+- Offline testing passed for the cached versioned assets, reload, editing/saving, checkbox retention, PDF generation, and email preparation.
 
 ## September phone-testing changes
 
@@ -217,7 +230,7 @@ WRSP exists to build a site-specific logging safety plan and share it. The core 
 - Safety Share phase one uses native phone live-location tools such as iPhone Messages, Find My, and Google Maps. WRSP launches or guides those tools and records the user's confirmation; it does not do custom background tracking.
 - Deployment prep files: `.nojekyll` and `DEPLOYMENT_CHECKLIST.md`.
 - Local data is stored in IndexedDB under `wrsp-db`.
-- Service worker cache is currently `wrsp-v36`.
+- Service worker cache is currently `wrsp-v37`.
 - Opening by `file:///` works for UI preview, but full PWA behavior requires HTTP/HTTPS.
 - Phone contact import depends on browser Contact Picker API support; unsupported browsers hide the contact-picker buttons and rely on manual type/paste fields.
 - QR code image generation currently depends on online access to the QR image service and is backup/import-only for small plans; normal field sharing should use Text Image or PDF / Print.
