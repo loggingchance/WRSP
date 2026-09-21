@@ -24,6 +24,8 @@ WRSP is designed for static GitHub Pages deployment. Publish the project root as
 
 - `index.html`
 - `app.js`
+- `field-plan.js`
+- `email-template.js`
 - `styles.css`
 - `manifest.webmanifest`
 - `service-worker.js`
@@ -59,9 +61,15 @@ The app uses IndexedDB for local plans and a service worker for offline app-shel
 
 Email Plan + PDF passes the complete plain-text plan and an attached PDF to the device share sheet. Choose an email app there. Native share targets decide which fields they accept; Web Share does not provide an HTML-body field.
 
+Text Image passes the same complete plain-text plan, including the automatic site Google Maps URL, together with the formatted JPG in a single share request. The image uses the PDF layout; its links are not interactive, but the accompanying text includes the URLs. Messaging apps decide which fields they accept and may compress the image. If browser file sharing is unavailable, WRSP downloads the image and reports that the image and text could not be shared together.
+
 Download Formatted Email Draft creates an unsent `.eml` message with both plain-text and styled HTML bodies, plus the same PDF attachment. Open it in a compatible mail client to address and send; some clients open EML as a message to forward rather than an editable draft. Unsupported file sharing falls back to this draft instead of silently omitting the email body. No email is sent by WRSP itself.
 
 PDFs use exactly one letter-size page with 12pt body text, 16pt section headings, a prominent emergency block, and two columns of supporting information. Phone numbers and map links are clickable. If the content exceeds the page, export stops with a fit message identifying the largest sections; the saved plan is not truncated, shrunk, or split across pages. Save / Print PDF uses this same output.
+
+The PDF and HTML email place **Open site in Google Maps** immediately below the site GPS coordinates, generated as `https://www.google.com/maps?q=LATITUDE,LONGITUDE`. Invalid or missing coordinates produce no site link. Written directions remain a separate primary block. PDF key items expand to 16pt and directions to 14pt when space allows; compact plans always retain at least 12pt body text. Link annotation bounds match the actual underlined text.
+
+The HTML email template has a compact emergency header, a separate Directions for Responders panel, responsive supporting sections, clickable phone/hospital links, and numbered emergency actions. The optional MIME draft includes this HTML as the preferred alternative with plain-text fallback and an identical PDF attachment. By product decision, WRSP remains a web app sending through the user's own mail app: no centralized sending service and no copy/paste requirement. Normal email sharing therefore retains the phone's plain-text limitations; the PDF is the consistently formatted version. HTML draft delivery in Gmail is not claimed or verified.
 
 Before sending, users check coordinates, written directions, emergency contacts, and access instructions. A map link alone does not qualify as written directions. Hospital details require confirmation and editing them clears that confirmation. Copy This Plan preserves reusable content but marks the copy for location review and clears hospital confirmation.
 
@@ -74,3 +82,7 @@ Generation works offline; map tiles, directions, and road suggestions require a 
 With a local server running and Playwright available, run `node tests/smoke.cjs`. The default browser is Edge; set `WRSP_BROWSER` to another installed Playwright channel when needed. `WRSP_URL` overrides the default `http://127.0.0.1:4173`, and `WRSP_TEST_OUTPUT` chooses the screenshot/export directory. Set `WRSP_LIVE_LOOKUP=1` to also exercise the public address service in the browser.
 
 Run `node tests/offline.cjs` to verify the versioned app assets are cached and that plans can be reopened, edited, saved, and prepared for sharing without a connection.
+
+Run `node tests/pdf-links.cjs` with Playwright and `pdfjs-dist` available to inspect the exported PDF and click its real annotation layer. Set `WRSP_LIVE_MAP=1` to navigate to Google Maps; the default intercepts the destination for a deterministic offline-capable click test.
+
+Run `node tests/email.cjs` for 320px/390px/desktop email layout, content, and link checks. Then run `python tests/email-mime.py <WRSP_TEST_OUTPUT>` with `pypdf` available to verify MIME alternatives and the actual attached PDF bytes. These local checks do not claim successful delivery or rendering inside Gmail.

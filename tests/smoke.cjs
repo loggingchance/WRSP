@@ -113,6 +113,15 @@ const os = require('node:os');
     assert.ok(shared.text.includes('Second Person'));
     assert.ok(shared.text.includes('No heavy trucks'));
     assert.equal(shared.type, 'application/pdf');
+    await page.locator('#shareChoicePng').click();
+    const imageShare = await page.evaluate(() => ({ text: window.lastShare.text, name: window.lastShare.files[0].name, type: window.lastShare.files[0].type, size: window.lastShare.files[0].size }));
+    assert.equal(imageShare.text, shared.text, 'Texted image includes the same full plan body as email');
+    assert.ok(imageShare.text.includes('https://www.google.com/maps?q=43.400000,-74.200000'));
+    assert.ok(imageShare.text.includes('From the town hall, take Test Road north. Turn at the marked gate.'));
+    assert.equal(imageShare.type, 'image/jpeg');
+    assert.ok(imageShare.name.endsWith('.jpg') && imageShare.size > 1000);
+    await page.evaluate(async () => sharePlanPng(preparedShare.plan));
+    assert.equal(await page.evaluate(() => window.lastShare.text), shared.text, 'Alternate image-sharing path also includes full text');
     const artifacts = await page.evaluate(async () => ({
       email: await preparedShare.email.text(),
       pdf: Array.from(new Uint8Array(await preparedShare.pdf.arrayBuffer())),
@@ -173,7 +182,7 @@ const os = require('node:os');
     await page.waitForFunction(() => preparedShare);
     assert.equal(await page.locator('#shareChoicePdf').isDisabled(), true, 'Checks reset for each send');
     assert.equal(await page.evaluate(() => planPdfPages(preparedShare.plan)[0].links.some(link => link.url.includes('destination=Example+Hospital'))), true);
-    assert.ok(await page.evaluate(() => planEmailHtml(preparedShare.plan).includes('Hospital directions')));
+    assert.ok(await page.evaluate(() => planEmailHtml(preparedShare.plan).includes('Open hospital directions')));
     await page.evaluate(async () => {
       closeShareChoice();
       const plan = await activePlan();
@@ -203,7 +212,7 @@ const os = require('node:os');
     await emailPage.screenshot({ path: path.join(output, 'email-mobile.png'), fullPage: true });
     await emailPage.close();
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ passed: true, checks: 'map pins/routes, address/cache, contact migration/save/reuse, duplication, hospital confirmation, checkboxes, responsive layout, single-page 12pt PDF/overflow, four-item review, email body/PDF/fallback', output }));
+    console.log(JSON.stringify({ passed: true, checks: 'map pins/routes, address/cache, contact migration/save/reuse, duplication, hospital confirmation, checkboxes, responsive layout, single-page 12pt PDF/overflow, four-item review, email body/PDF/fallback, image sharing with identical full plan text', output }));
   } finally {
     await browser.close();
   }

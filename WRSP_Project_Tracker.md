@@ -1,6 +1,15 @@
 # WRSP Project Tracker
 
-Last updated: September 20, 2026
+Last updated: September 21, 2026
+
+## PDF link and sharing improvements: v0.8.1
+
+- Added the explicit Open site in Google Maps hyperlink immediately after job GPS, using the requested maps?q=latitude,longitude format in the PDF and HTML email. Missing/invalid coordinates omit the link. Written directions stay complete and separate.
+- Improved PDF use of space with larger emergency essentials and written directions when they fit; body text stays 12pt. Link hit areas now follow each underlined line. One-page fit checks remain mandatory.
+- Added a compact, responsive HTML email template with an Emergency Safety Plan subtitle, emergency block, separate Directions for Responders panel, grouped supporting sections, phone/hospital links, and a compact numbered emergency procedure. Full HTML/plain-text alternatives and the PDF remain in the draft.
+- Added PDF.js annotation/click tests, email layout/link tests, and independent MIME/PDF inspection. Updated offline assets/cache to wrsp-v38.
+- Product decision: keep WRSP a web app and send through the user's own native mail app. Accept plain-text email body limitations, supported by the formatted PDF. No Resend sender, centralized delivery, or copy/paste workflow. Optional HTML draft formatting remains available but has not been delivery-tested in Gmail.
+- Text Image now sends the formatted JPG and the same complete plain-text plan used by email in one share request, including site map URL, written directions, people, and other plan details. Updated both image-sharing paths and regression coverage. Destination messaging apps may still drop text or compress the image; unsupported sharing reports the image-only download clearly.
 
 ## Improvement specification release: v0.8.0
 

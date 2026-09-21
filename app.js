@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.8.0 - September 20, 2026";
+const APP_VERSION = "WRSP v0.8.1 - September 21, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -1351,7 +1351,7 @@ async function shareChosenPlan(format) {
     await shareFileAttachment(pdf, `WRSP: ${plan.title}`, "", planShareText(plan), email);
     return;
   }
-  await shareFileAttachment(image, `WRSP: ${plan.title}`, "Image saved. Attach it from Files/Downloads when texting.");
+  await shareFileAttachment(image, `WRSP: ${plan.title}`, "Image saved. This browser could not share the image and plan text together.", planShareText(plan));
 }
 
 function renderCurrentPlan(plan) {
@@ -1596,7 +1596,8 @@ async function sharePlanPng(plan) {
   await shareFileAttachment(
     file,
     `WRSP: ${plan.title}`,
-    "Image saved. If Messages did not open with the image attached, attach this JPG manually from Photos or Files/Downloads."
+    "Image saved. This browser could not share the image and plan text together.",
+    planShareText(plan)
   );
 }
 

@@ -27,7 +27,7 @@ function validFieldCoordinates(lat, lng) {
 }
 
 function fieldMapUrl(lat, lng) {
-  return validFieldCoordinates(lat, lng) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}` : '';
+  return validFieldCoordinates(lat, lng) ? `https://www.google.com/maps?q=${String(lat).trim()},${String(lng).trim()}` : '';
 }
 
 function safeFieldUrl(value) {
@@ -59,12 +59,13 @@ function fieldPlanData(plan) {
   const map = fieldMapUrl(loc.lat, loc.lng);
   const startPin = validFieldCoordinates(access.knownLandmarkLat, access.knownLandmarkLng) ? `${access.knownLandmarkLat}, ${access.knownLandmarkLng}` : '';
   const lzPin = access.landingZoneLat || access.landingZoneLng ? `${access.landingZoneLat || '?'}, ${access.landingZoneLng || '?'}` : '';
-  const links = [row('', 'Site map', map), row('', 'Driving directions', map ? planDirectionsUrl(plan) : '')].filter(link => link.url);
+  const links = [row('', 'Driving directions', map ? planDirectionsUrl(plan) : '')].filter(link => link.url);
   const emergency = section('CALL 911', [
-    row('Site', join([loc.roadAddress, [loc.town, loc.county, loc.state].filter(Boolean).join(', ')])),
-    row('GPS', loc.lat || loc.lng ? `${loc.lat || '?'}, ${loc.lng || '?'}` : 'Not entered', map),
+    row('Site location', join([loc.roadAddress, [loc.town, loc.county, loc.state].filter(Boolean).join(', ')])),
+    row('GPS', map ? `${String(loc.lat).trim()}, ${String(loc.lng).trim()}` : 'Not entered'),
+    row('', map ? 'Open site in Google Maps' : '', map),
     row('Start from', join([access.knownLandmark, startPin]), fieldMapUrl(access.knownLandmarkLat, access.knownLandmarkLng)),
-    row('Written directions', access.phoneDirections || 'Not entered'),
+    { ...row('Directions from known intersection', access.phoneDirections || 'Not entered'), kind: 'directions' },
     row('MEET RESPONDERS HERE', access.meetingPoint || 'Not entered'),
     row('Gate / access', access.gateNotes),
   ]);
@@ -92,7 +93,7 @@ function fieldPlanText(plan) {
 
 function fieldRowHtml(row) {
   const body = row.url ? `<a href="${escapeHtml(row.url)}" ${row.url.startsWith('http') ? 'target="_blank" rel="noopener"' : ''} style="color:#123c2c;text-decoration:underline">${escapeHtml(row.text)}</a>` : row.label === 'GPS' ? escapeHtml(row.text) : fieldLinkedText(row.text);
-  return `<p style="margin:5px 0;overflow-wrap:anywhere">${row.label ? `<strong>${escapeHtml(row.label)}: </strong>` : ''}${body}</p>`;
+  return `<p style="margin:5px 0;overflow-wrap:anywhere">${row.label ? `<strong>${escapeHtml(row.label)}: </strong>${row.kind === 'directions' ? '<br>' : ''}` : ''}${body}</p>`;
 }
 
 function fieldSectionHtml(section) {
@@ -119,11 +120,29 @@ function renderFieldPlanHtml(plan, email = false) {
 }
 
 function fieldPlanEmailHtml(plan) {
-  return `<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(plan.title || 'WRSP Safety Plan')}</title></head><body style="margin:0;background:#fff"><main lang="en" dir="ltr" style="max-width:680px;margin:auto;padding:20px">${renderFieldPlanHtml(plan, true).replaceAll('<h3 ', '<h2 ').replaceAll('</h3>', '</h2>')}</main></body></html>`;
+  return WRSPEmail.render(fieldPlanData(plan));
 }
 
 function fieldPlanPdfPages(plan) {
   const data = fieldPlanData(plan);
+  // Spend spare space on the emergency essentials, never on smaller body text.
+  for (const layout of [
+    { keyPx: 32, directionsPx: 28, sectionGap: 22 },
+    { keyPx: 28, directionsPx: 26, sectionGap: 16 },
+    { keyPx: 24, directionsPx: 24, sectionGap: 8 },
+  ]) {
+    const canvas = fieldPlanPdfCanvas(data, layout);
+    if (canvas.fieldMetrics.bottom <= canvas.fieldMetrics.limit) return [canvas];
+    if (layout.keyPx === 24) {
+      const largest = [...canvas.sectionSizes].sort((a, b) => b.height - a.height).slice(0, 2).map(item => item.title === 'CALL 911' ? 'written directions / location' : item.title.toLowerCase()).join(' and ');
+      const error = new Error(`This plan needs about ${Math.ceil((canvas.fieldMetrics.bottom - canvas.fieldMetrics.limit) / 28)} fewer lines to fit one page at 12pt. Shorten ${largest}. All text remains saved.`);
+      error.name = 'PlanFitError';
+      throw error;
+    }
+  }
+}
+
+function fieldPlanPdfCanvas(data, layout) {
   const canvas = document.createElement('canvas');
   canvas.width = 1224;
   canvas.height = 1584;
@@ -141,11 +160,34 @@ function fieldPlanPdfPages(plan) {
     ctx.fillStyle = options.color || '#202923';
     const lines = canvasTextLines(ctx, value, maxWidth);
     const leading = options.leading || lineHeight;
-    lines.forEach(line => { ctx.fillText(line, x, y); y += leading; });
-    if (options.url) {
-      canvas.links.push({ url: options.url, rect: [x / 2, (canvas.height - y + leading - 5) / 2, (x + maxWidth) / 2, (canvas.height - y + lines.length * leading + 23) / 2] });
-    }
+    lines.forEach(line => {
+      ctx.fillText(line, x, y);
+      if (options.url && line) {
+        const metrics = ctx.measureText(line);
+        const ascent = metrics.actualBoundingBoxAscent;
+        const descent = metrics.actualBoundingBoxDescent;
+        ctx.fillRect(x, y + 3, metrics.width, 1);
+        canvas.links.push({ url: options.url, rect: [x / 2, (canvas.height - y - Math.max(descent, 4)) / 2, (x + metrics.width) / 2, (canvas.height - y + ascent + 2) / 2] });
+      }
+      y += leading;
+    });
     return y;
+  };
+  const rowStyle = (row, emergency) => {
+    const key = emergency && ['Site location', 'GPS', 'MEET RESPONDERS HERE'].includes(row.label);
+    const size = row.kind === 'directions' ? layout.directionsPx : key ? layout.keyPx : 24;
+    return { font: `${key ? 'bold ' : ''}${size}px Arial`, leading: size + 4, url: row.url, color: row.url ? '#123c2c' : '#202923' };
+  };
+  const rowText = row => `${row.label ? row.label + ': ' : ''}${row.text}`;
+  const rowHeight = (row, emergency, maxWidth) => {
+    const style = rowStyle(row, emergency);
+    ctx.font = style.font;
+    let height = canvasTextLines(ctx, row.kind === 'directions' ? row.text : rowText(row), maxWidth).length * style.leading;
+    if (row.kind === 'directions') {
+      ctx.font = `bold ${layout.directionsPx}px Arial`;
+      height += canvasTextLines(ctx, `${row.label}:`, maxWidth).length * style.leading + 6;
+    }
+    return height + 3;
   };
   const section = (item, x, y, maxWidth, heading = true) => {
     const start = y;
@@ -156,32 +198,33 @@ function fieldPlanPdfPages(plan) {
       y += 5;
     }
     for (const row of item.rows) {
-      y = text(`${row.label ? row.label + ': ' : ''}${row.text}`, x, y, maxWidth, { url: row.url, font: row.label === 'MEET RESPONDERS HERE' ? 'bold 24px Arial' : font });
+      const style = rowStyle(row, !heading);
+      if (row.kind === 'directions') {
+        y += 6;
+        y = text(`${row.label}:`, x, y, maxWidth, { ...style, font: `bold ${layout.directionsPx}px Arial` });
+      }
+      y = text(row.kind === 'directions' ? row.text : rowText(row), x, y, maxWidth, style);
       y += 3;
     }
     sizes.push({ title: item.title, height: y - start });
-    return y + 16;
+    return y + layout.sectionGap;
   };
-  let y = text(data.title, margin, 76, width, { font: 'bold 48px Arial', leading: 52, color: '#123c2c' });
+  let y = text(data.title, margin, 84, width, { font: 'bold 56px Arial', leading: 60, color: '#123c2c' });
   y = text(data.meta, margin, y, width) + 16;
   const emergencyTop = y - 23;
   // Measure the emergency block first so its fill sits behind all of the text.
-  ctx.font = font;
-  const emergencyHeight = 57 + data.emergency.rows.reduce((sum, row) => {
-    ctx.font = row.label === 'MEET RESPONDERS HERE' ? 'bold 24px Arial' : font;
-    return sum + canvasTextLines(ctx, `${row.label ? row.label + ': ' : ''}${row.text}`, width - 32).length * lineHeight + 3;
-  }, 0) + (data.links.length ? 32 : 0);
+  const emergencyHeight = 77 + data.emergency.rows.reduce((sum, row) => sum + rowHeight(row, true, width - 32), 0) + (data.links.length ? 32 : 0);
   ctx.fillStyle = '#f0f5f2';
   ctx.fillRect(margin - 8, emergencyTop, width + 16, emergencyHeight);
   ctx.fillStyle = '#a12d1c';
   ctx.fillRect(margin - 8, emergencyTop, 6, emergencyHeight);
-  y = text('CALL 911', margin + 12, y + 10, width - 32, { font: 'bold 40px Arial', leading: 48, color: '#922b1b', url: 'tel:911' });
-  y = section(data.emergency, margin + 12, y, width - 32, false) - 16;
+  y = text('CALL 911', margin + 12, y + 18, width - 32, { font: 'bold 48px Arial', leading: 60, color: '#922b1b', url: 'tel:911' });
+  y = section(data.emergency, margin + 12, y, width - 32, false) - layout.sectionGap;
   for (let i = 0; i < data.links.length; i += 1) {
     text(data.links[i].text, margin + 12 + i * 280, y, 270, { url: data.links[i].url, color: '#123c2c' });
   }
   if (data.links.length) y += 32;
-  y += 26;
+  y += layout.sectionGap + 10;
   const columnGap = 36;
   const columnWidth = (width - columnGap) / 2;
   let leftY = y;
@@ -190,14 +233,9 @@ function fieldPlanPdfPages(plan) {
   data.right.forEach(item => { rightY = section(item, margin + columnWidth + columnGap, rightY, columnWidth); });
   y = Math.max(leftY, rightY) + 4;
   y = section(data.actions, margin, y, width);
-  canvas.fieldMetrics = { bodyFontPt: 12, headingFontPt: 16, bottom: y, limit: canvas.height - 36 };
-  if (y > canvas.height - 36) {
-    const largest = [...sizes].sort((a, b) => b.height - a.height).slice(0, 2).map(item => item.title === 'CALL 911' ? 'written directions / location' : item.title.toLowerCase()).join(' and ');
-    const error = new Error(`This plan needs about ${Math.ceil((y - canvas.height + 36) / lineHeight)} fewer lines to fit one page at 12pt. Shorten ${largest}. All text remains saved.`);
-    error.name = 'PlanFitError';
-    throw error;
-  }
-  return [canvas];
+  canvas.fieldMetrics = { bodyFontPt: 12, headingFontPt: 16, keyFontPt: layout.keyPx / 2, directionsFontPt: layout.directionsPx / 2, bottom: y, limit: canvas.height - 36 };
+  canvas.sectionSizes = sizes;
+  return canvas;
 }
 
 function emergencyText(plan) {
