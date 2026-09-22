@@ -1,6 +1,14 @@
 # WRSP Project Tracker
 
-Last updated: September 21, 2026
+Last updated: September 22, 2026
+
+## PDF design correction: v0.8.2
+
+- Rebuilt the PDF/image layout from the September PDF specification. Replaced oversized text with a 21pt site title, 18pt emergency heading, 14-15pt section headings, 12-13pt body text, and 9.5pt secondary notes.
+- Added the Emergency Safety Plan subtitle, a dedicated full-width Directions for Responders panel, bold labels with regular values, compact contacts, separate medical/access/LZ/hazard blocks, and numbered actions anchored at the bottom.
+- Balanced supporting sections across columns and distributed spare height within the page. Half-inch margins are enforced; spacing tightens before font changes, body stays at least 12pt, and oversized plans retain all saved text rather than clipping.
+- Added purposeful red/blue/green/teal/amber section colors and inspected grayscale output. Site map, hospital, phone and other map hyperlinks remain intact. Shared images follow this same design, and image-plus-full-text/email behavior is unchanged.
+- Added six representative PDF fixtures with automatic layout/content checks and rendered PDF visual review. Updated asset URLs and offline cache to wrsp-v39, including the new pdf-plan.js renderer.
 
 ## PDF link and sharing improvements: v0.8.1
 
