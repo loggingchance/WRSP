@@ -1,6 +1,16 @@
 # WRSP Project Tracker
 
-Last updated: September 22, 2026
+Last updated: September 24, 2026
+
+## Phone workflow corrections: v0.8.3
+
+- Replaced landmark pin/search/route controls with manual landmark and full written responder-directions fields. Existing saved landmark coordinates survive round trips and clear when the landmark name changes. Site and helicopter landing-zone maps remain.
+- Removed all send-dialog confirmation checkboxes. Every share includes the complete entered plan. Missing coordinates/directions and unconfirmed hospital details are visible warnings, not attachment-preparation blockers.
+- Prepared PDF/image attachments before the user's tap, isolated optional email-draft failures, guarded duplicate taps, handled cancellation without forced downloads, and added retry plus clearly labeled text-only fallbacks when native file sharing is unavailable.
+- Renamed the people section to People & Contact Information and clarified that off-site contacts belong there too. Preserved name/role/phone grid and saved contacts.
+- Preserved the color one-page PDF/image design, readable font sizes, separate written directions, and automatic clickable site map links. Updated versioned assets and offline cache to wrsp-v40.
+- Service-worker activation now waits for app-shell caching and client claiming before completing the corresponding lifecycle events.
+- Added focused sharing regression coverage. Automated handoff tests inspect actual generated attachments and full text; physical iPhone Mail/Messages delivery still needs an on-device check.
 
 ## PDF design correction: v0.8.2
 

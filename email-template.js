@@ -31,7 +31,7 @@
     const directions = data.emergency.rows.find(row => row.kind === 'directions');
     const accessHazards = data.right.find(section => section.title === 'Access / hazards')?.rows || [];
     const access = [...data.emergency.rows.filter(row => row.label === 'Gate / access'), ...accessHazards.filter(row => row.label !== 'Hazards')];
-    const contacts = data.left.filter(section => ['People', 'Emergency numbers'].includes(section.title)).flatMap(section => section.rows);
+    const contacts = data.left.filter(section => ['People', 'People & Contact Information', 'Emergency numbers'].includes(section.title)).flatMap(section => section.rows);
     const medical = (data.left.find(section => section.title === 'Hospital / ER')?.rows || []).map(row => row.text === 'Hospital directions' ? { ...row, text: 'Open hospital directions' } : row);
     const landing = data.right.find(section => section.title === 'Helicopter landing zone')?.rows || [];
     const hazards = accessHazards.filter(row => row.label === 'Hazards').map(row => ({ ...row, label: '' }));

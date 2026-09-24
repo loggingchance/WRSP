@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.8.2 - September 22, 2026";
+const APP_VERSION = "WRSP v0.8.3 - September 24, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -24,6 +24,7 @@ let updateReloading = false;
 let addressLookupBusy = false;
 const addressLookupCache = new Map();
 let preparedShare = null;
+let shareInProgress = false;
 let sharePreparationId = 0;
 let pendingSharePlanId = null;
 let pendingAddressSuggestion = null;
@@ -37,15 +38,6 @@ let siteMapState = {
   moved: 0,
 };
 let landingZoneMapState = {
-  centerLat: 39.5,
-  centerLng: -98.35,
-  zoom: 10,
-  dragging: false,
-  dragStart: null,
-  startCenter: null,
-  moved: 0,
-};
-let landmarkMapState = {
   centerLat: 39.5,
   centerLng: -98.35,
   zoom: 10,
@@ -395,7 +387,6 @@ function routeTo(route) {
     centerNewSiteMap();
     window.setTimeout(() => {
       renderSiteMap();
-      renderLandmarkMap();
       renderLandingZoneMap();
     }, 50);
   }
@@ -711,15 +702,6 @@ function planToForm(plan) {
   const lat = parseFloat(plan.location?.lat);
   const lng = parseFloat(plan.location?.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) centerSiteMap(lat, lng, Math.max(siteMapState.zoom, 17));
-  const landmarkLat = parseFloat(plan.access?.knownLandmarkLat);
-  const landmarkLng = parseFloat(plan.access?.knownLandmarkLng);
-  if (Number.isFinite(landmarkLat) && Number.isFinite(landmarkLng)) {
-    centerLandmarkMap(landmarkLat, landmarkLng, Math.max(landmarkMapState.zoom, 15));
-  } else if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 14));
-  } else {
-    renderLandmarkMap();
-  }
   const lzLat = parseFloat(plan.access?.landingZoneLat);
   const lzLng = parseFloat(plan.access?.landingZoneLng);
   if (Number.isFinite(lzLat) && Number.isFinite(lzLng)) {
@@ -912,17 +894,6 @@ function renderLandingZoneMap() {
   });
 }
 
-function renderLandmarkMap() {
-  renderCoordinateMap({
-    state: landmarkMapState,
-    mapSelector: "#landmarkMap",
-    tilesSelector: "#landmarkMapTiles",
-    markerSelector: "#landmarkMapMarker",
-    latSelector: "#knownLandmarkLat",
-    lngSelector: "#knownLandmarkLng",
-  });
-}
-
 function centerSiteMap(lat, lng, zoom = siteMapState.zoom) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
   siteMapState.centerLat = clamp(lat, -85, 85);
@@ -937,14 +908,6 @@ function centerLandingZoneMap(lat, lng, zoom = landingZoneMapState.zoom) {
   landingZoneMapState.centerLng = lng;
   landingZoneMapState.zoom = clamp(zoom, 3, 19);
   renderLandingZoneMap();
-}
-
-function centerLandmarkMap(lat, lng, zoom = landmarkMapState.zoom) {
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-  landmarkMapState.centerLat = clamp(lat, -85, 85);
-  landmarkMapState.centerLng = lng;
-  landmarkMapState.zoom = clamp(zoom, 3, 19);
-  renderLandmarkMap();
 }
 
 function setSiteCoordinates(lat, lng, center = true) {
@@ -965,7 +928,6 @@ function setSiteCoordinates(lat, lng, center = true) {
 }
 
 function centerNearbyMaps(lat, lng) {
-  if (!$("#knownLandmarkLat").value && !$("#knownLandmarkLng").value) centerLandmarkMap(lat, lng, 14);
   if (!$("#landingZoneLat").value && !$("#landingZoneLng").value) centerLandingZoneMap(lat, lng, 17);
 }
 
@@ -976,16 +938,6 @@ function setLandingZoneCoordinates(lat, lng, center = true) {
   $("#landingZoneLng").value = safeLng.toFixed(6);
   if (center) centerLandingZoneMap(safeLat, safeLng, Math.max(landingZoneMapState.zoom, 17));
   renderLandingZoneMap();
-  scheduleAutoSave();
-}
-
-function setLandmarkCoordinates(lat, lng, center = true) {
-  const safeLat = clamp(lat, -85, 85);
-  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
-  $("#knownLandmarkLat").value = safeLat.toFixed(6);
-  $("#knownLandmarkLng").value = safeLng.toFixed(6);
-  if (center) centerLandmarkMap(safeLat, safeLng, Math.max(landmarkMapState.zoom, 15));
-  renderLandmarkMap();
   scheduleAutoSave();
 }
 
@@ -1013,7 +965,6 @@ function clearLandingZoneCoordinates() {
 function clearLandmarkCoordinates() {
   $("#knownLandmarkLat").value = "";
   $("#knownLandmarkLng").value = "";
-  renderLandmarkMap();
   scheduleAutoSave();
 }
 
@@ -1311,27 +1262,51 @@ async function openShareChoice(planId = null) {
   const requestId = ++sharePreparationId;
   setShareChoiceStatus("Preparing plan...");
   $("#shareChoicePanel").hidden = false;
-  $$("#shareReview input").forEach(input => { input.checked = false; });
   $("#shareChoiceReadiness").textContent = "";
+  $("#shareChoiceWarnings").hidden = true;
+  $("#shareFallback").hidden = true;
+  $("#retrySharePreparation").hidden = true;
   ["shareChoicePng", "shareChoicePdf", "shareChoiceEmailDraft"].forEach((id) => { $(`#${id}`).disabled = true; });
   try {
     const plan = await planForSharing();
-    if (!plan) throw new Error("Open a saved plan first.");
-    $("#shareChoiceReadiness").textContent = "One-page safety plan with full email body and PDF.";
-    if (!validFieldCoordinates(plan.location?.lat, plan.location?.lng)) throw new Error("Enter and check the site coordinates.");
-    if (!plan.access?.phoneDirections?.trim()) throw new Error("Add written directions from a known starting point. A map link alone is not enough.");
-    if (plan.medical?.hospital && !plan.medical?.hospitalVerified) throw new Error("Check the hospital / ER details in Medical / evacuation.");
-    const pdf = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
-    const imageBlob = await new Promise((resolve) => planCanvas(plan).toBlob(resolve, "image/jpeg", 0.82));
-    if (!imageBlob) throw new Error("Could not prepare the plan image.");
-    const image = new File([imageBlob], `${safeFileName(plan.title)}.jpg`, { type: "image/jpeg" });
-    const email = await planEmailFile(plan, pdf);
     if (requestId !== sharePreparationId) return;
-    preparedShare = { plan, pdf, image, email };
-    syncShareReview();
-    setShareChoiceStatus("");
+    if (!plan) throw new Error("Open a saved plan first.");
+    $("#shareChoiceReadiness").textContent = "The full plan is included every time.";
+    const warnings = [];
+    if (!validFieldCoordinates(plan.location?.lat, plan.location?.lng)) warnings.push("Site coordinates are missing or invalid.");
+    if (!plan.access?.phoneDirections?.trim()) warnings.push("Written responder directions are missing.");
+    if (plan.medical?.hospital && !plan.medical?.hospitalVerified) warnings.push("Hospital / ER details have not been confirmed.");
+    $("#shareChoiceWarnings").textContent = warnings.join(" ") + (warnings.length ? " You can still send the information entered, or edit the plan." : "");
+    $("#shareChoiceWarnings").hidden = !warnings.length;
+    const body = encodeURIComponent(planShareText(plan));
+    $("#shareEmailTextOnly").href = `mailto:?subject=${encodeURIComponent(`WRSP: ${plan.title || "Safety Plan"}`)}&body=${body}`;
+    const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    $("#shareMessageTextOnly").href = `sms:${appleMobile ? "&" : "?"}body=${body}`;
+    // Prepare attachments before the next tap; native sharing needs that tap's activation.
+    const pages = planPdfPages(plan);
+    const files = { plan };
+    const failures = [];
+    try { files.pdf = new File([await planPdfBlob(plan, pages)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" }); }
+    catch (error) { failures.push(`PDF: ${error.message}`); }
+    try {
+      const imageBlob = await new Promise(resolve => pages[0].toBlob(resolve, "image/jpeg", 0.82));
+      if (!imageBlob) throw new Error("Could not prepare the plan image.");
+      files.image = new File([imageBlob], `${safeFileName(plan.title)}.jpg`, { type: "image/jpeg" });
+    } catch (error) { failures.push(`Image: ${error.message}`); }
+    if (files.pdf) {
+      try { files.email = await planEmailFile(plan, files.pdf); }
+      catch (error) { failures.push(`Email draft: ${error.message}`); }
+    }
+    if (requestId !== sharePreparationId) return;
+    preparedShare = files;
+    syncShareButtons();
+    $("#retrySharePreparation").hidden = !failures.length;
+    setShareChoiceStatus(failures.join(" "));
   } catch (error) {
-    if (requestId === sharePreparationId) setShareChoiceStatus(`Could not prepare sharing: ${error.message}`);
+    if (requestId === sharePreparationId) {
+      $("#retrySharePreparation").hidden = false;
+      setShareChoiceStatus(`Could not prepare the attachment: ${error.message}`);
+    }
   }
 }
 
@@ -1341,17 +1316,35 @@ function closeShareChoice() {
 }
 
 async function shareChosenPlan(format) {
-  if (!preparedShare || !$$("#shareReview input").every(input => input.checked)) return;
+  if (shareInProgress) return;
+  if (!preparedShare) { setShareChoiceStatus("The plan is not ready yet. Wait for preparation or choose Prepare Plan Again."); return; }
   const { plan, pdf, image, email } = preparedShare;
-  if (format === "email-draft") {
-    await fallbackDownloadFile(email, "Email draft saved with the formatted plan and PDF attached. Open it in your email app to address and send.");
-    return;
+  const file = format === "pdf" ? pdf : format === "email-draft" ? email : image;
+  if (!file) { setShareChoiceStatus("This attachment is not ready. Choose Prepare Plan Again."); return; }
+  const requestId = sharePreparationId;
+  shareInProgress = true;
+  syncShareButtons();
+  $("#shareFallback").hidden = true;
+  try {
+    if (format === "email-draft") {
+      await fallbackDownloadFile(email, "Email draft downloaded with the formatted plan and PDF attached. Open the downloaded .eml file in a compatible email app to address and send.");
+    } else {
+      // No asynchronous work before this call: preserve the user's tap for iOS.
+      const sent = await shareFileAttachment(file, `WRSP: ${plan.title}`, format === "pdf"
+        ? "PDF downloaded. This browser could not open file sharing."
+        : "Image downloaded. This browser could not open file sharing.", planShareText(plan), format === "pdf" ? email : null);
+      if (!sent && requestId === sharePreparationId && !$("#shareChoiceStatus").textContent.includes("canceled")) {
+        $("#shareFallback").hidden = false;
+        $("#shareEmailTextOnly").hidden = format !== "pdf";
+        $("#shareMessageTextOnly").hidden = format === "pdf";
+      }
+    }
+  } catch (error) {
+    if (requestId === sharePreparationId) setShareChoiceStatus(`Could not open sharing: ${error.message}. Try again or download the formatted email draft.`);
+  } finally {
+    shareInProgress = false;
+    syncShareButtons();
   }
-  if (format === "pdf") {
-    await shareFileAttachment(pdf, `WRSP: ${plan.title}`, "", planShareText(plan), email);
-    return;
-  }
-  await shareFileAttachment(image, `WRSP: ${plan.title}`, "Image saved. This browser could not share the image and plan text together.", planShareText(plan));
 }
 
 function renderCurrentPlan(plan) {
@@ -1557,28 +1550,28 @@ async function fallbackDownloadFile(file, message) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   setShareChoiceStatus(message);
   toast(message);
 }
 
 async function shareFileAttachment(file, title, fallbackMessage, text = "", emailFallback = null) {
   if (navigator.share) {
-    const canShareFile = !navigator.canShare || navigator.canShare({ files: [file] });
-    if (canShareFile) {
-      try {
+    try {
+      const canShareFile = !navigator.canShare || navigator.canShare({ files: [file] });
+      if (canShareFile) {
         await navigator.share({ title, ...(text ? { text } : {}), files: [file] });
         setShareChoiceStatus("File sent to the phone share sheet. Choose Messages, Mail, AirDrop, or another app.");
         return true;
-      } catch (error) {
+      } else {
+        setShareChoiceStatus("This browser will not attach this file through the share sheet.");
+      }
+    } catch (error) {
         if (error.name === "AbortError") {
           setShareChoiceStatus("Sharing canceled.");
           return false;
         }
         setShareChoiceStatus(`The phone would not attach this file: ${error.message}`);
-      }
-    } else {
-      setShareChoiceStatus("This browser will not attach this file through the share sheet.");
     }
   } else {
     setShareChoiceStatus("This browser does not support file sharing from WRSP.");
@@ -1612,8 +1605,7 @@ async function canvasJpegBytes(canvas) {
 
 function planPdfPages(plan) { return fieldPlanPdfPages(plan); }
 
-async function planPdfBlob(plan) {
-  const pages = planPdfPages(plan);
+async function planPdfBlob(plan, pages = planPdfPages(plan)) {
   const encoder = new TextEncoder();
   const chunks = [];
   const offsets = [0];
@@ -1831,7 +1823,6 @@ async function capturePlanGps() {
     updateGpsStatus();
     updateEssentialProgress();
     centerSiteMap(position.coords.latitude, position.coords.longitude, 17);
-    centerLandmarkMap(position.coords.latitude, position.coords.longitude, Math.max(landmarkMapState.zoom, 14));
     centerLandingZoneMap(position.coords.latitude, position.coords.longitude, Math.max(landingZoneMapState.zoom, 17));
     scheduleAutoSave();
   } catch (error) {
@@ -2272,38 +2263,6 @@ function planAddressSearchText() {
   return [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
 }
 
-function startingLandmarkSearchText() {
-  const plan = formToPlan();
-  const loc = plan.location || {};
-  if (loc.lat && loc.lng) {
-    return `fire station near ${loc.lat}, ${loc.lng}`;
-  }
-  const place = [loc.roadAddress, loc.town, loc.county, loc.state].filter(Boolean).join(", ");
-  return place ? `fire station near ${place}` : "";
-}
-
-function openDirectionsToSitePin() {
-  const siteLat = parseFloat($("#lat").value);
-  const siteLng = parseFloat($("#lng").value);
-  if (!Number.isFinite(siteLat) || !Number.isFinite(siteLng)) {
-    toast("Drop the site pin first.");
-    return;
-  }
-  const landmarkLat = parseFloat($("#knownLandmarkLat").value);
-  const landmarkLng = parseFloat($("#knownLandmarkLng").value);
-  const startText = $("#knownLandmark").value.trim();
-  const origin = Number.isFinite(landmarkLat) && Number.isFinite(landmarkLng)
-    ? `${landmarkLat.toFixed(6)},${landmarkLng.toFixed(6)}`
-    : startText;
-  const params = new URLSearchParams({
-    api: "1",
-    destination: `${siteLat.toFixed(6)},${siteLng.toFixed(6)}`,
-    travelmode: "driving",
-  });
-  if (origin) params.set("origin", origin);
-  openExternalUrl(`https://www.google.com/maps/dir/?${params.toString()}`);
-}
-
 function buildPhoneDirectionsDraft() {
   const plan = formToPlan();
   const access = plan.access || {};
@@ -2725,16 +2684,7 @@ function bindEvents() {
       }
     });
   });
-  ["knownLandmarkLat", "knownLandmarkLng"].forEach((id) => {
-    $(`#${id}`).addEventListener("input", () => {
-      const lat = parseFloat($("#knownLandmarkLat").value);
-      const lng = parseFloat($("#knownLandmarkLng").value);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 15));
-        scheduleAutoSave();
-      }
-    });
-  });
+  $("#knownLandmark").addEventListener("input", clearLandmarkCoordinates);
   $("#planForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     await savePlan();
@@ -2762,14 +2712,6 @@ function bindEvents() {
     }
     openMapsSearch(query);
   });
-  $("#findStartingLandmark").addEventListener("click", () => {
-    const query = startingLandmarkSearchText();
-    if (!query) {
-      toast("Enter a site address or select the site point first.");
-      return;
-    }
-    openMapsSearch(query);
-  });
 
   $$(".contact-picker").forEach((button) => {
     button.addEventListener("click", () => chooseContactForField(button.dataset.contactTarget));
@@ -2788,40 +2730,6 @@ function bindEvents() {
     toast("Landing zone coordinates copied from site point.");
   });
   $("#captureLandingZoneGps").addEventListener("click", captureLandingZoneGps);
-  $("#landmarkMapZoomIn").addEventListener("click", () => {
-    landmarkMapState.zoom = clamp(landmarkMapState.zoom + 1, 3, 19);
-    renderLandmarkMap();
-  });
-  $("#landmarkMapZoomOut").addEventListener("click", () => {
-    landmarkMapState.zoom = clamp(landmarkMapState.zoom - 1, 3, 19);
-    renderLandmarkMap();
-  });
-  $("#landmarkMapRecenter").addEventListener("click", () => {
-    const lat = parseFloat($("#knownLandmarkLat").value);
-    const lng = parseFloat($("#knownLandmarkLng").value);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      const siteLat = parseFloat($("#lat").value);
-      const siteLng = parseFloat($("#lng").value);
-      if (Number.isFinite(siteLat) && Number.isFinite(siteLng)) {
-        centerLandmarkMap(siteLat, siteLng, Math.max(landmarkMapState.zoom, 14));
-        toast("Landmark map centered near the site. Move it to the known starting point.");
-        return;
-      }
-      toast("Set the site point or landmark point first, then center the map.");
-      return;
-    }
-    centerLandmarkMap(lat, lng, Math.max(landmarkMapState.zoom, 15));
-  });
-  $("#dropLandmarkPinAtCenter").addEventListener("click", () => {
-    setLandmarkCoordinates(landmarkMapState.centerLat, landmarkMapState.centerLng, false);
-    renderLandmarkMap();
-    toast("Landmark pin dropped at map center.");
-  });
-  $("#clearLandmarkPin").addEventListener("click", () => {
-    clearLandmarkCoordinates();
-    toast("Landmark pin cleared.");
-  });
-  $("#openDirectionsToSitePin").addEventListener("click", openDirectionsToSitePin);
   $("#landingZoneMapZoomIn").addEventListener("click", () => {
     landingZoneMapState.zoom = clamp(landingZoneMapState.zoom + 1, 3, 19);
     renderLandingZoneMap();
@@ -2922,39 +2830,6 @@ function bindEvents() {
       renderSiteMap();
     }
   });
-  $("#landmarkMap").addEventListener("pointerdown", (event) => {
-    const map = $("#landmarkMap");
-    map.setPointerCapture(event.pointerId);
-    landmarkMapState.dragging = true;
-    landmarkMapState.moved = 0;
-    landmarkMapState.dragStart = { x: event.clientX, y: event.clientY };
-    landmarkMapState.startCenter = {
-      x: lngToTileX(landmarkMapState.centerLng, landmarkMapState.zoom),
-      y: latToTileY(landmarkMapState.centerLat, landmarkMapState.zoom),
-    };
-  });
-  $("#landmarkMap").addEventListener("pointermove", (event) => {
-    if (!landmarkMapState.dragging) return;
-    const dx = event.clientX - landmarkMapState.dragStart.x;
-    const dy = event.clientY - landmarkMapState.dragStart.y;
-    landmarkMapState.moved = Math.max(landmarkMapState.moved, Math.abs(dx), Math.abs(dy));
-    const centerX = landmarkMapState.startCenter.x - dx;
-    const centerY = landmarkMapState.startCenter.y - dy;
-    landmarkMapState.centerLng = tileXToLng(centerX, landmarkMapState.zoom);
-    landmarkMapState.centerLat = clamp(tileYToLat(centerY, landmarkMapState.zoom), -85, 85);
-    renderLandmarkMap();
-  });
-  $("#landmarkMap").addEventListener("pointerup", (event) => {
-    const map = $("#landmarkMap");
-    if (map.hasPointerCapture(event.pointerId)) map.releasePointerCapture(event.pointerId);
-    const wasTap = landmarkMapState.moved < 8;
-    landmarkMapState.dragging = false;
-    if (wasTap) {
-      const picked = pointToLatLngFromMap("#landmarkMap", landmarkMapState, event.clientX, event.clientY);
-      setLandmarkCoordinates(picked.lat, picked.lng, false);
-      renderLandmarkMap();
-    }
-  });
   $("#landingZoneMap").addEventListener("pointerdown", (event) => {
     const map = $("#landingZoneMap");
     map.setPointerCapture(event.pointerId);
@@ -2990,7 +2865,6 @@ function bindEvents() {
   });
   window.addEventListener("resize", () => {
     renderSiteMap();
-    renderLandmarkMap();
     renderLandingZoneMap();
   });
   $("#previewPlan").addEventListener("click", async () => {
@@ -3074,6 +2948,7 @@ function bindEvents() {
   $("#shareChoicePng").addEventListener("click", () => shareChosenPlan("png"));
   $("#shareChoicePdf").addEventListener("click", () => shareChosenPlan("pdf"));
   $("#shareChoiceEmailDraft").addEventListener("click", () => shareChosenPlan("email-draft"));
+  $("#retrySharePreparation").addEventListener("click", () => openShareChoice(pendingSharePlanId));
   $("#closeShareChoice").addEventListener("click", closeShareChoice);
   $("#shareChoicePanel").addEventListener("click", (event) => {
     if (event.target.id === "shareChoicePanel") closeShareChoice();

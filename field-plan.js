@@ -69,7 +69,7 @@ function fieldPlanData(plan) {
     row('MEET RESPONDERS HERE', access.meetingPoint || 'Not entered'),
     row('Gate / access', access.gateNotes),
   ]);
-  const people = section('People', contactRowsForPlan(plan).map(person => row('', join([person.name, person.role, person.phone]), fieldPhoneUrl(person.phone))));
+  const people = section('People & Contact Information', contactRowsForPlan(plan).map(person => row('', join([person.name, person.role, person.phone]), fieldPhoneUrl(person.phone))));
   if (!people.rows.length) people.rows.push(row('', 'Not entered'));
   const hospitalUrl = safeFieldUrl(medical.hospitalDirectionsUrl);
   const medicalRows = [row('', medical.hospital), row('Town / address', join([medical.hospitalTown, medical.hospitalAddress])), row('Approx. drive time', medical.hospitalDriveTime), row('', hospitalUrl ? 'Hospital directions' : medical.hospitalDirectionsUrl, hospitalUrl), row('Notes', medical.notes), row('Urgent care', medical.urgentCare), row('', medical.urgentCareDirectionsUrl ? 'Urgent care directions' : '', safeFieldUrl(medical.urgentCareDirectionsUrl)), row('Trauma center', medical.traumaCenter), row('', medical.traumaDirectionsUrl ? 'Trauma center directions' : '', safeFieldUrl(medical.traumaDirectionsUrl))];
@@ -148,9 +148,10 @@ async function refreshRecentPeople() {
   document.getElementById('recentPeople').innerHTML = '<option value="">Add a saved / recent person</option>' + recentFieldPeople.map((person, index) => `<option value="${index}">${escapeHtml(formatContactRow(person))}</option>`).join('');
 }
 
-function syncShareReview() {
-  const checked = Array.from(document.querySelectorAll('#shareReview input')).every(input => input.checked);
-  ['shareChoicePng', 'shareChoicePdf', 'shareChoiceEmailDraft'].forEach(id => { document.getElementById(id).disabled = !preparedShare || !checked; });
+function syncShareButtons() {
+  for (const [id, file] of [['shareChoicePng', 'image'], ['shareChoicePdf', 'pdf'], ['shareChoiceEmailDraft', 'email']]) {
+    document.getElementById(id).disabled = !preparedShare?.[file] || shareInProgress;
+  }
 }
 
 function bindFieldEvents() {
@@ -174,7 +175,6 @@ function bindFieldEvents() {
     await refreshRecentPeople();
   });
   ['hospital', 'hospitalTown', 'hospitalAddress', 'hospitalDriveTime', 'hospitalDirectionsUrl'].forEach(id => document.getElementById(id).addEventListener('input', () => { document.getElementById('hospitalVerified').checked = false; }));
-  document.getElementById('shareReview').addEventListener('change', syncShareReview);
   document.getElementById('editSharePlan').addEventListener('click', async () => {
     const plan = await planForSharing();
     closeShareChoice();

@@ -642,7 +642,8 @@ textarea:focus {
   background: rgba(18, 60, 44, 0.44);
 }
 
-.share-choice-panel[hidden] {
+.share-choice-panel[hidden],
+.share-choice-card [hidden] {
   display: none;
 }
 

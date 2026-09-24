@@ -24,7 +24,7 @@
     <title>WRSP – Woods-Ready Safety Plan | Free Logging Site Safety App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.svg">
-    <link rel="stylesheet" href="styles.css?v=0.8.2">
+    <link rel="stylesheet" href="styles.css?v=0.8.3">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -288,41 +288,12 @@
             </div>
             <h3>Directions to read to 911 / dispatch</h3>
             <p class="helper">Use this text when someone must explain how responders can get to the site.</p>
-            <label>Responder-known starting point
+            <label>Known starting point / landmark
               <input id="knownLandmark" name="knownLandmark" placeholder="Nearest town, village, fire station, or intersection of two state highways">
             </label>
-            <div class="map-picker compact-map-picker">
-              <div class="map-toolbar">
-                <strong>Pin starting landmark</strong>
-                <div>
-                  <button type="button" class="small-action" id="landmarkMapRecenter">Center</button>
-                  <button type="button" class="small-action" id="landmarkMapZoomOut">-</button>
-                  <button type="button" class="small-action" id="landmarkMapZoomIn">+</button>
-                </div>
-              </div>
-              <div id="landmarkMap" class="site-map" role="button" aria-label="Tap map to select responder-known starting point">
-                <div id="landmarkMapTiles" class="map-tiles"></div>
-                <div id="landmarkMapMarker" class="map-marker" hidden></div>
-                <div class="map-crosshair" aria-hidden="true"></div>
-              </div>
-              <div class="map-actions">
-                <button type="button" class="secondary-action" id="dropLandmarkPinAtCenter">Drop Landmark Pin</button>
-                <button type="button" class="secondary-action" id="clearLandmarkPin">Clear Landmark Pin</button>
-                <button type="button" class="secondary-action" id="openDirectionsToSitePin">Open Directions to Site Pin</button>
-              </div>
-              <div class="split coordinate-fields">
-                <label>Landmark latitude
-                  <input id="knownLandmarkLat" name="knownLandmarkLat" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map pin or type manually">
-                </label>
-                <label>Landmark longitude
-                  <input id="knownLandmarkLng" name="knownLandmarkLng" inputmode="decimal" autocomplete="off" pattern="-?[0-9]*[.]?[0-9]*" placeholder="Map pin or type manually">
-                </label>
-              </div>
-              <p class="helper">Optional: pin the public starting point a dispatcher or responder would know, then open Google Maps directions from that point to the site pin in a new tab.</p>
-            </div>
-            <div class="action-row">
-              <button type="button" class="secondary-action" id="findStartingLandmark">Find Landmark</button>
-            </div>
+            <!-- Preserve starting-point coordinates already stored in older plans. -->
+            <input type="hidden" id="knownLandmarkLat" name="knownLandmarkLat">
+            <input type="hidden" id="knownLandmarkLng" name="knownLandmarkLng">
             <label>Site-specific directions to read aloud
               <textarea id="phoneDirections" name="phoneDirections" rows="5" placeholder="From that starting point, enter the final road, gate, landing, meeting point, flagging, and access instructions."></textarea>
             </label>
@@ -338,8 +309,8 @@
           </details>
 
           <details class="card accordion-card">
-            <summary>Who is there?</summary>
-            <p class="helper">Add the people who should appear on the one-page safety sheet. A partial list is still better than no plan.</p>
+            <summary>People &amp; Contact Information</summary>
+            <p class="helper">Include the crew, forester, trucker, landowner, and other job contacts, whether or not they are on site.</p>
             <label>Saved / recent people
               <select id="recentPeople"><option value="">Add a saved / recent person</option></select>
             </label>
@@ -512,20 +483,19 @@
 
       <div id="shareChoicePanel" class="share-choice-panel" hidden>
         <div class="share-choice-card" role="dialog" aria-modal="true" aria-labelledby="shareChoiceTitle">
-          <h3 id="shareChoiceTitle">Review and send</h3>
+          <h3 id="shareChoiceTitle">Send Plan</h3>
           <div id="shareChoiceReadiness"></div>
-          <fieldset id="shareReview" class="field-options">
-            <legend>Checked for this job</legend>
-            <label class="check-label"><input type="checkbox"><span>Coordinates</span></label>
-            <label class="check-label"><input type="checkbox"><span>Written responder directions</span></label>
-            <label class="check-label"><input type="checkbox"><span>Emergency contacts</span></label>
-            <label class="check-label"><input type="checkbox"><span>Access instructions</span></label>
-          </fieldset>
-          <p class="helper">Email Plan + PDF includes the full plan text and attachment. The formatted email draft includes an HTML body and the same PDF; email app support varies.</p>
-          <button class="primary-action" id="shareChoicePng">Text Image</button>
+          <p id="shareChoiceWarnings" class="warning" hidden></p>
+          <button class="primary-action" id="shareChoicePng">Text Plan + Image</button>
           <button class="primary-action" id="shareChoicePdf">Email Plan + PDF</button>
           <button class="secondary-action" id="shareChoiceEmailDraft">Download Formatted Email Draft</button>
-          <p id="shareChoiceStatus" class="helper"></p>
+          <p id="shareChoiceStatus" class="helper" role="status" aria-live="polite"></p>
+          <div id="shareFallback" hidden>
+            <p class="helper">File sharing is unavailable here. These alternatives open the full plan text without an attachment.</p>
+            <a class="secondary-action link-action" id="shareEmailTextOnly">Open Email (Text Only)</a>
+            <a class="secondary-action link-action" id="shareMessageTextOnly">Open Messages (Text Only)</a>
+          </div>
+          <button class="secondary-action" id="retrySharePreparation" hidden>Prepare Plan Again</button>
           <button class="secondary-action" id="editSharePlan">Edit Plan</button>
           <button class="secondary-action" id="closeShareChoice">Cancel</button>
         </div>
@@ -1047,9 +1017,9 @@
     </nav>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="email-template.js?v=0.8.2"></script>
-    <script src="pdf-plan.js?v=0.8.2"></script>
-    <script src="field-plan.js?v=0.8.2"></script>
-    <script src="app.js?v=0.8.2"></script>
+    <script src="email-template.js?v=0.8.3"></script>
+    <script src="pdf-plan.js?v=0.8.3"></script>
+    <script src="field-plan.js?v=0.8.3"></script>
+    <script src="app.js?v=0.8.3"></script>
   </body>
 </html>

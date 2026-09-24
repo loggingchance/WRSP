@@ -1,17 +1,17 @@
-const CACHE_NAME = "wrsp-v39";
+const CACHE_NAME = "wrsp-v40";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
-  "./styles.css?v=0.8.2",
+  "./styles.css?v=0.8.3",
   "./app.js",
   "./field-plan.js",
   "./email-template.js",
   "./pdf-plan.js",
-  "./app.js?v=0.8.2",
-  "./field-plan.js?v=0.8.2",
-  "./email-template.js?v=0.8.2",
-  "./pdf-plan.js?v=0.8.2",
+  "./app.js?v=0.8.3",
+  "./field-plan.js?v=0.8.3",
+  "./email-template.js?v=0.8.3",
+  "./pdf-plan.js?v=0.8.3",
   "./manifest.webmanifest",
   "./og-image.png",
   "./assets/wrsp-header.png",
@@ -22,18 +22,18 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-    ))
+    )).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {

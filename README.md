@@ -62,7 +62,7 @@ The app uses IndexedDB for local plans and a service worker for offline app-shel
 
 Email Plan + PDF passes the complete plain-text plan and an attached PDF to the device share sheet. Choose an email app there. Native share targets decide which fields they accept; Web Share does not provide an HTML-body field.
 
-Text Image passes the same complete plain-text plan, including the automatic site Google Maps URL, together with the formatted JPG in a single share request. The image uses the PDF layout; its links are not interactive, but the accompanying text includes the URLs. Messaging apps decide which fields they accept and may compress the image. If browser file sharing is unavailable, WRSP downloads the image and reports that the image and text could not be shared together.
+Text Plan + Image passes the same complete plain-text plan, including the automatic site Google Maps URL, together with the formatted JPG in a single share request. The image uses the PDF layout; its links are not interactive, but the accompanying text includes the URLs. Messaging apps decide which fields they accept and may compress the image. If browser file sharing is unavailable, WRSP downloads the attachment and offers a clearly labeled text-only email or Messages link. Text-only links do not attach files.
 
 Download Formatted Email Draft creates an unsent `.eml` message with both plain-text and styled HTML bodies, plus the same PDF attachment. Open it in a compatible mail client to address and send; some clients open EML as a message to forward rather than an editable draft. Unsupported file sharing falls back to this draft instead of silently omitting the email body. No email is sent by WRSP itself.
 
@@ -72,17 +72,21 @@ The PDF and HTML email place **Open site in Google Maps** immediately below the 
 
 The HTML email template has a compact emergency header, a separate Directions for Responders panel, responsive supporting sections, clickable phone/hospital links, and numbered emergency actions. The optional MIME draft includes this HTML as the preferred alternative with plain-text fallback and an identical PDF attachment. By product decision, WRSP remains a web app sending through the user's own mail app: no centralized sending service and no copy/paste requirement. Normal email sharing therefore retains the phone's plain-text limitations; the PDF is the consistently formatted version. HTML draft delivery in Gmail is not claimed or verified.
 
-Before sending, users check coordinates, written directions, emergency contacts, and access instructions. A map link alone does not qualify as written directions. Hospital details require confirmation and editing them clears that confirmation. Copy This Plan preserves reusable content but marks the copy for location review and clears hospital confirmation.
+Sharing always includes the full entered plan; there are no send-confirmation or inclusion checkboxes. Missing coordinates, missing written directions, and unconfirmed hospital details produce visible warnings without blocking sharing. Hospital editing clears its confirmation. Copy This Plan preserves reusable content but marks the copy for location review and clears hospital confirmation. Attachments are prepared before the send-button tap so native sharing retains user activation. Canceling does not force a download; failed preparation offers a retry.
+
+The known starting point / landmark and written responder directions are manual fields, with no landmark map or external route-search buttons. Existing saved landmark coordinates remain preserved unless the landmark name changes. People & Contact Information includes on-site and off-site contacts in the same name, role, and phone grid.
 
 Hazards, access constraints, and equipment use checkboxes plus custom notes. Remember people and routine details stores a local profile for new plans; saved/recent people can also be added individually. Emergency text is available independently for quick copying. PDF QR codes and live hosted plan links remain optional future work.
 
-Generation works offline; map tiles, directions, and road suggestions require a connection. Address suggestions use the [Photon public service](https://github.com/komoot/photon#demo-server) on explicit user request with a session cache, or a user's optional Geoapify key. Availability and map coverage are not guaranteed; manual address entry remains available.
+Generation and manual directions entry work offline; map tiles and road suggestions require a connection. Address suggestions use the [Photon public service](https://github.com/komoot/photon#demo-server) on explicit user request with a session cache, or a user's optional Geoapify key. Availability and map coverage are not guaranteed; manual address entry remains available.
 
 ## Regression checks
 
 With a local server running and Playwright available, run `node tests/smoke.cjs`. The default browser is Edge; set `WRSP_BROWSER` to another installed Playwright channel when needed. `WRSP_URL` overrides the default `http://127.0.0.1:4173`, and `WRSP_TEST_OUTPUT` chooses the screenshot/export directory. Set `WRSP_LIVE_LOOKUP=1` to also exercise the public address service in the browser.
 
 Run `node tests/offline.cjs` to verify the versioned app assets are cached and that plans can be reopened, edited, saved, and prepared for sharing without a connection.
+
+Run `node tests/sharing.cjs` for incomplete-plan sharing, full text/PDF/JPEG payloads, real-tap user activation, cancellation, rejected sharing, draft download/retry, manual directions, legacy landmark preservation, and mobile layouts. Set `WRSP_ENGINE=webkit` when Playwright WebKit is installed. Native sharing is mocked to inspect the handoff; these tests do not establish delivery by an actual iPhone Mail or Messages app.
 
 Run `node tests/pdf-links.cjs` with Playwright and `pdfjs-dist` available to inspect the exported PDF and click its real annotation layer. Set `WRSP_LIVE_MAP=1` to navigate to Google Maps; the default intercepts the destination for a deterministic offline-capable click test.
 
