@@ -11,8 +11,8 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => navigator.serviceWorker.controller);
     await page.waitForFunction(() => document.querySelector('#planId').value);
     const cached = await page.evaluate(async () => {
-      const cache = await caches.open('wrsp-v41');
-      return Promise.all(['app.js?v=0.8.4', 'field-plan.js?v=0.8.4', 'email-template.js?v=0.8.4', 'pdf-plan.js?v=0.8.4', 'styles.css?v=0.8.4'].map(async name => Boolean(await cache.match(new URL(name, location.href)))));
+      const cache = await caches.open('wrsp-v42');
+      return Promise.all(['app.js?v=0.8.5', 'field-plan.js?v=0.8.5', 'email-template.js?v=0.8.5', 'pdf-plan.js?v=0.8.5', 'styles.css?v=0.8.5', 'assets/help-site-pin.png', 'assets/help-sharing.png'].map(async name => Boolean(await cache.match(new URL(name, location.href)))));
     });
     assert.ok(cached.every(Boolean), 'All matching versioned assets cached');
     const id = await page.evaluate(async () => {

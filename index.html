@@ -24,7 +24,7 @@
     <title>WRSP – Woods-Ready Safety Plan | Free Logging Site Safety App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/icon-192.svg">
-    <link rel="stylesheet" href="styles.css?v=0.8.4">
+    <link rel="stylesheet" href="styles.css?v=0.8.5">
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -195,7 +195,10 @@
             <p class="eyebrow">Job plan</p>
             <h2 id="createTitle">Create or edit safety plan</h2>
           </div>
-          <button class="secondary-action" id="newBlankPlan">New blank</button>
+          <div class="action-row">
+            <button class="secondary-action" data-route="help">Quick Guide</button>
+            <button class="secondary-action" id="newBlankPlan">New blank</button>
+          </div>
         </div>
 
         <form id="planForm" class="form-stack">
@@ -748,6 +751,94 @@
         </div>
       </section>
 
+      <section id="helpView" class="view" aria-labelledby="helpTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Help</p>
+            <h2 id="helpTitle" tabindex="-1">Quick Guide</h2>
+          </div>
+          <button class="secondary-action" id="closeQuickGuide">Back</button>
+        </div>
+        <div class="quick-guide">
+          <p>A plan for the job, ready before it is needed. Start with the essentials and add the details you have.</p>
+          <details class="guide-topic" open>
+            <summary>How do I make my first plan?</summary>
+            <ol class="guide-steps">
+              <li><strong>Name the job.</strong> Open Create and enter the job or site name.</li>
+              <li><strong>Locate the entrance or meeting point.</strong> Use My Current Location only when you are at the right place, or move the map and tap to place the site pin. Check the road and coordinates.</li>
+              <li><strong>Write directions a caller can read aloud.</strong> Name a known intersection or landmark, then describe the roads, turns, gate, and meeting point. A map link supplements these directions; it does not replace them.</li>
+              <li><strong>Add the people and job details.</strong> Enter names, roles, and phone numbers, plus access restrictions, hazards, emergency equipment, and the medical information you have checked.</li>
+              <li><strong>Save and share.</strong> Tap Save Plan, then Share Plan or Save / Print PDF. Review the actual file and make sure the crew has the current version.</li>
+            </ol>
+            <p>Not finished? <strong>Just Save What I Have</strong> keeps a partial plan. Missing information is flagged but does not prevent sharing.</p>
+            <button class="secondary-action" data-route="create">Open Plan Editor</button>
+          </details>
+          <details class="guide-topic" id="guideLocation">
+            <summary>How do I get the pin and directions right?</summary>
+            <p>Zoom with + and -, move the map, and tap the exact entrance, landing, or meeting point. You can also use Drop Pin at Map Center. Latitude and longitude appear below the map and can be entered manually.</p>
+            <p>Suggest Road / Town from Pin may offer a road or address near the pin. Check it before applying it; a rural entrance may not have a useful street address. Manual road and address entry is always available.</p>
+            <figure class="guide-figure">
+              <img src="assets/help-site-pin.png" width="664" height="1942" alt="WRSP example site map with a pin, zoom controls, and coordinate fields below the map" loading="lazy">
+              <figcaption>Example only. Use the actual access point for your job. Map: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</figcaption>
+            </figure>
+            <p><strong>Known starting point / landmark</strong> and <strong>Site-specific directions to read aloud</strong> are written entries. WRSP does not generate turn-by-turn responder directions. Include the final approach, gate, and where someone will meet responders.</p>
+            <p>The possible helicopter landing zone has its own map and coordinates. Recording it does not request a helicopter; dispatch/EMS makes that decision.</p>
+          </details>
+          <details class="guide-topic">
+            <summary>Who belongs in People &amp; Contact Information?</summary>
+            <p>Include the crew, forester, trucker, landowner, and other useful job contacts, even if they are not on site. Enter a name, role, and contact number for each person. Use Add person for more rows or choose a saved / recent person.</p>
+            <p>Check that phone numbers and roles are current. Emergency service and hospital details are entered by you; WRSP does not confirm them automatically.</p>
+          </details>
+          <details class="guide-topic" id="guideSharing">
+            <summary>How do I email, text, or print the plan?</summary>
+            <p>Open a saved plan and tap <strong>Share Plan</strong>. The full entered plan is included every time; there are no inclusion checkboxes.</p>
+            <ul>
+              <li><strong>Email Plan + PDF:</strong> choose Mail or your email app in the phone's share menu. WRSP supplies the full plan text, the PDF, and the plan name as the title. Some mail apps may omit the subject or part of the shared content; check the draft before sending.</li>
+              <li><strong>Text Plan + Image:</strong> choose Messages or your messaging app. WRSP supplies the plan image and full text together. Some apps may omit text or compress images. Map links are clickable in the accompanying text, not in the image.</li>
+              <li><strong>Download Formatted Email Draft:</strong> downloads an .eml file with a subject, formatted body, and PDF. It requires a compatible email app; some apps open it as a message to forward.</li>
+              <li><strong>Save / Print PDF:</strong> downloads the one-page PDF. Open it to print or save it where you need it.</li>
+            </ul>
+            <figure class="guide-figure guide-figure-narrow">
+              <img src="assets/help-sharing.png" width="708" height="862" alt="WRSP Send Plan dialog with Text Plan + Image, Email Plan + PDF, and Download Formatted Email Draft buttons" loading="lazy">
+              <figcaption>Choose an option here, then choose a destination in your phone's share menu. The phone menu varies by device.</figcaption>
+            </figure>
+            <p>WRSP does not send email itself. You address and send it in your own app. When file sharing is unavailable, WRSP downloads the attachment and offers clearly labeled <strong>Text Only</strong> alternatives that do not attach files.</p>
+          </details>
+          <details class="guide-topic">
+            <summary>How do I reuse a plan or protect my saved work?</summary>
+            <p>Open <strong>Plans</strong>, choose a saved plan, and use Edit to update it. For a new job, choose <strong>Copy This Plan</strong>, rename the copy, and check the location, directions, meeting point, access, contacts, and hospital details.</p>
+            <p>Saved plans stay in this browser on this device. They do not automatically appear on another phone or computer. Clearing browser data, using private browsing, or losing the device can remove your work.</p>
+            <p>Use <strong>Backup File</strong> on the plan to keep an editable backup somewhere safe. On another device, use <strong>More → Import Plan</strong>. A PDF or image is a readable copy, not an editable WRSP backup.</p>
+            <button class="secondary-action" data-route="saved">Open Saved Plans</button>
+          </details>
+          <details class="guide-topic" id="guideOffline">
+            <summary>What works without a signal?</summary>
+            <p>Load WRSP while connected first. Once its offline files are cached, saved plans, editing, PDF/image preparation, and this guide work offline. Open the app and your saved plan in airplane mode before relying on it in the field.</p>
+            <p>New map tiles, address suggestions, outside websites, and app updates need an internet connection. Delivering email or messages depends on your phone and service. Do not depend on an uncached map or an unsent message.</p>
+            <div class="action-row">
+              <button class="secondary-action" data-route="install">Home Screen Instructions</button>
+              <button class="secondary-action" data-route="pwa">Check Offline Readiness</button>
+            </div>
+          </details>
+          <details class="guide-topic" id="guideTroubleshooting">
+            <summary>What if something does not work?</summary>
+            <ul>
+              <li><strong>Missing information warning:</strong> add what you can. The warning does not block sharing. Before field use, check that the information responders need is present and correct.</li>
+              <li><strong>Plan will not fit one page:</strong> shorten repeated wording in the sections named by the message without removing critical information. Your full text remains saved; WRSP does not silently cut it off.</li>
+              <li><strong>Sharing is not ready:</strong> wait for preparation. If an error appears, use Prepare Plan Again or Edit Plan. If the phone cannot share files, use the offered download or text-only alternative.</li>
+              <li><strong>GPS or address lookup fails:</strong> check phone/browser location permission and your connection, or enter coordinates and road details manually.</li>
+              <li><strong>Older controls still appear:</strong> connect to the internet and tap Update at the top of WRSP. You can also use More → PWA Status → Check for Update.</li>
+            </ul>
+          </details>
+          <details class="guide-topic">
+            <summary>How do I suggest an improvement?</summary>
+            <p>Good things are never really finished. Tell us what is confusing, what failed, or what would make WRSP more useful. Include your phone/browser and the steps that led to the problem, but leave out private medical details.</p>
+            <button class="secondary-action" data-route="feedback">Send Feedback</button>
+          </details>
+          <p class="guide-safety-note">WRSP helps organize site information. It does not replace safety training, calling 911, or local emergency procedures.</p>
+        </div>
+      </section>
+
       <section id="installView" class="view" aria-labelledby="installTitle">
         <div class="section-head">
           <div>
@@ -992,6 +1083,7 @@
           </div>
         </div>
         <div class="quick-grid more-tools">
+          <button class="quick-action" data-route="help"><span>Help / Quick Guide</span><small>First plan and common questions</small></button>
           <button class="quick-action" data-route="safetyShare"><span>Safety Share</span><small>Launch live location sharing</small></button>
           <button class="quick-action emergency" data-route="emergency"><span>Share Pinned Location</span><small>GPS, map link, 911</small></button>
           <button class="quick-action" data-route="medical"><span>Find Medical Care</span><small>Online map search</small></button>
@@ -1000,7 +1092,7 @@
           <button class="quick-action" data-route="defaults"><span>Set Defaults</span><small>Reusable plan info</small></button>
           <button class="quick-action" id="openSamplePlanMore"><span>Test Sharing with Example</span><small>Open a complete sample plan</small></button>
           <button class="quick-action" data-route="import"><span>Import Plan</span><small>From shared backup</small></button>
-          <button class="quick-action" data-route="install"><span>Install / Help</span><small>Home screen steps</small></button>
+          <button class="quick-action" data-route="install"><span>Install / Home Screen</span><small>Home screen steps</small></button>
           <button class="quick-action" data-route="pwa"><span>PWA Status</span><small>Offline/install checks</small></button>
           <button class="quick-action" data-route="resources"><span>About</span><small>Credits and tools</small></button>
           <button class="quick-action" data-route="feedback"><span>Send Feedback</span><small>Suggestions, bugs, errors</small></button>
@@ -1017,9 +1109,9 @@
     </nav>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="email-template.js?v=0.8.4"></script>
-    <script src="pdf-plan.js?v=0.8.4"></script>
-    <script src="field-plan.js?v=0.8.4"></script>
-    <script src="app.js?v=0.8.4"></script>
+    <script src="email-template.js?v=0.8.5"></script>
+    <script src="pdf-plan.js?v=0.8.5"></script>
+    <script src="field-plan.js?v=0.8.5"></script>
+    <script src="app.js?v=0.8.5"></script>
   </body>
 </html>

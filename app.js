@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.8.4 - October 4, 2026";
+const APP_VERSION = "WRSP v0.8.5 - October 4, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -16,6 +16,8 @@ let db;
 let currentPlanId = null;
 let currentPlanMode = "full";
 let sharedPlanPreview = null;
+let guideReturnRoute = "more";
+let guideReturnFocus = null;
 let sharedMedicalCardPreview = null;
 let emergencyCoords = null;
 let autoSaveTimer = null;
@@ -376,10 +378,14 @@ function storeAll(storeName) {
 }
 
 function routeTo(route) {
+  if (route === "help" && !$("#helpView").classList.contains("active")) {
+    guideReturnRoute = $(".view.active")?.id.replace(/View$/, "") || "more";
+    guideReturnFocus = document.activeElement;
+  }
   $$(".view").forEach((view) => view.classList.remove("active"));
   $(`#${route}View`)?.classList.add("active");
   $$(".bottom-nav button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.route === route);
+    button.classList.toggle("active", button.dataset.route === route || (route === "help" && button.dataset.route === "more"));
   });
   if (route === "home") renderContinuePlan();
   if (route === "saved") renderSavedPlans();
@@ -403,6 +409,7 @@ function routeTo(route) {
   if (route === "preparedness") loadPreparedness();
   if (route === "defaults") loadDefaultsForm();
   if (route === "pwa") updatePwaStatus();
+  if (route === "help") $("#helpTitle").focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -2652,6 +2659,10 @@ function formatDate(value) {
 }
 
 function bindEvents() {
+  $("#closeQuickGuide").addEventListener("click", () => {
+    routeTo(guideReturnRoute);
+    guideReturnFocus?.focus({ preventScroll: true });
+  });
   $$("[data-route]").forEach((button) => button.addEventListener("click", async () => {
     if (button.dataset.route === "create" && !$("#planId").value) {
       planToForm(await newPlanWithDefaults());

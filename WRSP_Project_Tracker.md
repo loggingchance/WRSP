@@ -2,6 +2,13 @@
 
 Last updated: October 4, 2026
 
+## Built-in Quick Guide: v0.8.5
+
+- Added More -> Help / Quick Guide and a plan-editor shortcut, with a first-plan walkthrough and eight expandable topics covering entry, location, contacts, sharing, saved plans, offline operation, troubleshooting, and feedback.
+- Added actual WRSP map/send screenshots, local image assets, and OpenStreetMap attribution. Cached the guide and illustrations for offline use; no external manual or extra confirmation steps.
+- Help preserves the plan editor, returns keyboard focus to its entry point, and links to existing editor, saved plans, install, offline-status, and feedback views.
+- Added mobile/desktop, keyboard, navigation, editor-preservation, and offline-image regression tests. Sharing and PDF behavior is unchanged. Updated versioned assets to v0.8.5 and cache to wrsp-v42.
+
 ## Plan-name subjects and export footer: v0.8.4
 
 - Centralized the plan-name subject across native PDF/image sharing, the text-only email fallback, and the formatted email draft. Removed the WRSP prefix, normalized whitespace, and preserved Unicode/long names in encoded MIME headers. Native share targets may ignore titles; actual iPhone subject population is not guaranteed or claimed.

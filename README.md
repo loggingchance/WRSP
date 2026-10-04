@@ -58,6 +58,12 @@ The app uses IndexedDB for local plans and a service worker for offline app-shel
 - Record user-entered medical and emergency numbers, with suggested search terms.
 - Include install instructions and acknowledgements.
 
+## Built-in Quick Guide
+
+Open **More -> Help / Quick Guide**, or **Quick Guide** beside the plan editor. The guide provides a five-step first-plan walkthrough and expandable answers about pin placement, written directions, off-site contacts, sharing/printing, backup/reuse, offline use, troubleshooting, and feedback. Back returns to the previous view without clearing an unfinished plan. Text and both app screenshots are included in the offline app shell.
+
+Run `node tests/guide.cjs` for entry points, keyboard/focus behavior, editor preservation, internal navigation, 320/390/1365px layouts, and cached illustrations after an offline reload. To refresh the illustrations after a relevant UI change, run `node tests/capture-guide.cjs` against the local app with internet access for map tiles; inspect both PNGs, update image dimensions in HTML if needed, and preserve OpenStreetMap attribution.
+
 ## Email and PDF sharing
 
 Email Plan + PDF passes the complete plain-text plan and an attached PDF to the device share sheet. Choose an email app there. Native share targets decide which fields they accept; Web Share does not provide an HTML-body field.
