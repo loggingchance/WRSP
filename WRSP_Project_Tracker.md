@@ -1,6 +1,12 @@
 # WRSP Project Tracker
 
-Last updated: September 24, 2026
+Last updated: October 4, 2026
+
+## Plan-name subjects and export footer: v0.8.4
+
+- Centralized the plan-name subject across native PDF/image sharing, the text-only email fallback, and the formatted email draft. Removed the WRSP prefix, normalized whitespace, and preserved Unicode/long names in encoded MIME headers. Native share targets may ignore titles; actual iPhone subject population is not guaranteed or claimed.
+- Replaced the generic field-copy footer with "Created with the Woods-Ready Safety Plan App - wrsp.lumbermen.org" in the PDF/image renderer; the PDF website link is clickable. Used the existing footer space without reducing any body font sizes or changing the one-page layout.
+- Added subject payload/MIME checks, branded footer/bounds checks across six PDF fixtures, and a PDF footer annotation check. Existing full-body/attachment sharing and offline tests remain in place. Updated assets to v0.8.4 and cache to wrsp-v41.
 
 ## Phone workflow corrections: v0.8.3
 

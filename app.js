@@ -6,7 +6,7 @@ const PREPAREDNESS_KEY = "preparedness";
 const DEFAULTS_KEY = "defaults";
 const SAFETY_SHARE_KEY = "safetyShare";
 const MEDICAL_CARD_KEY = "medicalCard";
-const APP_VERSION = "WRSP v0.8.3 - September 24, 2026";
+const APP_VERSION = "WRSP v0.8.4 - October 4, 2026";
 const FEEDBACK_EMAIL = "steve@northeastforests.com";
 
 const $ = (selector) => document.querySelector(selector);
@@ -1256,6 +1256,10 @@ async function planForSharing() {
   return activePlan();
 }
 
+function planEmailSubject(plan) {
+  return String(plan.title || "").replace(/\s+/g, " ").trim() || "Safety Plan";
+}
+
 async function openShareChoice(planId = null) {
   pendingSharePlanId = planId;
   preparedShare = null;
@@ -1279,7 +1283,7 @@ async function openShareChoice(planId = null) {
     $("#shareChoiceWarnings").textContent = warnings.join(" ") + (warnings.length ? " You can still send the information entered, or edit the plan." : "");
     $("#shareChoiceWarnings").hidden = !warnings.length;
     const body = encodeURIComponent(planShareText(plan));
-    $("#shareEmailTextOnly").href = `mailto:?subject=${encodeURIComponent(`WRSP: ${plan.title || "Safety Plan"}`)}&body=${body}`;
+    $("#shareEmailTextOnly").href = `mailto:?subject=${encodeURIComponent(planEmailSubject(plan))}&body=${body}`;
     const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     $("#shareMessageTextOnly").href = `sms:${appleMobile ? "&" : "?"}body=${body}`;
     // Prepare attachments before the next tap; native sharing needs that tap's activation.
@@ -1330,7 +1334,7 @@ async function shareChosenPlan(format) {
       await fallbackDownloadFile(email, "Email draft downloaded with the formatted plan and PDF attached. Open the downloaded .eml file in a compatible email app to address and send.");
     } else {
       // No asynchronous work before this call: preserve the user's tap for iOS.
-      const sent = await shareFileAttachment(file, `WRSP: ${plan.title}`, format === "pdf"
+      const sent = await shareFileAttachment(file, planEmailSubject(plan), format === "pdf"
         ? "PDF downloaded. This browser could not open file sharing."
         : "Image downloaded. This browser could not open file sharing.", planShareText(plan), format === "pdf" ? email : null);
       if (!sent && requestId === sharePreparationId && !$("#shareChoiceStatus").textContent.includes("canceled")) {
@@ -1588,7 +1592,7 @@ async function sharePlanPng(plan) {
   const file = new File([blob], `${safeFileName(plan.title || "wrsp-plan")}.jpg`, { type: "image/jpeg" });
   await shareFileAttachment(
     file,
-    `WRSP: ${plan.title}`,
+    planEmailSubject(plan),
     "Image saved. This browser could not share the image and plan text together.",
     planShareText(plan)
   );
@@ -1656,7 +1660,7 @@ async function planEmailFile(plan, pdf) {
   const alternative = `wrsp-alt-${crypto.randomUUID()}`;
   const encode = (value) => mimeBase64(new TextEncoder().encode(value));
   // RFC 2047 encoded words are limited to 75 characters, including their wrapper.
-  const subject = Array.from(`WRSP: ${plan.title || "Safety Plan"}`).reduce((parts, char) => {
+  const subject = Array.from(planEmailSubject(plan)).reduce((parts, char) => {
     if (!parts.length || new TextEncoder().encode(parts[parts.length - 1] + char).length > 42) parts.push(char);
     else parts[parts.length - 1] += char;
     return parts;
@@ -1696,7 +1700,7 @@ async function planEmailFile(plan, pdf) {
 
 async function sharePlanPdf(plan) {
   const file = new File([await planPdfBlob(plan)], `${safeFileName(plan.title)}.pdf`, { type: "application/pdf" });
-  await shareFileAttachment(file, `WRSP: ${plan.title}`, "", planShareText(plan), await planEmailFile(plan, file));
+  await shareFileAttachment(file, planEmailSubject(plan), "", planShareText(plan), await planEmailFile(plan, file));
 }
 
 function safeFileName(value = "wrsp-plan") {

@@ -1,17 +1,17 @@
-const CACHE_NAME = "wrsp-v40";
+const CACHE_NAME = "wrsp-v41";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
-  "./styles.css?v=0.8.3",
+  "./styles.css?v=0.8.4",
   "./app.js",
   "./field-plan.js",
   "./email-template.js",
   "./pdf-plan.js",
-  "./app.js?v=0.8.3",
-  "./field-plan.js?v=0.8.3",
-  "./email-template.js?v=0.8.3",
-  "./pdf-plan.js?v=0.8.3",
+  "./app.js?v=0.8.4",
+  "./field-plan.js?v=0.8.4",
+  "./email-template.js?v=0.8.4",
+  "./pdf-plan.js?v=0.8.4",
   "./manifest.webmanifest",
   "./og-image.png",
   "./assets/wrsp-header.png",

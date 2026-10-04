@@ -312,7 +312,10 @@ function layoutFieldPdf(data, style) {
     }
   });
   canvas.pdfLayout.blocks.push({ title: 'Emergency Actions', x: margin, y: actionsY, width, height: actionHeight });
-  drawLines([[{ text: 'Field copy | Confirm location, contacts and access before use.' }]], margin, pageHeight - margin - 12, 9.5, 12, '#53615b');
+  drawLines([[
+    { text: 'Created with the Woods-Ready Safety Plan App - ' },
+    { text: 'wrsp.lumbermen.org', url: 'https://wrsp.lumbermen.org/' },
+  ]], margin, pageHeight - margin - 12, 9.5, 12, '#53615b');
   canvas.sectionSizes = [emergency, directions, ...panels].map(panel => ({ title: panel.section.title, height: panel.height }));
   canvas.fieldMetrics = {
     bodyFontPt: style.body, headingFontPt: style.heading, keyFontPt: 18, directionsFontPt: style.body,

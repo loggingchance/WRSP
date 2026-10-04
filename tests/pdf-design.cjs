@@ -74,12 +74,19 @@ const os = require('node:os');
     assert.ok(results.every(result => !result.error), 'All six representative plans must fit');
     for (const result of results) {
       assert.ok(result.metrics.bodyFontPt >= 12 && result.metrics.bodyFontPt <= 13);
+      const previousBodySizes = { short: 13, average: 13, 'long-directions': 12.5, 'several-contacts': 13, 'multiple-hazards': 12, 'detailed-access': 12 };
+      assert.equal(result.metrics.bodyFontPt, previousBodySizes[result.name], 'Branding must not reduce the existing body font size');
       assert.equal(result.metrics.marginPt, 36);
       assert.ok(result.metrics.overflow <= 0);
       assert.ok(result.layout.blocks.some(block => block.title === 'Directions for Responders' && block.width === 540));
       const actions = result.layout.blocks.find(block => block.title === 'Emergency Actions');
       assert.ok(actions.y + actions.height > 730, 'Actions use lower page');
       const drawn = result.layout.text.map(run => run.text).join(' ').replace(/\s+/g, ' ');
+      assert.ok(drawn.includes('Created with the Woods-Ready Safety Plan App - wrsp.lumbermen.org'));
+      const footer = result.layout.text.filter(run => run.text.includes('Created with') || run.text === 'wrsp.lumbermen.org');
+      assert.equal(footer.length, 2);
+      assert.ok(footer.every(run => run.y >= actions.y + actions.height), 'Footer is below the plan, not on top of it');
+      assert.ok(result.links.some(link => link.url === 'https://wrsp.lumbermen.org/'));
       for (const word of result.directions.split(/\s+/)) assert.ok(drawn.includes(word), 'Directions word retained: ' + word);
       for (const person of result.people) assert.ok(drawn.includes(person.name), 'Contact retained: ' + person.name);
       for (const run of result.layout.text) {

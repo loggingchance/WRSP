@@ -55,6 +55,7 @@ const os = require('node:os');
     const expected = 'https://www.google.com/maps?q=44.1486,-72.6408';
     const siteLinks = result.annotations.filter(link => link.url === expected);
     assert.equal(result.pages, 1);
+    assert.equal(result.annotations.filter(link => link.url === 'https://wrsp.lumbermen.org/').length, 1, 'App footer link survives PDF creation');
     assert.equal(siteLinks.length, 1, 'Exactly one explicit site-map annotation');
     assert.equal(result.nextRow.text, 'Open site in Google Maps');
     assert.equal(result.nextRow.url, expected);

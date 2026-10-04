@@ -25,7 +25,16 @@ const os = require('node:os');
       plan.contacts.people[0].phone = '+1 802-555-0101 / 802-555-0121';
       const html = planEmailHtml(plan);
       const pdf = new File([await planPdfBlob(plan)], 'wrsp-email-test.pdf', { type: 'application/pdf' });
-      return { html, text: planShareText(plan), eml: await (await planEmailFile(plan, pdf)).text(), pdf: Array.from(new Uint8Array(await pdf.arrayBuffer())), directions: plan.access.phoneDirections, escaped: planEmailHtml({ ...plan, title: '<img src=x onerror=alert(1)>' }), unnumbered: planEmailHtml({ ...plan, emergencyProcedure: 'Call 911. Use the procedure at gate 1.2.' }) };
+      const subjects = [];
+      for (const [title, expected] of [
+        [plan.title, plan.title],
+        ['  Sugar Ridge\r\n North Lot  ', 'Sugar Ridge North Lot'],
+        ['\u00c9rabli\u00e8re & Sons - ' + 'North Ridge '.repeat(12), '\u00c9rabli\u00e8re & Sons - ' + 'North Ridge '.repeat(12).trim()],
+        [' ', 'Safety Plan'],
+      ]) {
+        subjects.push({ expected, actual: planEmailSubject({ title }), eml: await (await planEmailFile({ ...plan, title }, pdf)).text() });
+      }
+      return { subjects, html, text: planShareText(plan), eml: await (await planEmailFile(plan, pdf)).text(), pdf: Array.from(new Uint8Array(await pdf.arrayBuffer())), directions: plan.access.phoneDirections, escaped: planEmailHtml({ ...plan, title: '<img src=x onerror=alert(1)>' }), unnumbered: planEmailHtml({ ...plan, emergencyProcedure: 'Call 911. Use the procedure at gate 1.2.' }) };
     });
     assert.ok(artifact.escaped.includes('&lt;img'));
     assert.ok(!artifact.escaped.includes('<img'));
@@ -33,6 +42,8 @@ const os = require('node:os');
     await fs.writeFile(path.join(output, 'email.html'), artifact.html);
     await fs.writeFile(path.join(output, 'plan.eml'), artifact.eml);
     await fs.writeFile(path.join(output, 'plan.pdf'), Buffer.from(artifact.pdf));
+    for (const subject of artifact.subjects) assert.equal(subject.actual, subject.expected);
+    await fs.writeFile(path.join(output, 'subjects.json'), JSON.stringify(artifact.subjects));
     const preview = await context.newPage();
     for (const width of [320, 390, 1000]) {
       await preview.setViewportSize({ width, height: 900 });
